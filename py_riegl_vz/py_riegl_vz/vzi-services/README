@@ -1,0 +1,7 @@
+Python API to communicate with RIEGL VZ-i scanners.
+
+Supported Python versions:
+  Python (>= 3.4)
+
+Dependencies:
+  protobuf (>= 3.0)
