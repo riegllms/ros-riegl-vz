@@ -1,0 +1,6 @@
+source;share/py_riegl_vz/hook/pythonpath.ps1
+source;share/py_riegl_vz/hook/pythonpath.dsv
+source;share/py_riegl_vz/hook/pythonpath.sh
+source;share/py_riegl_vz/hook/ament_prefix_path.ps1
+source;share/py_riegl_vz/hook/ament_prefix_path.dsv
+source;share/py_riegl_vz/hook/ament_prefix_path.sh

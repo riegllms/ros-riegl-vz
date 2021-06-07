@@ -1,0 +1,3 @@
+[console_scripts]
+riegl_vz = py_riegl_vz.__init__:main
+

@@ -1,11 +1,11 @@
 <?xml version="1.0"?>
 <?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
 <package format="3">
-  <name>py_riegl_vz</name>
+  <name>vzi_services</name>
   <version>0.0.0</version>
-  <description>ROS (Roboter Operating System) Driver for RIEGL VZ scanner series</description>
-  <maintainer email="afriedl@riegl.com">Andreas Friedl</maintainer>
-  <license>Apache License 2.0</license>
+  <description>TODO: Package description</description>
+  <maintainer email="afriedl@riegl.com">af</maintainer>
+  <license>TODO: License declaration</license>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
