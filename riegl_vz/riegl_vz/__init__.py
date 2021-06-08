@@ -17,13 +17,14 @@ def scp():
     cli.disconnect()
 
 class ScanService(Node):
+    
     def __init__(self, cs):
         super().__init__('scan')
         self.vzi_control_service = cs
         self.srv = self.create_service(Trigger, 'scan', self.scan_callback)
 
     def scan_callback(self, request, response):
-        self.vzi_control_service = cs.StartAcquisition()
+        self.vzi_control_service = self.vzi_control_service.startAcquisition()
         response.success = True
         response.message = "SUCCESS"
         return response
