@@ -1,6 +1,6 @@
 from setuptools import setup
 
-package_name = 'vzi_services'
+package_name = 'riconnect'
 
 setup(
     name=package_name,
@@ -15,7 +15,7 @@ setup(
     zip_safe=True,
     maintainer='Andreas Friedl',
     maintainer_email='afriedl@riegl.com',
-    description='RIEGL client service communication library for 3D scanners',
+    description='RIEGL low level client service communication library',
     license='Apache License 2.0',
     tests_require=['pytest'],
     entry_points={
