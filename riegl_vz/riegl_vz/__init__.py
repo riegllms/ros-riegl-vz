@@ -1,13 +1,9 @@
-from .ssh import RemoteClient
-
 import sys
-
 from std_srvs.srv import Trigger
-
 import rclpy
 from rclpy.node import Node
-
 from vzi_services.controlservice import ControlService
+from .ssh import RemoteClient
 
 def scp():
     host = 'H2222273'
@@ -15,11 +11,12 @@ def scp():
     password = 'user'
     remote_path = '/media/intern/'
     cli = RemoteClient(host=host, user=user, password=password)
+
     cli.download_file(file="/media/intern/gsm_kolomela.gsfx")
+
     cli.disconnect()
 
 class ScanService(Node):
-
     def __init__(self, cs):
         super().__init__('scan')
         self.vzi_control_service = cs
