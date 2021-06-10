@@ -1,32 +1,94 @@
-# ROS API
+# RIEGL-VZi ROS 2 Driver API
 
-## 1. Nodes
+## 1. Coordinate Systems
 
-### 1.1 riegl_vz
+RIEGL uses hierarchically structured coordinate systems:
 
-#### 1.1.1 Parameters
+**SOCS** (Scanner's Own Coordinate System): Angle data and range data are the base for calculation of the data in the Scanner’s Own Coordinate System (SOCS).
 
-**~hostname** (string, default: "") : 
+![SOCS](socs.png)
 
-The scanners hostname or IP address. 
 
-**~ssh_user** (string, default: "user") : 
+**PRCS** (Project Coordinate System): A number of scan positions and the data acquired therein make up a scan project.The center of the project’s coordinate system (PRCS) usually coincides horizontally with the center of the first scan position. The axes of PRCS are strictly pointing to east (x-axis, red), north (y-axis, green) and up (z-axis, blue), respectively.
+
+![PRCS](prcs.png)
+
+**VOCS** (Voxel Coordinate System): This is an intermediate coordinate system. Origin and orientation are identical to PRCS at the first scan position. Each scan will be registered in the VOCS coordinate system.
+* Every scan position is described by SOPV (Scan Orienqtation and Position in VOCS).
+* The position of the VOCS is described by VOP (VOCS Orientation and Position in PRCS).
+* With every scan the VOP, especially the orientation, will be readjusted.
+* The SOP (Scan Position and Orientation in PRCS) has to be recalculated after each newly registered scan from SOPV and updated VOP.
+
+```
+                SOCS ---           
+                 |      |
+                sopv    |
+                 |      |
+                VOCS   sop
+                 |      |
+                vop     |
+                 |      |
+                PRCS ---
+```
+
+## 2. RIEGL Interfaces
+
+### 2.1 Messages
+
+**riegl_vzi_interfaces/Status**:
+
+```
+uint8 errors
+uint8 warnings
+uint8 scan_progress
+uint8 memory_usage
+```
+tbd...
+
+### 2.2 Services
+
+**riegl_vzi_interfaces/GetPointcloud**:
+```
+uint32 n
+---
+PointCloud2 pointcloud
+```
+See PointCoud2 definition: [sensor_msgs/PointCloud2](https://docs.ros.org/en/api/sensor_msgs/html/msg/PointCloud2.html)
+
+**riegl_vzi_interfaces/GetPose**:
+```
+int32 first
+int32 last
+---
+PoseStamped vop
+PoseStamped sopv[]
+PoseStamped sop[]
+```
+A negative value of n/first/last points to the last scan position. 0 ist the first scan position.
+
+See PoseStamped definition: [sensor_msgs/PoseStamped](http://docs.ros.org/en/api/geometry_msgs/html/msg/PoseStamped.html)[]
+
+## 3. Nodes
+
+### 3.1 riegl_vz
+
+#### 3.1.1 Parameters
+
+**~hostname** (string, default: "") :
+
+The scanners hostname or IP address.
+
+**~ssh_user** (string, default: "user") :
 
 The linux user name for SSH login on the scanner.
 
-**~ssh_password** (string, default: "user") : 
+**~ssh_password** (string, default: "user") :
 
 The linux user password for SSH login on the scanner.
 
-**~scan_pattern** (double[6], default: {0.0,360.0,0.1,0.0,180.0,0.1}) : 
+**~scan_pattern** (string, default: "Overview") :
 
-The field of view for the laser scan in angular degree.<br>
-[0]: frame_start<br>
-[1]: frame_stop<br>
-[2]: frame_delta<br>
-[3]: line_start<br>
-[4]: line_stop<br>
-[5]: line_delta
+The scan pattern for laser scanning, specifying the field of view (FOV) and the delta angles between laser shots on line and frame angle.
 
 **~meas_prog** (integer, default: 0) :
 
@@ -34,88 +96,66 @@ The laser scanners measurement program, defining the laser pulse repetition rate
 
 **~stor_media** (integer, default: 2) :
 
-Configures storage media for measurement files in the scanner (1: auto, 2: internal).
+Automatically increment scan position before every data acquisition start.
 
-**~project_name** (string, default: "") :
+**~coarse_registration** (bool, default: False) :
 
-The scanner project name.
+Enable coarse registration. If coarse registration fails, the standard registration method will be applied.
 
-**~pointcloud_stream** (integer, default: 0) :
+**~pointcloud_msm** (integer[],  default: {1,1}) :
 
-Select the laser scanners output stream for pointcloud data (0: standard measurement stream, 1: reduced monitor stream).
-
-**~pointcloud_msm** (integer[2], default: {10,10}) :
-
-The monitor stream multiplier used for measurement data reduction of the scanners monitor data stream.
-
-**~pointcloud_coordinate_system** (string, default: "SOCS") :
-
-Select the coordinate system for the pointcloud data.<br>
-"SOCS" : Scanner own coordinate system<br>
-"PCRS" : Project coordinate system
-
-**~registration_max_iterations** (integer, default: 1) :
-
-The number of iterations for scan registration.
-
-**~registration_max_iteration_distance** (double, default: 10.0) :
-
-The maximum distance between the last scan position of the current iteration and the first scan position of the next iteration in meter.
+The point cloud MSM (monitor step multiplier) configuration, used for scan data reduction, default disabled ([0]: lines, [1]: shots).
 
 
-#### 1.1.2 Published Topics
+#### 3.1.2 Published Topics
 
-**pointcloud** (sensor_msgs/PointCloud2) : 
+**pointcloud** ([sensor_msgs/PointCloud2](https://docs.ros.org/en/api/sensor_msgs/html/msg/PointCloud2.html)) :
 
-Point cloud with scan data from the laser scanner.
+Point cloud with scan data from the laser scanner in SOCS.
 
-**pose** (geometry_msgs/Pose) : 
-
-Position and orientation of the scanner origin in project coordinate system (PCRS).
-
-**status** (???) : 
+**status** (riegl_vzi_interfaces/Status) :
 
 Riegl VZ scanner status, provided once per second.
 
 
-#### 1.1.3 Services
+#### 3.1.3 Services
 
-**set_project** (std_srvs/Trigger) :
+**create_project** ([std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) :
 
-Create a new or load an existing project on the scanner with name from parameter ~project_name, If empty the default name is derived from actual date and time.
+Create a new or load an existing project on the scanner with name composed from current local time (date and time).
 
-Returns:
-success = True -> message: Project Name
-success = False -> message: Error Message
+Returns:  
+success = True -> message: Project Name  
+success = False -> message: Error Message  
 
-**scan** (std_srvs/Trigger) : 
+**scan** ([std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) :
 
-Start laser scan and wait until scan is finished. Provide scan data on 'pointcloud' topic.
+Acquire laser scan data. Start scan and wait until finished. When the scan has finished data is published on 'pointcloud' topic.
 
-Returns:<br>
-success = True -> message: Measurement Identifier<br>
-success = False -> message: Error Message<br>
+Returns:  
+success = True -> message: Measurement Identifier  
+success = False -> message: Error Message  
 
-**coarse_registration** (std_srvs/Trigger) : 
+**get_pointcloud** (riegl_vzi_interfaces/GetPointcloud) :
 
-Start laser scan coarse registration and wait until scan is finished. Provide estimated position on 'pose' topic.
+Get point cloud data of a previously acquired scan position.
 
-Returns:<br>
-success = True -> message: SUCCESS<br>
-success = False -> message: Error Message<br>
+**scan_register** ([std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) :
 
-**registration** (std_srvs/Trigger) : 
+Start laser scan registration in actual project and wait until finished. Provide estimated position on 'pose' topic.
 
-Start laser scan registration and wait until scan is finished. Provide estimated position on 'pose' topic.
+Returns:  
+success = True -> message: SUCCESS  
+success = False -> message: Error Message  
 
-Returns:<br>
-success = True -> message: SUCCESS<br>
-success = False -> message: Error Message<br>
+**get_pose** (riegl_vzi_interfaces/GetPose) :
 
-**shutdown** (std_srvs/Trigger) : 
+Request VOP, SOPV and SOP for scan position(s).
+
+**shutdown** ([std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) :
 
 Shutdown the laser scanner.
 
-Returns:<br>
-success = True -> message: SUCCESS<br>
-success = False -> message: Error Message<br>
+Returns:  
+success = True -> message: SUCCESS  
+success = False -> message: Error Message  
