@@ -33,6 +33,7 @@ RIEGL uses hierarchically structured coordinate systems:
 
 ## 2. RIEGL Interfaces
 
+<a id="riegl_vzi_msg"></a>
 ### 2.1 Messages
 
 **riegl_vzi_interfaces/Status**:
@@ -45,11 +46,12 @@ uint8 memory_usage
 ```
 tbd...
 
+<a id="riegl_vzi_srv"></a>
 ### 2.2 Services
 
-**riegl_vzi_interfaces/GetPointcloud**:
+**riegl_vzi_interfaces/GetPointCloud**:
 ```
-uint32 n
+uint32 index
 ---
 PointCloud2 pointcloud
 ```
@@ -57,14 +59,12 @@ See PointCoud2 definition: [sensor_msgs/PointCloud2](https://docs.ros.org/en/api
 
 **riegl_vzi_interfaces/GetPose**:
 ```
-int32 first
-int32 last
+int32 index_first
+int32 index_last
 ---
-PoseStamped vop
-PoseStamped sopv[]
-PoseStamped sop[]
+PoseStamped poses[]
 ```
-A negative value of n/first/last points to the last scan position. 0 ist the first scan position.
+A negative value of an index points to the last scan position. 0 ist the first scan position.
 
 See PoseStamped definition: [sensor_msgs/PoseStamped](http://docs.ros.org/en/api/geometry_msgs/html/msg/PoseStamped.html)[]
 
@@ -86,25 +86,13 @@ The linux user name for SSH login on the scanner.
 
 The linux user password for SSH login on the scanner.
 
-**~scan_pattern** (string, default: "Overview") :
+**~pointcloud_publish** (bool, default: "True") :
 
-The scan pattern for laser scanning, specifying the field of view (FOV) and the delta angles between laser shots on line and frame angle.
+Enable publishing of point cloud data on topic 'pointcloud' after scan acquisition has finished.
 
-**~meas_prog** (integer, default: 0) :
+**~msm** (integer[],  default: {1,1}) :
 
-The laser scanners measurement program, defining the laser pulse repetition rate (PRR).
-
-**~stor_media** (integer, default: 2) :
-
-Automatically increment scan position before every data acquisition start.
-
-**~coarse_registration** (bool, default: False) :
-
-Enable coarse registration. If coarse registration fails, the standard registration method will be applied.
-
-**~pointcloud_msm** (integer[],  default: {1,1}) :
-
-The point cloud MSM (monitor step multiplier) configuration, used for scan data reduction, default disabled ([0]: lines, [1]: shots).
+The scan data MSM (monitor step multiplier), used for point cloud data reduction, default disabled ([0]: lines, [1]: shots).
 
 
 #### 3.1.2 Published Topics
@@ -124,38 +112,48 @@ Riegl VZ scanner status, provided once per second.
 
 Create a new or load an existing project on the scanner with name composed from current local time (date and time).
 
-Returns:  
+Response:  
 success = True -> message: Project Name  
 success = False -> message: Error Message  
 
 **scan** ([std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) :
 
-Acquire laser scan data. Start scan and wait until finished. When the scan has finished data is published on 'pointcloud' topic.
+Acquire laser scan data. When the scan has finished data is published on 'pointcloud' topic if parameter '~pointcloud_publish' is enabled. Use 'is_busy' service to check if data acquisition has finished.
 
-Returns:  
+Response:  
 success = True -> message: Measurement Identifier  
 success = False -> message: Error Message  
 
-**get_pointcloud** (riegl_vzi_interfaces/GetPointcloud) :
+**get_pointcloud** (riegl_vzi_interfaces/GetPointCloud) :
 
-Get point cloud data of a previously acquired scan position.
+Get point cloud data of a previously acquired scan.
 
-**scan_register** ([std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) :
+**register_scan** ([std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) :
 
-Start laser scan registration in actual project and wait until finished. Provide estimated position on 'pose' topic.
+Start laser scan registration within actual project. Use 'is_busy' service to check if scan registration has finished.
 
-Returns:  
+Response:  
 success = True -> message: SUCCESS  
 success = False -> message: Error Message  
 
+**is_busy** ([std_srvs/SetBool](http://docs.ros.org/en/api/std_srvs/html/srv/SetBool.html)) :
+
+Check if scanner data acquisition or registration is busy.
+
+Request:  
+data: set blocking execution  
+Response:  
+success = True -> message: BUSY  
+success = False -> message: READY  
+
 **get_pose** (riegl_vzi_interfaces/GetPose) :
 
-Request VOP, SOPV and SOP for scan position(s).
+Request positions for a number of  previously acquired scans in actual project. {VOP, SOPV[], SOP[]}
 
 **shutdown** ([std_srvs/Trigger](http://docs.ros.org/en/api/std_srvs/html/srv/Trigger.html)) :
 
-Shutdown the laser scanner.
+Power down the laser scanner.
 
-Returns:  
+Response:  
 success = True -> message: SUCCESS  
 success = False -> message: Error Message  
