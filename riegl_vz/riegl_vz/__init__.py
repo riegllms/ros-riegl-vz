@@ -1,6 +1,5 @@
 import sys
-import argparse
-import time
+from datetime import datetime
 import numpy as np
 from std_srvs.srv import (
     Trigger,
@@ -37,15 +36,13 @@ class RieglVzWrapper(Node):
         self.declare_parameter('meas_program', 0)
         self.declare_parameter('msm', 1)
 
-        if sys.argv[1] != None:
-            self.hostname = sys.argv[1]
-        else:
-            self.hostname = str(self.get_parameter('hostname').value)
+        self.hostname = str(self.get_parameter('hostname').value)
         self.connectionString = self.hostname + ":20000"
         self.workingDir = str(self.get_parameter('working_dir').value)
         self.sshUser = str(self.get_parameter('ssh_user').value)
         self.sshPwd = str(self.get_parameter('ssh_password').value)
         self.projectName = str(self.get_parameter('project_name').value)
+        self.scanposName = ''
         self.scanPublish = bool(self.get_parameter('scan_publish').value)
         scanPattern = self.get_parameter('scan_pattern').value
         self.scanPattern = ScanPattern()
@@ -65,21 +62,26 @@ class RieglVzWrapper(Node):
 
         self.rieglVz = RieglVz(self.connectionString, self.workingDir, self.get_logger())
 
-        self.get_logger().info("RIEGL VZ is now started, ready to get commands.")
+        self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.connectionString))
 
     def scanCallback(self, request, response):
         if self.shutdownReq is True:
             return {"success": False, "message": "RIEGL VZ is shutting down"}
 
+        now = datetime.now()
+        if not self.projectName:
+            self.projectName = now.strftime("%y%m%d_%H%M%S")
+        self.scanposName = now.strftime("%y%m%d_%H%M%S")
+
         self.subproc = self.rieglVz.acquireData(
-            projectName = '',
-            scanposName = '',
+            projectName = self.projectName,
+            scanposName = self.scanposName,
             scanPattern = self.scanPattern,
             reflSearchSettings = None,
             createRdbx = True,
             block = False,
-            rdbxLineStep = this.msm,
-            rdbxEchoStep = this.msm,
+            rdbxLineStep = self.msm,
+            rdbxEchoStep = self.msm,
             captureImages = False,
             captureMode = 1,
             imageOverlap = 25)
@@ -127,9 +129,6 @@ def main(args=None):
         stop_node()
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('hostname', nargs='?', help='name or IP address of host')
-    args = parser.parse_args()
     try:
         signal.signal(signal.SIGINT, stop_node)
         signal.signal(signal.SIGTERM, stop_node)

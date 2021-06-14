@@ -82,16 +82,16 @@ def acquireData(
     while not sigHandler.canceled:
         if finishedEvent.is_set():
             break
-        if rdbxProc is None and createRdbx and dataprocStarted.is_set():
-            measRxpPath = procSvc.actualFile(0)
-            rdbxPath = "/media/" + measRxpPath.rsplit(".", maxsplit=1)[0] + "_fastpos.rdbx"
-            cmd = [
-                join(appBinDir, "fastposrdbx"),
-                "--line-step-size", str(rdbxLineStep),
-                "--echo-step-size", str(rdbxEchoStep),
-                "rdtp://127.0.0.1/ACTUAL?type=meas",
-                rdbxPath]
-            rdbxProc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+#        if rdbxProc is None and createRdbx and dataprocStarted.is_set():
+#            measRxpPath = procSvc.actualFile(0)
+#            rdbxPath = "/media/" + measRxpPath.rsplit(".", maxsplit=1)[0] + "_fastpos.rdbx"
+#            cmd = [
+#                join(appBinDir, "fastposrdbx"),
+#                "--line-step-size", str(rdbxLineStep),
+#                "--echo-step-size", str(rdbxEchoStep),
+#                "rdtp://127.0.0.1/ACTUAL?type=meas",
+#                rdbxPath]
+#            rdbxProc = subprocess.Popen(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         time.sleep(0.2)
     sigcon.disconnect()
     sigcon2.disconnect()

@@ -35,7 +35,11 @@ class ScanPattern(object):
         self.measProgram = 3
 
 class RieglVz():
-    def __init__(self, connectionString, workingDir, logger):
+    def __init__(
+        self,
+        connectionString: str,
+        workingDir: str,
+        logger):
         self.connectionString = connectionString
         self.workingDir = workingDir
         self.logger = logger
@@ -63,11 +67,13 @@ class RieglVz():
           block ... block until done
 
         Return:
-          Instance of subprocess.Popen if in non-blocking mode."""
+          Instance of SubProcess if in non-blocking mode."""
 
         print("Acquiring data", flush=True)
         self.logger.info("Starting data acquisition")
-        scriptPath = join(appDir, "bin", "acquire-data.py")
+        scriptPath = join(appDir, "acquire-data.py")
+        self.logger.debug("appDir = {}".format(" ".join(appDir)))
+        self.logger.debug("scriptPath = {}".format(" ".join(scriptPath)))
         cmd = [
             "python3", scriptPath,
             "--connectionstring", self.connectionString,
@@ -102,13 +108,13 @@ class RieglVz():
                 "--image-overlap", str(imageOverlap)
             ])
         self.logger.debug("CMD = {}".format(" ".join(cmd)))
-        proc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+        subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         if block:
-            proc.waitFor("Data acquisition failed.")
+            subproc.waitFor("Data acquisition failed.")
             self.logger.info("Data acquisition finished")
             return None
         else:
-            return proc
+            return subproc
 
     def registerScan(
         self,
@@ -124,13 +130,13 @@ class RieglVz():
             "--project", projectName,
             "--scanposition", scanposName]
         self.logger.debug("CMD = {}".format(" ".join(cmd)))
-        proc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+        subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         if block:
-            proc.waitFor("Registration failed.")
+            subproc.waitFor("Registration failed.")
             self.logger.info("Registration finished")
             return None
         else:
-            return proc
+            return subproc
 
     def coarsePose(self):
         # tbd...
