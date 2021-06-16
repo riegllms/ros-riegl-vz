@@ -40,7 +40,10 @@ def registerScanposition(sigHandler, ctrlSvc, media, project, scanposition, mode
         except Exception:
             pass
         return False
+        
     sigcon.disconnect()
+
+    return True
 
 def mediaString(projSvc):
     """Return string representation of active storage media (used by ControlService)."""

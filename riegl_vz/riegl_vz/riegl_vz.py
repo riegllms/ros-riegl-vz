@@ -52,8 +52,8 @@ class RieglVz():
         reflSearchSettings: dict = None,
         createRdbx: bool = False,
         block: bool = True,
-        rdbxLineStep: int = 5,
-        rdbxEchoStep: int = 5,
+        lineStep: int = 5,
+        echoStep: int = 5,
         captureImages: bool = False,
         captureMode: int = 1,
         imageOverlap: int = 25) -> subprocess.Popen:
@@ -72,8 +72,6 @@ class RieglVz():
         print("Acquiring data", flush=True)
         self.logger.info("Starting data acquisition")
         scriptPath = join(appDir, "acquire-data.py")
-        self.logger.debug("appDir = {}".format(" ".join(appDir)))
-        self.logger.debug("scriptPath = {}".format(" ".join(scriptPath)))
         cmd = [
             "python3", scriptPath,
             "--connectionstring", self.connectionString,
@@ -82,8 +80,8 @@ class RieglVz():
         if createRdbx:
             cmd.extend([
                 "--create-rdbx",
-                "--rdbx-line-step", str(rdbxLineStep),
-                "--rdbx-echo-step", str(rdbxEchoStep)
+                "--line-step", str(lineStep),
+                "--echo-step", str(echoStep)
             ])
         if reflSearchSettings:
             rssFilepath = join(self.workingDir, "reflsearchsettings.json")

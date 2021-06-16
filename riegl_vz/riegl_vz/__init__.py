@@ -80,8 +80,8 @@ class RieglVzWrapper(Node):
             reflSearchSettings = None,
             createRdbx = True,
             block = False,
-            rdbxLineStep = self.msm,
-            rdbxEchoStep = self.msm,
+            lineStep = self.msm,
+            echoStep = self.msm,
             captureImages = False,
             captureMode = 1,
             imageOverlap = 25)
