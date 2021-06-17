@@ -38,31 +38,27 @@ RIEGL uses hierarchically structured coordinate systems:
 ### 2.1 Messages
 
 **riegl_vz_interfaces/Status**:
-
-tbd...
-
 ```
-uint8 warnings
-uint8 errors
-uint8 scan_progress
-uint8 memory_usage
+uint8 scanner_errors            # number or pending errors on laser scanner
+uint8 busy_state                # busy state: 0 - ready, 1 - busy with scan data acquisition, 2 - busy with scan registration
+uint8 progress                  # progress of scan data acquisition or registration in percent
+uint8 memory_usage              # memory usage of active storage media in percent
 ```
 
 ### 2.2 Services
 
 **riegl_vz_interfaces/GetPointCloud**:
 ```
-# Two-integer timestamp that is expressed as seconds and nanoseconds.
-builtin_interfaces/Time stamp
+uint32 index   # The scan position number within a project
 ---
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 PointCloud2 pointcloud
 ```
-A zero timestamp {seconds=0,nanoseconds=0} implicitly refers to the last scan position.  
-See PointCoud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)
+A negative index implicitly refers to the last scan position, 0 is the first scan position.  
+See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)
 
-**riegl_vz_interfaces/GetPose**:
+**riegl_vz_interfaces/GetPoses**:
 ```
 ---
 bool success   # indicate successful run of service
@@ -74,7 +70,7 @@ The 'frame_id' in the header is either 'SOCS' or 'VOCS'.
 
 **riegl_vz_interfaces/SetPose**:
 ```
-PoseStamped poses[]
+PoseStamped pose
 ---
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
@@ -104,8 +100,11 @@ The linux user password for SSH login on the scanner.
 
 **~project_name** (string, default: "") :
 
-The scan project name used by service 'set_project'. An existing project will be loaded, otherwise a new project will be created.
-If string is empty, a default project name will be composed from current local time (date and time).
+The scan project name used by service 'set_project'. An existing project will be loaded, otherwise a new project will be created. If string is empty, a default project name will be composed from current local time and date.
+
+**~stor_media** (integer, default: 2) :
+
+The active storage media for scan data (1: AUTO, 2: INTERNAL SSD, 3: USB).
 
 **~scan_pattern** (double[], default: {30.0,130.0,0.04,0.0,360.0,0.04})
 
@@ -125,10 +124,6 @@ This is the laser scanner measurement program, which specifies the laser scanner
 
 Enable publishing of point cloud data on topic 'pointcloud' after scan acquisition has finished.
 
-**~msm** (integer[],  default: 1) :
-
-The scan data MSM (monitor step multiplier), used for point cloud data reduction, default disabled.
-
 
 #### 3.1.2 Published Topics
 
@@ -138,7 +133,7 @@ Point cloud with scan data from the laser scanner in SOCS.
 
 **status** (riegl_vz_interfaces/Status) :
 
-Riegl VZ scanner status, provided once per second.
+Riegl VZ status information, published once per second.
 
 
 #### 3.1.3 Services
@@ -151,49 +146,53 @@ Response:
 success = True -> message: Project Name  
 success = False -> message: Error Message  
 
-**scan** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
+**scan_and_register** ([std_srvs/SetTrigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
-Acquire laser scan data. When the scan has finished data is published on 'pointcloud' topic if parameter '~pointcloud_publish' is enabled. Use 'is_busy' service to check if data acquisition has finished.
+Start laser scan acquisition and registration within actual project. If parameter '~pointcloud_publish' is enabled and laser scan has finished, scan data will be published on 'pointcloud' topic. Use 'is_busy' services to check if background tasks have finished or retrieve busy state on 'status' topic.
 
-Response:  
-success = True -> message: Measurement Identifier  
-success = False -> message: Error Message  
-
-**register_scan** ([std_srvs/SetBool](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/SetBool.srv)) :
-
-Start laser scan registration within actual project. Use 'is_busy' service to check if scan registration has finished.
-
-Request:  
-data: enable coarse positioning (not supported atm)  
 Response:  
 success = True -> message: success  
 success = False -> message: Error Message  
 
-**is_busy** ([std_srvs/SetBool](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/SetBool.srv)) :
+**is_scan_busy** ([std_srvs/SetBool](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/SetBool.srv)) :
 
-Check if scan data acquisition or registration is busy.
+Check if scan data acquisition has finished, otherwise the device is locked. If 'data' in request is true, the call will block until background task has finished.
 
 Request:  
 data: set blocking execution  
 Response:  
-success = True -> message: RIEGL VZ is busy  
-success = False -> message: RIEGL VZ is ready  
+success = True -> message: busy  
+success = False -> message: ready  
+
+**is_busy** ([std_srvs/SetBool](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/SetBool.srv)) :
+
+Check if background tasks (scan data acquisition and scan registration) have finished, otherwise the device is locked. If 'data' in request is true, the call will block until background task has finished.
+
+Request:  
+data: set blocking execution  
+Response:  
+success = True -> message: busy  
+success = False -> message: ready  
 
 **get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
 
 Get point cloud of a previous scan data acquisition.
 
-**get_pose** (riegl_vz_interfaces/GetPose) :
+**set_pose** (riegl_vz_interfaces/SetPose) :
 
-Request position {VOP, SOPV} of the previously acquired scan.
+Set position of the scanner origin in a reference coordinate system. This is used for scan registration.
 
-**get_all_poses** (riegl_vz_interfaces/GetPose) :
+**get_pose** (riegl_vz_interfaces/GetPoses) :
 
-Request positions {VOP, SOPV[]} for all  previously acquired scans in actual project.
+Request position ([0] VOP, [1] SOPV) of the previously acquired scan.
+
+**get_all_poses** (riegl_vz_interfaces/GetPoses) :
+
+Request positions ([0] VOP, [1] SOPV1, [2] SOPV2,... , [n] SOPVn) for all  previously acquired scans in actual project.
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
-Stop laser scan acquisition or registration.
+Stop laser scan data acquisition and registration background tasks.
 
 Response:  
 success = True -> message: "RIEGL VZ has been stopped"  
@@ -205,14 +204,32 @@ Stop data acquisition and power down the laser scanner.
 Response:  
 success = True -> message: "RIEGL VZ is shutting down"  
 
-#### 3.1.4 Services (Extension)
+#### 3.1.4 Extension
 
-tbd...
+Not available in first implementation but for further extension:
 
-**set_pose** (riegl_vz_interfaces/SetPose) :
+* Providing covariance of pose (see [sensor_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg))
 
-Set position of the scanner origin in a reference coordinate system. This is useful for scan registration.
+* Additional parameters:
+
+**~msm** (integer,  default: 1) :
+
+The scan data MSM (monitor step multiplier), used for point cloud data reduction, default disabled.
+
+**~capture_images** (bool,  default: False) :
+
+Enable capturing of camera images.
+
+* Additional services:
 
 **get_voxel** (riegl_vz_interfaces/GetPointcloud) :
 
 Get voxel data of a previous scan data acquisition.
+
+**get_image** (riegl_vz_interfaces/GetImage) :
+
+Get camera image for scan position.
+
+**get_projectmap** (riegl_vz_interfaces/GetImage) :
+
+Get the project map overview image.
