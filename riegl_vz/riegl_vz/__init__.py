@@ -24,94 +24,131 @@ class RieglVzWrapper(Node):
         super().__init__('riegl_vz')
 
         self.shutdownReq = False
-        self.subproc = None
 
         self.declare_parameter('hostname', 'H2222222')
         self.declare_parameter('working_dir', '~/.ros_riegl_vz')
         self.declare_parameter('ssh_user', 'user')
         self.declare_parameter('ssh_password', 'user')
         self.declare_parameter('project_name', '')
-        self.declare_parameter('scan_publish', True)
+        self.declare_parameter('stor_media', 2)
         self.declare_parameter('scan_pattern', [30.0,130.0,0.04,0.0,360.0,0.04])
         self.declare_parameter('meas_program', 0)
+        self.declare_parameter('scan_publish', True)
         self.declare_parameter('msm', 1)
 
         self.hostname = str(self.get_parameter('hostname').value)
-        self.connectionString = self.hostname + ":20000"
         self.workingDir = str(self.get_parameter('working_dir').value)
         self.sshUser = str(self.get_parameter('ssh_user').value)
         self.sshPwd = str(self.get_parameter('ssh_password').value)
         self.projectName = str(self.get_parameter('project_name').value)
         self.scanposName = ''
-        self.scanPublish = bool(self.get_parameter('scan_publish').value)
+        self.storMedia = int(self.get_parameter('stor_media').value)
         scanPattern = self.get_parameter('scan_pattern').value
         self.scanPattern = ScanPattern()
-        self.scanPattern.lineStart = float(scanPattern[0])
+        self.scanPattern.lineStart = scanPattern[0]
         self.scanPattern.lineStop = scanPattern[1]
-        self.scanPattern.lineIncr = scanPattern[2]
+        self.scanPattern.lineIncrement = scanPattern[2]
         self.scanPattern.frameStart = scanPattern[3]
         self.scanPattern.frameStop = scanPattern[4]
-        self.scanPattern.frameIncr = scanPattern[5]
+        self.scanPattern.frameIncrement = scanPattern[5]
         self.measProgram = int(self.get_parameter('meas_program').value)
+        self.scanPublish = bool(self.get_parameter('scan_publish').value)
         self.msm = int(self.get_parameter('msm').value)
 
         self.scanService = self.create_service(Trigger, 'scan', self.scanCallback)
+        self.isBusyService = self.create_service(SetBool, 'is_scan_busy', self.isBusyCallback)
         self.isBusyService = self.create_service(SetBool, 'is_busy', self.isBusyCallback)
         self.stopService = self.create_service(Trigger, 'stop', self.stopCallback)
         self.shutdownService = self.create_service(Trigger, 'shutdown', self.shutdownCallback)
 
-        self.rieglVz = RieglVz(self.connectionString, self.workingDir, self.get_logger())
+        self.rieglVz = RieglVz(self.hostname, self.sshUser, self.sshPwd, self.workingDir, self.get_logger())
 
-        self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.connectionString))
+        self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.hostname))
 
-    def scanCallback(self, request, response):
-        if self.shutdownReq is True:
-            return {"success": False, "message": "RIEGL VZ is shutting down"}
-
+    def scan(self):
         now = datetime.now()
         if not self.projectName:
             self.projectName = now.strftime("%y%m%d_%H%M%S")
         self.scanposName = now.strftime("%y%m%d_%H%M%S")
-
-        self.subproc = self.rieglVz.acquireData(
+        return self.rieglVz.acquireData(
             projectName = self.projectName,
             scanposName = self.scanposName,
             scanPattern = self.scanPattern,
             reflSearchSettings = None,
-            createRdbx = True,
-            block = False,
             lineStep = self.msm,
             echoStep = self.msm,
             captureImages = False,
             captureMode = 1,
             imageOverlap = 25)
+
+    def scanCallback(self, request, response):
+        if self.shutdownReq is True:
+            response.success = False
+            response.message = "RIEGL VZ is shutting down"
+            return response
+        if not self.scan():
+            response.success = False
+            response.message = "RIEGL VZ is busy"
+            return response
         response.success = True
         response.message = "success"
         return response
 
-    def isBusyCallback(self, request):
-        if self.subproc is not None:
-            block = request.data
-            if self.subproc.waitFor("Execution failed.", block):
-                self.subproc = None
-        else:
-            return {"success": False, "message": "RIEGL VZ is not busy"}
-        return {"success": True, "message": "RIEGL VZ is busy"}
+    def isBusy(self):
+        return self.rieglVz.isBusy()
+
+    def isBusyCallback(self, request, response):
+        if self.shutdownReq is True:
+            response.success = False
+            response.message = "RIEGL VZ is shutting down"
+            return response
+        if not self.isBusy():
+            response.success = False
+            response.message = "RIEGL VZ is not busy"
+            return response
+        response.success = True
+        response.message = "RIEGL VZ is busy"
+        return response
+
+    def isScanBusy(self):
+        return self.rieglVz.isBusy()
+
+    def isScanBusyCallback(self, request, response):
+        if self.shutdownReq is True:
+            response.success = False
+            response.message = "RIEGL VZ is shutting down"
+            return response
+        if not self.isScanBusy():
+            response.success = False
+            response.message = "RIEGL VZ is not busy"
+            return response
+        response.success = True
+        response.message = "RIEGL VZ is busy"
+        return response
 
     def stop(self):
-        if self.subproc is not None:
-            self.subproc.cancel();
-            self.rieglVz.stop()
+        self.rieglVz.stop()
 
-    def stopCallback(self, request):
-        stop()
-        return {"success": True, "message": "RIEGL VZ has been stopped"}
+    def stopCallback(self, request, response):
+        if self.shutdownReq is True:
+            response.success = False
+            response.message = "RIEGL VZ is shutting down"
+            return response
+        self.stop()
+        response.success = True
+        response.message = "RIEGL VZ has been stopped"
+        return response
 
-    def shutdownCallback(self, request):
+    def shutdown(self):
         self.shutdownReq = True
-        stop()
-        self.rieglVz.shutdown()
-        return {"success": True, "message": "RIEGL VZ scanner is shutting down"}
+        self.stop()
+        self.rieglVZ.shutdown()
+
+    def shutdownCallback(self, request, response):
+        self.shutdown()
+        response.success = True
+        response.message = "RIEGL VZ scanner is shutting down"
+        return response
 
 def stop_node():
     if rieglVzWrapper is not None:

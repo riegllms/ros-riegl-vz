@@ -7,7 +7,6 @@ import argparse
 import json
 import signal
 import time
-import subprocess
 from threading import Event
 from vzi_services.projectservice import ProjectService
 from vzi_services.scannerservice import ScannerService, RectScanPattern
@@ -25,62 +24,10 @@ class SignalHandler(object):
     def _handleSignal(self, signal_number, frame):
         self.canceled = True
 
-def mediaString(projSvc):
-    """Return string representation of active storage media (used by ControlService)."""
-    media = projSvc.storageMedia()
-    if media == ProjectService.SM_USB:
-        return "USB"
-    if media == ProjectService.SM_SDCARD:
-        return "SDCARD"
-    if media == ProjectService.SM_NAS:
-        return "NAS"
-    return "SSD"
-
-def createRdbx(sigHandler, ctrlSvc,
-    storMedia: str,
-    projectName: str,
-    scanposName: str,
-    scanId: str):
-    """Create rdbx from rxp. Blocks until conversion is finished."""
-    taskId = None
-
-    taskFinishedEvent = Event()
-    def onBackgroundTaskRemoved(arg0):
-        obj = json.loads(arg0)
-        if obj.get('id') == taskId:
-            taskFinishedEvent.set()
-
-    sigcon = ctrlSvc.backgroundTaskRemoved().connect(onBackgroundTaskRemoved)
-
-    if createRdbx:
-        taskId = ctrlSvc.addRdbCreationTask(
-            storMedia,
-            projectName,
-            scanposName,
-            scanId
-        )
-
-    while not sigHandler.canceled:
-        if taskFinishedEvent.is_set():
-            break
-        time.sleep(0.2)
-    if sigHandler.canceled:
-        try:
-            if taskId:
-                ctrlSvc.cancelBackgroundTask(taskId)
-        except Exception:
-            pass
-        return False
-
-    sigcon.disconnect()
-
-    return True
-
 def acquireData(
     sigHandler, scanSvc, ctrlSvc, procSvc,
     scanPattern: RectScanPattern,
     measProg: int,
-    createRdbx=True,
     reflSearch: ReflectorSearchSettings = None,
     lineStep: int = 1,
     echoStep: int = 1,
@@ -181,11 +128,9 @@ def createArgumentParser():
         help='scanposition name')
     parser.add_argument('--reflsearch',
         help='file path of JSON file containing reflector search settings')
-    parser.add_argument('--create-rdbx', action="store_true",
-        help='enable creation of RDBX')
-    parser.add_argument('--line-step', type=int,
+    parser.add_argument('--line-step', type=int, default=1,
         help='line step size for scan data acquisition')
-    parser.add_argument('--echo-step', type=int,
+    parser.add_argument('--echo-step', type=int, default=1,
         help='echo step size for scan data acquisition')
     parser.add_argument('--line-start', type=float, default=30.0,
         help='line start angle in degrees (default=30.0)')
@@ -246,7 +191,6 @@ def main():
     acquired = acquireData(
         sigHandler, scanSvc, ctrlSvc, procSvc,
         scanPattern, measProg,
-        createRdbx=args.create_rdbx,
         reflSearch=reflSearch,
         lineStep=args.line_step,
         echoStep=args.echo_step,
@@ -256,19 +200,6 @@ def main():
     if not acquired:
         print("Data acquisition canceled.")
         return
-
-    if createRdbx:
-        scanId = procSvc.actualFile(0)
-        storMedia = mediaString(projSvc)
-        if not createRdbx(
-            sigHandler, ctrlSvc,
-            storMedia,
-            args.project,
-            args.scanposition,
-            scanId):
-            print("RDB creation canceled.")
-            return
-
 
 if __name__ == "__main__":
     main()
