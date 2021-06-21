@@ -53,6 +53,9 @@ class RieglVz():
         self.connectionString = hostname + ":20000"
         self.busy = False
         self.scanBusy = False
+        self.rdbxFile = None
+        if not os.path.exists(self.workingDir):
+            os.mkdir(self.workingDir)
 
     def acquireDataThread(self):
         self.busy = True
@@ -112,10 +115,14 @@ class RieglVz():
         self.logger.info("Download RDBX..")
         procSvc = DataprocService(self.connectionString)
         scanId = procSvc.actualFile(0)
-        rdbxFile = "/media/" + scanId + ".rdbx"
-        self.logger.debug("rdbx file = {}".format(rdbxFile))
+        self.logger.debug("scan id = {}".format(scanId))
+        rdbxFile = scanId.replace(".rxp", ".rdbx")
+        rdbxPath = "/media/" + rdbxFile
+        self.logger.debug("remote rdbx file = {}".format(rdbxPath))
+        self.rdbxFile = self.workingDir + "/" + os.path.basename(rdbxPath)
+        self.logger.debug("local rdbx file  = {}".format(self.rdbxFile))
         ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-        ssh.download_file(file=rdbxFile)
+        ssh.download_file(filepath=rdbxPath, localpath=self.rdbxFile)
         ssh.disconnect()
         self.logger.info("RDBX download finished")
 

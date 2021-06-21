@@ -33,7 +33,6 @@ class RemoteClient:
                 password=self.password,
                 timeout=5000
             )
-            LOGGER.error("Connect!")
             return self.client
         except Exception as e:
             raise e
@@ -61,10 +60,10 @@ class RemoteClient:
         except Exception as e:
             raise e
 
-    def download_file(self, file: str):
+    def download_file(self, filepath: str, localpath: str = "./"):
         """Download file from remote host."""
         scp = self.scp
-        scp.get(file)
+        scp.get(filepath, localpath)
         scp.close()
 
     def execute_commands(self, commands: List[str]):

@@ -11,13 +11,13 @@ def generate_launch_description():
             emulate_tty=True,
             parameters=[
                 {'hostname': '192.168.2.231'},
-                {'working_dir': '~/.ros_riegl_vz'},
+                {'working_dir': '/home/af/.ros_riegl_vz'},
                 {'ssh_user': 'user'},
                 {'ssh_password': 'user'},
                 {'stor_media': 2},
                 {'project_name': ''},
                 {'scan_publish': True},
-                {'scan_pattern': [30.0,130.0,0.1,0.0,360.0,0.1]},
+                {'scan_pattern': [30.0,130.0,0.1,0.0,10.0,0.1]},
                 {'meas_program': 3},
                 {'msm': 1}
             ],
