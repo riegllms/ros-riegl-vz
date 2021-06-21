@@ -63,7 +63,7 @@ See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/co
 ---
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
-PoseStamped poses[]
+PoseStamped[] poses
 ```
 See PoseStamped definition: [sensor_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
 The 'frame_id' in the header is either 'SOCS' or 'VOCS'.
@@ -178,17 +178,21 @@ success = False -> message: ready
 
 Get point cloud of a previous scan data acquisition.
 
-**set_pose** (riegl_vz_interfaces/SetPose) :
-
-Set position of the scanner origin in a reference coordinate system. This is used for scan registration.
-
 **get_pose** (riegl_vz_interfaces/GetPoses) :
 
-Request position ([0] VOP, [1] SOPV) of the previously acquired scan.
+Request position and orientation (SOPV) of the previously acquired scan.
 
 **get_all_poses** (riegl_vz_interfaces/GetPoses) :
 
-Request positions ([0] VOP, [1] SOPV1, [2] SOPV2,... , [n] SOPVn) for all  previously acquired scans in actual project.
+Request positions and orientations (SOPV) for all previously acquired scans in current project.
+
+**get_vop** (riegl_vz_interfaces/GetPoses) :
+
+Get current VOP, which is the position and orientation of the voxel coordinate system (VOCS) origin based on the project coordinate system (PRCS).
+
+**set_pose** (riegl_vz_interfaces/SetPose) :
+
+Set position of the scanner origin in a referenced coordinate system. This is used for scan registration.
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
