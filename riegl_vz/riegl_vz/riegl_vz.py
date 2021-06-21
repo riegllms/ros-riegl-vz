@@ -53,9 +53,24 @@ class RieglVz():
         self.connectionString = hostname + ":20000"
         self.busy = False
         self.scanBusy = False
-        self.rdbxFile = None
+        self.rdbxFileRemote = None
+        self.rdbxFileLocal = None
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
+
+    def publishScan(self):
+        self.logger.info("Download RDBX..")
+        procSvc = DataprocService(self.connectionString)
+        scanId = procSvc.actualFile(0)
+        self.logger.debug("scan id = {}".format(scanId))
+        self.rdbxFileRemote = "/media/" + scanId.replace(".rxp", ".rdbx")
+        self.logger.debug("remote rdbx file = {}".format(self.rdbxFileRemote))
+        self.rdbxFileLocal = self.workingDir + "/scan.rdbx"
+        self.logger.debug("local rdbx file  = {}".format(self.rdbxFileLocal))
+        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
+        ssh.download_file(filepath=self.rdbxFileRemote, localpath=self.rdbxFileLocal)
+        ssh.disconnect()
+        self.logger.info("RDBX download finished")
 
     def acquireDataThread(self):
         self.busy = True
@@ -112,19 +127,8 @@ class RieglVz():
         subproc.waitFor("RXP to RDBX conversion failed.")
         self.logger.info("RXP to RDBX conversion finished")
 
-        self.logger.info("Download RDBX..")
-        procSvc = DataprocService(self.connectionString)
-        scanId = procSvc.actualFile(0)
-        self.logger.debug("scan id = {}".format(scanId))
-        rdbxFile = scanId.replace(".rxp", ".rdbx")
-        rdbxPath = "/media/" + rdbxFile
-        self.logger.debug("remote rdbx file = {}".format(rdbxPath))
-        self.rdbxFile = self.workingDir + "/" + os.path.basename(rdbxPath)
-        self.logger.debug("local rdbx file  = {}".format(self.rdbxFile))
-        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-        ssh.download_file(filepath=rdbxPath, localpath=self.rdbxFile)
-        ssh.disconnect()
-        self.logger.info("RDBX download finished")
+        if self.scanPublish:
+            self.publishScan()
 
         self.busy = False
 
@@ -133,6 +137,7 @@ class RieglVz():
         projectName: str,
         scanposName: str,
         scanPattern: ScanPattern,
+        scanPublish: bool = True,
         reflSearchSettings: dict = None,
         lineStep: int = 1,
         echoStep: int = 1,
@@ -151,6 +156,7 @@ class RieglVz():
         self.projectName = projectName
         self.scanposName = scanposName
         self.scanPattern = scanPattern
+        self.scanPublish = scanPublish
         self.reflSearchSettings = reflSearchSettings
         self.lineStep = lineStep
         self.echoStep = echoStep

@@ -41,7 +41,7 @@ class RieglVzWrapper(Node):
         self.sshUser = str(self.get_parameter('ssh_user').value)
         self.sshPwd = str(self.get_parameter('ssh_password').value)
         self.projectName = str(self.get_parameter('project_name').value)
-        self.scanposName = ''
+        self.scanpos = 1
         self.storMedia = int(self.get_parameter('stor_media').value)
         scanPattern = self.get_parameter('scan_pattern').value
         self.scanPattern = ScanPattern()
@@ -69,11 +69,13 @@ class RieglVzWrapper(Node):
         now = datetime.now()
         if not self.projectName:
             self.projectName = now.strftime("%y%m%d_%H%M%S")
-        self.scanposName = now.strftime("%y%m%d_%H%M%S")
+        scanposName = str(self.scanpos)
+        self.scanpos = self.scanpos + 1
         return self.rieglVz.acquireData(
             projectName = self.projectName,
-            scanposName = self.scanposName,
+            scanposName = scanposName,
             scanPattern = self.scanPattern,
+            scanPublish = self.scanPublish,
             reflSearchSettings = None,
             lineStep = self.msm,
             echoStep = self.msm,
