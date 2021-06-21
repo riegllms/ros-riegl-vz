@@ -2,36 +2,42 @@
 
 ## 1. Coordinate Systems
 
-RIEGL uses hierarchically structured coordinate systems:
+```
 
-**SOCS** (Scanner's Own Coordinate System): Angle data and range data are the base for calculation of the data in the Scanner’s Own Coordinate System (SOCS).
+                   SOCS ---           
+                    |      |
+                   sopv    |
+                    |      |
+                   VOCS   sop
+                    |      |
+                   vop     |
+                    |      |
+                   PRCS ---
+
+```
+
+**SOCS** (Scanner's Own Coordinate System):  
+
+Angle data and range data are the base for calculation of the data in the Scanner’s Own Coordinate System (SOCS).
 
 ![SOCS](img/socs.png)
 
+**PRCS** (Project Coordinate System):  
 
-**PRCS** (Project Coordinate System): A number of scan positions and the data acquired therein make up a scan project.The center of the project’s coordinate system (PRCS) usually coincides horizontally with the center of the first scan position. The axes of PRCS are strictly pointing to east (x-axis, red), north (y-axis, green) and up (z-axis, blue), respectively.
+A number of scan positions and the data acquired therein make up a scan project. The center of the project’s coordinate system (PRCS) usually coincides horizontally with the center of the first scan position. The axes of PRCS are strictly pointing to east (x-axis, red), north (y-axis, green) and up (z-axis, blue), respectively.
+
+The so called SOP transforms SOCS into PRCS (Project Coordinate System).
 
 ![PRCS](img/prcs.png)
 
-**VOCS** (Voxel Coordinate System): This is an intermediate coordinate system. Origin and orientation are identical to PRCS at the first scan position. Each scan will be registered in the VOCS coordinate system.
+**VOCS** (Voxel Coordinate System):  
 
-* Every scan position is described by SOPV (Scan Orientation and Position in VOCS).  
-* The position of the VOCS is described by VOP (VOCS Orientation and Position in PRCS).  
-* With every scan the VOP, especially the orientation, will be readjusted.  
-* The SOP (Scan Position and Orientation in PRCS) has to be recalculated after each newly registered scan from SOPV and updated VOP.
+Automatic registration does not estimate the SOP with every new scan position, but the SOPV pose, which does not transform to PRCS, but to another cartesian coordinate system, the so called VOCS (Voxel Coordinate System). A once determined SOPV pose stays unchanged. What changes is the VOP. The VOP pose is determined via compensation of a fixed block of registered scan positions against all further measurements. Further measurements are the scanners inclination, northing from internal magnitude sensor, which is fraught with great uncertainty, and GNSS position if available.  
 
+After first scan: VOP = eye(4)  
+After each consecutive scan: VOP <> eye(4)  
 
-```
-                SOCS ---           
-                 |      |
-                sopv    |
-                 |      |
-                VOCS   sop
-                 |      |
-                vop     |
-                 |      |
-                PRCS ---
-```
+If the user is only interested in relative registration of scan positions to each other, the VOP can be ignored.
 
 ## 2. RIEGL Interfaces
 
@@ -39,10 +45,13 @@ RIEGL uses hierarchically structured coordinate systems:
 
 **riegl_vz_interfaces/Status**:
 ```
-uint8 scanner_errors            # number or pending errors on laser scanner
-uint8 busy_state                # busy state: 0 - ready, 1 - busy with scan data acquisition, 2 - busy with scan registration
-uint8 progress                  # progress of scan data acquisition or registration in percent
-uint8 memory_usage              # memory usage of active storage media in percent
+uint8 scanner_errors  # number of pending errors on laser scanner
+uint8 busy_state      # busy state:
+                      #   0 - ready
+                      #   1 - busy with scan data acquisition
+                      #   2 - busy with scan registration
+uint8 progress        # progress of scan data acquisition or registration in percent
+uint8 memory_usage    # memory usage of active storage media in percent
 ```
 
 ### 2.2 Services
@@ -178,13 +187,13 @@ success = False -> message: ready
 
 Get point cloud of a previous scan data acquisition.
 
-**get_pose** (riegl_vz_interfaces/GetPoses) :
+**get_sopv** (riegl_vz_interfaces/GetPoses) :
 
 Request position and orientation (SOPV) of the previously acquired scan.
 
-**get_all_poses** (riegl_vz_interfaces/GetPoses) :
+**get_all_sopv** (riegl_vz_interfaces/GetPoses) :
 
-Request positions and orientations (SOPV) for all previously acquired scans in current project.
+Request positions and orientations (SOPV) of all previously acquired scans in current project.
 
 **get_vop** (riegl_vz_interfaces/GetPoses) :
 

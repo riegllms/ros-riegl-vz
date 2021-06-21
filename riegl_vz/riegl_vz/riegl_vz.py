@@ -59,7 +59,7 @@ class RieglVz():
             os.mkdir(self.workingDir)
 
     def publishScan(self):
-        self.logger.info("Download RDBX..")
+        self.logger.info("Downloading RDBX..")
         procSvc = DataprocService(self.connectionString)
         scanId = procSvc.actualFile(0)
         self.logger.debug("scan id = {}".format(scanId))
@@ -71,6 +71,10 @@ class RieglVz():
         ssh.download_file(filepath=self.rdbxFileRemote, localpath=self.rdbxFileLocal)
         ssh.disconnect()
         self.logger.info("RDBX download finished")
+
+        self.logger.info("Extracting point cloud from RDBX..")
+        # @@AF: FIXME
+        self.logger.info("Point cloud extraction finished")
 
     def acquireDataThread(self):
         self.busy = True
