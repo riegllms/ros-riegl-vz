@@ -135,6 +135,10 @@ This is the laser scanner measurement program, which specifies the laser scanner
 
 Enable publishing of point cloud data on topic 'pointcloud' after scan acquisition has finished.
 
+**~scan_filter** (string, default: "") :
+
+Filter string for published point cloud data, e.g. "(riegl.xyz[2] > 5) && (riegl.reflectance > 35)"
+
 **~scan_register** (bool, default: "True") :
 
 Enable automatic scan position registration in current project after scan data acquisition has finished.

@@ -33,6 +33,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('stor_media', 2)
         self.declare_parameter('scan_pattern', [30.0,130.0,0.04,0.0,360.0,0.04])
         self.declare_parameter('meas_program', 0)
+        self.declare_parameter('scan_filter', '')
         self.declare_parameter('scan_publish', True)
         self.declare_parameter('scan_register', True)
         self.declare_parameter('msm', 1)
@@ -53,6 +54,7 @@ class RieglVzWrapper(Node):
         self.scanPattern.frameStop = scanPattern[4]
         self.scanPattern.frameIncrement = scanPattern[5]
         self.measProgram = int(self.get_parameter('meas_program').value)
+        self.scanFilter = str(self.get_parameter('scan_filter').value)
         self.scanPublish = bool(self.get_parameter('scan_publish').value)
         self.scanRegister = bool(self.get_parameter('scan_register').value)
         self.msm = int(self.get_parameter('msm').value)
@@ -77,6 +79,7 @@ class RieglVzWrapper(Node):
             projectName = self.projectName,
             scanposName = scanposName,
             scanPattern = self.scanPattern,
+            scanFilter = self.scanFilter,
             scanPublish = self.scanPublish,
             scanRegister = self.scanRegister,
             reflSearchSettings = None,

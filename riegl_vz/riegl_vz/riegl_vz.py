@@ -79,7 +79,7 @@ class RieglVz():
             numPoints = 0
             data = bytearray()
             for points in rdb.select(
-                filter,
+                self.scanFilter,
                 chunk_size=100000
                 ):
                 for point in points:
@@ -186,6 +186,7 @@ class RieglVz():
         projectName: str,
         scanposName: str,
         scanPattern: ScanPattern,
+        scanFilter: str,
         scanPublish: bool = True,
         scanRegister: bool = True,
         reflSearchSettings: dict = None,
@@ -206,6 +207,7 @@ class RieglVz():
         self.projectName = projectName
         self.scanposName = scanposName
         self.scanPattern = scanPattern
+        self.scanFilter = scanFilter
         self.scanPublish = scanPublish
         self.scanRegister = scanRegister
         self.reflSearchSettings = reflSearchSettings

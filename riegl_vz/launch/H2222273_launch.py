@@ -19,6 +19,7 @@ def generate_launch_description():
                 {'scan_publish': True},
                 {'scan_register': False},
                 {'scan_pattern': [30.0,130.0,0.1,0.0,10.0,0.1]},
+                {'scan_filter': ''},
                 {'meas_program': 3},
                 {'msm': 1}
             ],
