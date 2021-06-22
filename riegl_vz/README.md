@@ -20,15 +20,17 @@
 
 Angle data and range data are the base for calculation of the data in the Scanner’s Own Coordinate System (SOCS).
 
-![SOCS](img/socs.png)
+![SOCS (Scanner's Own Coordinate System)](img/socs.png)
 
 **PRCS** (Project Coordinate System):  
 
 A number of scan positions and the data acquired therein make up a scan project. The center of the project’s coordinate system (PRCS) usually coincides horizontally with the center of the first scan position. The axes of PRCS are strictly pointing to east (x-axis, red), north (y-axis, green) and up (z-axis, blue), respectively.
 
-The so called SOP transforms SOCS into PRCS (Project Coordinate System).
+The SOP transforms SOCS into PRCS (Project Coordinate System).
 
-![PRCS](img/prcs.png)
+**PRCS** (Project Coordinate System): A number of scan positions and the data acquired therein make up a scan project (see Figure 2).The center of the project’s coordinate system (PRCS) usually coincides horizontally with the center of the first scan position. The axes of PRCS are strictly pointing to east (x-axis, red), north (y-axis, green) and up (z-axis, blue), respectively.
+
+![PRCS (Project Coordinate System)](img/prcs.png)
 
 **VOCS** (Voxel Coordinate System):  
 
@@ -133,6 +135,9 @@ This is the laser scanner measurement program, which specifies the laser scanner
 
 Enable publishing of point cloud data on topic 'pointcloud' after scan acquisition has finished.
 
+**~scan_register** (bool, default: "True") :
+
+Enable automatic scan position registration in current project after scan data acquisition has finished.
 
 #### 3.1.2 Published Topics
 
@@ -155,9 +160,9 @@ Response:
 success = True -> message: Project Name  
 success = False -> message: Error Message  
 
-**scan_and_register** ([std_srvs/SetTrigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
+**scan** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
-Start laser scan acquisition and registration within actual project. If parameter '~pointcloud_publish' is enabled and laser scan has finished, scan data will be published on 'pointcloud' topic. Use 'is_busy' services to check if background tasks have finished or retrieve busy state on 'status' topic.
+Start laser scan acquisition, and scan registration if parameter '\~scan_register' is enabled. If parameter '\~scan_publish' is enabled and laser scan has finished, scan data will be published on 'pointcloud' topic. Use 'is_scan_busy' and/or 'is_busy' services to poll background tasks busy state or get it from 'status' topic.
 
 Response:  
 success = True -> message: success  
@@ -175,21 +180,21 @@ success = False -> message: ready
 
 **is_busy** ([std_srvs/SetBool](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/SetBool.srv)) :
 
-Check if background tasks (scan data acquisition and scan registration) have finished, otherwise the device is locked. If 'data' in request is true, the call will block until background task has finished.
+Check if background tasks (scan data acquisition AND scan registration) have finished, otherwise the device is locked. If 'data' in request is true, the call will block until all background tasks have finished.
 
 Request:  
-data: set blocking execution  
+data: enable blocking execution mode
 Response:  
 success = True -> message: busy  
 success = False -> message: ready  
 
 **get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
 
-Get point cloud of a previous scan data acquisition.
+Get point cloud of a previously acquired scan in actual project.
 
 **get_sopv** (riegl_vz_interfaces/GetPoses) :
 
-Request position and orientation (SOPV) of the previously acquired scan.
+Request position and orientation (SOPV) of the last acquired scan.
 
 **get_all_sopv** (riegl_vz_interfaces/GetPoses) :
 
