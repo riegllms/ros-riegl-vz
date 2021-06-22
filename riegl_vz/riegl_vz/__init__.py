@@ -34,6 +34,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('scan_pattern', [30.0,130.0,0.04,0.0,360.0,0.04])
         self.declare_parameter('meas_program', 0)
         self.declare_parameter('scan_publish', True)
+        self.declare_parameter('scan_register', True)
         self.declare_parameter('msm', 1)
 
         self.hostname = str(self.get_parameter('hostname').value)
@@ -53,6 +54,7 @@ class RieglVzWrapper(Node):
         self.scanPattern.frameIncrement = scanPattern[5]
         self.measProgram = int(self.get_parameter('meas_program').value)
         self.scanPublish = bool(self.get_parameter('scan_publish').value)
+        self.scanRegister = bool(self.get_parameter('scan_register').value)
         self.msm = int(self.get_parameter('msm').value)
 
         self.scanService = self.create_service(Trigger, 'scan', self.scanCallback)
@@ -71,11 +73,12 @@ class RieglVzWrapper(Node):
             self.projectName = now.strftime("%y%m%d_%H%M%S")
         scanposName = str(self.scanpos)
         self.scanpos = self.scanpos + 1
-        return self.rieglVz.acquireData(
+        return self.rieglVz.scan(
             projectName = self.projectName,
             scanposName = scanposName,
             scanPattern = self.scanPattern,
             scanPublish = self.scanPublish,
+            scanRegister = self.scanRegister,
             reflSearchSettings = None,
             lineStep = self.msm,
             echoStep = self.msm,

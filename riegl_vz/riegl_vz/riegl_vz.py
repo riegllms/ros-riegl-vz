@@ -3,7 +3,14 @@ import os
 import time
 import subprocess
 import threading
+import numpy as np
 from os.path import join, dirname, abspath
+
+import riegl.rdb
+
+import sensor_msgs.msg as sensor_msgs
+import std_msgs.msg as std_msgs
+import builtin_interfaces.msg as builtin_msgs
 
 from rclpy.node import Node
 
@@ -13,17 +20,6 @@ from .ssh import RemoteClient
 from .utils import (
     SubProcess
 )
-
-#def scp():
-#    host = 'H2222273'
-#    user = 'user'
-#    password = 'user'
-#    remote_path = '/media/intern/'
-#    cli = RemoteClient(host=host, user=user, password=password)
-#
-#    cli.download_file(file="/media/intern/gsm_kolomela.gsfx")
-#
-#    cli.disconnect()
 
 appDir = dirname(abspath(__file__))
 
@@ -58,7 +54,7 @@ class RieglVz():
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
 
-    def publishScan(self):
+    def downloadAndPublishScan(self):
         self.logger.info("Downloading RDBX..")
         procSvc = DataprocService(self.connectionString)
         scanId = procSvc.actualFile(0)
@@ -72,11 +68,47 @@ class RieglVz():
         ssh.disconnect()
         self.logger.info("RDBX download finished")
 
-        self.logger.info("Extracting point cloud from RDBX..")
-        # @@AF: FIXME
-        self.logger.info("Point cloud extraction finished")
+        self.logger.info("Extracting and publishing point cloud..")
+        with riegl.rdb.rdb_open(self.rdbxFileLocal) as rdb:
+            ts = builtin_msgs.Time(sec = 0, nanosec = 0)
+            filter = ""
+            rosDtype = sensor_msgs.PointField.FLOAT32
+            dtype = np.float32
+            itemsize = np.dtype(dtype).itemsize
 
-    def acquireDataThread(self):
+            numPoints = 0
+            data = bytearray()
+            for points in rdb.select(
+                filter,
+                chunk_size=100000
+                ):
+                for point in points:
+                    data.extend(point["riegl.xyz"].astype(dtype).tobytes())
+                    data.extend(point["riegl.reflectance"].astype(dtype).tobytes())
+                    numPoints += 1
+
+            fields = [sensor_msgs.PointField(
+                name = n, offset = i*itemsize, datatype = rosDtype, count = 1)
+                for i, n in enumerate('xyzr')]
+
+            header = std_msgs.Header(frame_id = "SOCS", stamp = ts)
+
+            pointCloud = sensor_msgs.PointCloud2(
+                header = header,
+                height = 1,
+                width = numPoints,
+                is_dense = False,
+                is_bigendian = False,
+                fields = fields,
+                point_step = (itemsize * 4),
+                row_step = (itemsize * 4 * numPoints),
+                data = data
+            )
+            #for point in rdb.points():
+            #    self.logger.debug("{0}".format(point.riegl_xyz))
+        self.logger.info("Point cloud published")
+
+    def scanThread(self):
         self.busy = True
 
         self.scanBusy = True
@@ -112,9 +144,9 @@ class RieglVz():
                 "--image-overlap", str(self.imageOverlap)
             ])
         self.logger.debug("CMD = {}".format(" ".join(cmd)))
-        subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+        #subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         self.logger.debug("Subprocess started.")
-        subproc.waitFor("Data acquisition failed.")
+        #ssubproc.waitFor("Data acquisition failed.")
         self.logger.info("Data acquisition finished")
         self.scanBusy = False
 
@@ -132,16 +164,30 @@ class RieglVz():
         self.logger.info("RXP to RDBX conversion finished")
 
         if self.scanPublish:
-            self.publishScan()
+            self.downloadAndPublishScan()
+
+        if self.scanRegister:
+            print("Registering", flush=True)
+            self.logger.info("Starting registration")
+            scriptPath = os.path.join(appDir, "bin", "register-scan.py")
+            cmd = [
+                "python3", scriptPath,
+                "--project", projectName,
+                "--scanposition", scanposName]
+            self.logger.debug("CMD = {}".format(" ".join(cmd)))
+            subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+            subproc.waitFor("Registration failed.")
+            self.logger.info("Registration finished")
 
         self.busy = False
 
-    def acquireData(
+    def scan(
         self,
         projectName: str,
         scanposName: str,
         scanPattern: ScanPattern,
         scanPublish: bool = True,
+        scanRegister: bool = True,
         reflSearchSettings: dict = None,
         lineStep: int = 1,
         echoStep: int = 1,
@@ -161,6 +207,7 @@ class RieglVz():
         self.scanposName = scanposName
         self.scanPattern = scanPattern
         self.scanPublish = scanPublish
+        self.scanRegister = scanRegister
         self.reflSearchSettings = reflSearchSettings
         self.lineStep = lineStep
         self.echoStep = echoStep
@@ -168,39 +215,7 @@ class RieglVz():
         self.captureMode = captureMode
         self.imageOverlap = imageOverlap
 
-        thread = threading.Thread(target=self.acquireDataThread, args=())
-        thread.daemon = True
-        thread.start()
-
-        return True
-
-    def registerScanThread(self):
-        self.busy = True
-        print("Registering", flush=True)
-        self.logger.info("Starting registration")
-        scriptPath = os.path.join(appDir, "bin", "register-scan.py")
-        cmd = [
-            "python3", scriptPath,
-            "--project", projectName,
-            "--scanposition", scanposName]
-        self.logger.debug("CMD = {}".format(" ".join(cmd)))
-        subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-        subproc.waitFor("Registration failed.")
-        self.logger.info("Registration finished")
-        self.busy = False
-
-    def registerScan(
-        self,
-        projectName: str,
-        scanposName: str):
-        if self.busy:
-            return False
-
-        self.projectName: projectName
-        self.scanposName: scanposName
-        self.scanPattern: scanPattern
-
-        thread = threading.Thread(target=self.registerScanThread, args=())
+        thread = threading.Thread(target=self.scanThread, args=())
         thread.daemon = True
         thread.start()
 

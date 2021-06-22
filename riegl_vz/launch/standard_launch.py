@@ -14,8 +14,10 @@ def generate_launch_description():
                 {'working_dir': '~/.ros_riegl_vz'},
                 {'ssh_user': 'user'},
                 {'ssh_password': 'user'},
+                {'stor_media': 2},
                 {'project_name': ''},
                 {'scan_publish': True},
+                {'scan_register': False},
                 {'scan_pattern': [30.0,130.0,0.04,0.0,360.0,0.04]},
                 {'meas_program': 3},
                 {'msm': 1}
