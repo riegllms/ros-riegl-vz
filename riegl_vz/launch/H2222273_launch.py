@@ -10,7 +10,7 @@ def generate_launch_description():
             output='screen',
             emulate_tty=True,
             parameters=[
-                {'hostname': '192.168.2.231'},
+                {'hostname': '192.168.3.101'},
                 {'working_dir': '/home/af/.ros_riegl_vz'},
                 {'ssh_user': 'user'},
                 {'ssh_password': 'user'},

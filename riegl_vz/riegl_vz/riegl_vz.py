@@ -6,16 +6,17 @@ import threading
 import numpy as np
 from os.path import join, dirname, abspath
 
-import riegl.rdb
-
 import sensor_msgs.msg as sensor_msgs
 import std_msgs.msg as std_msgs
 import builtin_interfaces.msg as builtin_msgs
 
 from rclpy.node import Node
 
+import riegl.rdb
+
 from vzi_services.controlservice import ControlService
 from vzi_services.dataprocservice import DataprocService
+
 from .ssh import RemoteClient
 from .utils import (
     SubProcess
@@ -34,19 +35,14 @@ class ScanPattern(object):
         self.measProgram = 3
 
 class RieglVz():
-    def __init__(
-        self,
-        hostname: str,
-        sshUser: str,
-        sshPwd: str,
-        workingDir: str,
-        logger):
-        self.hostname = hostname
-        self.sshUser = sshUser
-        self.sshPwd = sshPwd
-        self.workingDir = workingDir
-        self.logger = logger
-        self.connectionString = hostname + ":20000"
+    def __init__(self, node):
+        self.node = node
+        self.hostname = node.hostname
+        self.sshUser = node.sshUser
+        self.sshPwd = node.sshPwd
+        self.workingDir = node.workingDir
+        self.logger = node.get_logger()
+        self.connectionString = self.hostname + ":20000"
         self.busy = False
         self.scanBusy = False
         self.rdbxFileRemote = None
@@ -106,6 +102,9 @@ class RieglVz():
             )
             #for point in rdb.points():
             #    self.logger.debug("{0}".format(point.riegl_xyz))
+
+            self.node.pointCloudPublisher.publish(pointCloud)
+
         self.logger.info("Point cloud published")
 
     def scanThread(self):
@@ -144,9 +143,9 @@ class RieglVz():
                 "--image-overlap", str(self.imageOverlap)
             ])
         self.logger.debug("CMD = {}".format(" ".join(cmd)))
-        #subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+        subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         self.logger.debug("Subprocess started.")
-        #ssubproc.waitFor("Data acquisition failed.")
+        subproc.waitFor("Data acquisition failed.")
         self.logger.info("Data acquisition finished")
         self.scanBusy = False
 

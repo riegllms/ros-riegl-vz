@@ -5,6 +5,9 @@ from std_srvs.srv import (
     Trigger,
     SetBool
 )
+from sensor_msgs.msg import (
+    PointCloud2
+)
 import rclpy
 from rclpy.node import Node
 from rclpy.logging import LoggingSeverity
@@ -59,13 +62,16 @@ class RieglVzWrapper(Node):
         self.scanRegister = bool(self.get_parameter('scan_register').value)
         self.msm = int(self.get_parameter('msm').value)
 
+        self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
+
         self.scanService = self.create_service(Trigger, 'scan', self.scanCallback)
         self.isBusyService = self.create_service(SetBool, 'is_scan_busy', self.isBusyCallback)
         self.isBusyService = self.create_service(SetBool, 'is_busy', self.isBusyCallback)
         self.stopService = self.create_service(Trigger, 'stop', self.stopCallback)
         self.shutdownService = self.create_service(Trigger, 'shutdown', self.shutdownCallback)
 
-        self.rieglVz = RieglVz(self.hostname, self.sshUser, self.sshPwd, self.workingDir, self.get_logger())
+        self.rieglVz = RieglVz(self)
+        #self.hostname, self.sshUser, self.sshPwd, self.workingDir, self.get_logger())
 
         self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.hostname))
 
