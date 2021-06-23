@@ -22,4 +22,8 @@ Open a second terminal. Execute '. install/setup_bash.sh'.
 
 Open a second terminal. Execute '. install/setup_bash.sh'.
 
-```ros2 launch riegl_vz riegl_vz H2222222_launch.py```
+Edit parameters in package install directory under 'install/riegl_vz/share/riegl_vz/config/params.yaml'.
+
+Launch riegl_vz node:
+
+```ros2 launch riegl_vz riegl_vz std_launch.py```

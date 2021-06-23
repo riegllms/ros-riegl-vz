@@ -29,7 +29,7 @@ class RieglVzWrapper(Node):
         self.shutdownReq = False
 
         self.declare_parameter('hostname', 'H2222222')
-        self.declare_parameter('working_dir', '~/.ros_riegl_vz')
+        self.declare_parameter('working_dir', '.ros_riegl_vz')
         self.declare_parameter('ssh_user', 'user')
         self.declare_parameter('ssh_password', 'user')
         self.declare_parameter('project_name', '')
