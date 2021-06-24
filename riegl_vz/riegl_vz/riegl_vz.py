@@ -50,6 +50,21 @@ class RieglVz():
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
 
+    def setProject(self, projectName: str):
+        """Create a scan projectName.
+
+        Args:
+          projectName ... the project name"""
+        if self.busy:
+            return False
+
+        self.projectName = projectName
+        self.logger.info("Create project '{}'..".format(self.projectName))
+        
+        projSvc = ProjectService(self.connectionString)
+        projSvc.createProject(self.projectName)
+        projSvc.loadProject(self.projectName)
+
     def downloadAndPublishScan(self):
         self.logger.info("Downloading RDBX..")
         procSvc = DataprocService(self.connectionString)

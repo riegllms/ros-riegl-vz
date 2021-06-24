@@ -41,6 +41,22 @@ class RieglVzWrapper(Node):
         self.declare_parameter('scan_publish_lod', 0)
         self.declare_parameter('scan_register', True)
 
+        self.readParameters()
+
+        self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
+
+        self.setProjectService = self.create_service(Trigger, 'set_project', self.setProjectCallback)
+        self.scanService = self.create_service(Trigger, 'scan', self.scanCallback)
+        self.isBusyService = self.create_service(SetBool, 'is_scan_busy', self.isBusyCallback)
+        self.isBusyService = self.create_service(SetBool, 'is_busy', self.isBusyCallback)
+        self.stopService = self.create_service(Trigger, 'stop', self.stopCallback)
+        self.shutdownService = self.create_service(Trigger, 'shutdown', self.shutdownCallback)
+
+        self.rieglVz = RieglVz(self)
+
+        self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.hostname))
+
+    def readParameters(self):
         self.hostname = str(self.get_parameter('hostname').value)
         self.workingDir = str(self.get_parameter('working_dir').value)
         self.sshUser = str(self.get_parameter('ssh_user').value)
@@ -64,22 +80,30 @@ class RieglVzWrapper(Node):
             self.scanPublishLOD = 0
         self.scanRegister = bool(self.get_parameter('scan_register').value)
 
-        self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
+    def setProject(self):
+        self.readParameters()
+        if not self.projectName:
+            now = datetime.now()
+            self.projectName = now.strftime("%y%m%d_%H%M%S")
+        self.scanpos = 1
+        return self.rieglVz.setProject(self.projectName)
 
-        self.scanService = self.create_service(Trigger, 'scan', self.scanCallback)
-        self.isBusyService = self.create_service(SetBool, 'is_scan_busy', self.isBusyCallback)
-        self.isBusyService = self.create_service(SetBool, 'is_busy', self.isBusyCallback)
-        self.stopService = self.create_service(Trigger, 'stop', self.stopCallback)
-        self.shutdownService = self.create_service(Trigger, 'shutdown', self.shutdownCallback)
-
-        self.rieglVz = RieglVz(self)
-        #self.hostname, self.sshUser, self.sshPwd, self.workingDir, self.get_logger())
-
-        self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.hostname))
+    def setProjectCallback(self, request, response):
+        if self.shutdownReq is True:
+            response.success = False
+            response.message = "RIEGL VZ is shutting down"
+            return response
+        if not self.setProject():
+            response.success = False
+            response.message = "RIEGL VZ is busy"
+            return response
+        response.success = True
+        response.message = "success"
+        return response
 
     def scan(self):
-        now = datetime.now()
         if not self.projectName:
+            now = datetime.now()
             self.projectName = now.strftime("%y%m%d_%H%M%S")
         scanposName = str(self.scanpos)
         self.scanpos = self.scanpos + 1
