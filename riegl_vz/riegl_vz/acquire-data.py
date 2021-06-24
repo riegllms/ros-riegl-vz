@@ -29,8 +29,6 @@ def acquireData(
     scanPattern: RectScanPattern,
     measProg: int,
     reflSearch: ReflectorSearchSettings = None,
-    lineStep: int = 1,
-    echoStep: int = 1,
     captureImage: bool = False,
     captureMode: int = 1,
     imageOverlap: int = 25
@@ -128,10 +126,6 @@ def createArgumentParser():
         help='scanposition name')
     parser.add_argument('--reflsearch',
         help='file path of JSON file containing reflector search settings')
-    parser.add_argument('--line-step', type=int, default=1,
-        help='line step size for scan data acquisition')
-    parser.add_argument('--echo-step', type=int, default=1,
-        help='echo step size for scan data acquisition')
     parser.add_argument('--line-start', type=float, default=30.0,
         help='line start angle in degrees (default=30.0)')
     parser.add_argument('--line-stop', type=float, default=130.0,
@@ -192,8 +186,6 @@ def main():
         sigHandler, scanSvc, ctrlSvc, procSvc,
         scanPattern, measProg,
         reflSearch=reflSearch,
-        lineStep=args.line_step,
-        echoStep=args.echo_step,
         captureImage=args.capture_images,
         captureMode=args.capture_mode,
         imageOverlap=args.image_overlap)

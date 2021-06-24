@@ -2,20 +2,6 @@
 
 ## 1. Coordinate Systems
 
-```
-
-                   SOCS ---           
-                    |      |
-                   sopv    |
-                    |      |
-                   VOCS   sop
-                    |      |
-                   vop     |
-                    |      |
-                   PRCS ---
-
-```
-
 **SOCS** (Scanner's Own Coordinate System):  
 
 Angle data and range data are the base for calculation of the data in the Scanner’s Own Coordinate System (SOCS).
@@ -24,11 +10,9 @@ Angle data and range data are the base for calculation of the data in the Scanne
 
 **PRCS** (Project Coordinate System):  
 
-A number of scan positions and the data acquired therein make up a scan project. The center of the project’s coordinate system (PRCS) usually coincides horizontally with the center of the first scan position. The axes of PRCS are strictly pointing to east (x-axis, red), north (y-axis, green) and up (z-axis, blue), respectively.
+A number of scan positions and the data acquired therein make up a scan project. The center of the project’s coordinate system (PRCS) coincides horizontally with the center of the first scan position. The axes of PRCS are strictly pointing to east (x-axis, red), north (y-axis, green) and up (z-axis, blue), respectively.
 
 The SOP transforms SOCS into PRCS (Project Coordinate System).
-
-**PRCS** (Project Coordinate System): A number of scan positions and the data acquired therein make up a scan project (see Figure 2).The center of the project’s coordinate system (PRCS) usually coincides horizontally with the center of the first scan position. The axes of PRCS are strictly pointing to east (x-axis, red), north (y-axis, green) and up (z-axis, blue), respectively.
 
 ![PRCS (Project Coordinate System)](img/prcs.png)
 
@@ -41,43 +25,33 @@ After each consecutive scan: VOP <> eye(4)
 
 If the user is only interested in relative registration of scan positions to each other, the VOP can be ignored.
 
+![RIEGL Coordinate Systems](img/cs.png)
+
 ## 2. RIEGL Interfaces
 
-### 2.1 Messages
-
-**riegl_vz_interfaces/Status**:
-```
-uint8 scanner_errors  # number of pending errors on laser scanner
-uint8 busy_state      # busy state:
-                      #   0 - ready
-                      #   1 - busy with scan data acquisition
-                      #   2 - busy with scan registration
-uint8 progress        # progress of scan data acquisition or registration in percent
-uint8 memory_usage    # memory usage of active storage media in percent
-```
-
-### 2.2 Services
+### 2.1 Services
 
 **riegl_vz_interfaces/GetPointCloud**:
 ```
 uint32 index   # The scan position number within a project
 ---
+PointCloud2 pointcloud
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
-PointCloud2 pointcloud
 ```
+See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)  
 A negative index implicitly refers to the last scan position, 0 is the first scan position.  
-See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)
+The 'frame_id' in the header is either 'RIEGL_SOCS'.
 
 **riegl_vz_interfaces/GetPoses**:
 ```
 ---
+PoseStamped[] poses
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
-PoseStamped[] poses
 ```
 See PoseStamped definition: [sensor_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
-The 'frame_id' in the header is either 'SOCS' or 'VOCS'.
+The 'frame_id' in the header is either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
 
 **riegl_vz_interfaces/SetPose**:
 ```
@@ -86,6 +60,8 @@ PoseStamped pose
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
+See PoseStamped definition: [sensor_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
+The 'frame_id' in the header has to be either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
 
 ## 3. Nodes
 
@@ -135,9 +111,18 @@ This is the laser scanner measurement program, which specifies the laser scanner
 
 Enable publishing of point cloud data on topic 'pointcloud' after scan acquisition has finished.
 
-**~scan_filter** (string, default: "") :
+**~scan_publish_filter** (string, default: "") :
 
 Filter string for published point cloud data, e.g. "(riegl.xyz[2] > 5) && (riegl.reflectance > 35)"
+
+**~scan_publish_lod** (integer, default: 0) :
+
+Level of detail (LOD) for published point cloud. This is to reduce the number of measurements.     
+lod=0 : no reduction  
+lod=1 : reduce measurements by factor 2 (2^1)  
+lod=2 : reduce point cloud by factor 4 (2^2)  
+lod=3 : reduce point cloud by factor 8 (2^3)  
+...  
 
 **~scan_register** (bool, default: "True") :
 
@@ -149,10 +134,16 @@ Enable automatic scan position registration in current project after scan data a
 
 Point cloud with scan data from the laser scanner in SOCS.
 
-**status** (riegl_vz_interfaces/Status) :
+**status** ([diagnostic_msgs/DiagnosticStatus.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticStatus.msg)):
 
-Riegl VZ status information, published once per second.
+Riegl VZ status information, published once per second:
 
+```
+errors       : scanner errors ("no", "yes", "fatal")
+op_state     : operating state ("ready", "scan busy", "busy")
+progress     : progress of scan data acquisition or registration in percent
+memory_usage : memory usage of active storage media in percent
+```
 
 #### 3.1.3 Services
 
@@ -210,7 +201,7 @@ Get current VOP, which is the position and orientation of the voxel coordinate s
 
 **set_pose** (riegl_vz_interfaces/SetPose) :
 
-Set position of the scanner origin in a referenced coordinate system. This is used for scan registration.
+Set position of the scanner origin in a referenced coordinate system (VOCS or PRCS). This is used for scan registration.
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
@@ -233,10 +224,6 @@ Not available in first implementation but for further extension:
 * Providing covariance of pose (see [sensor_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg))
 
 * Additional parameters:
-
-**~msm** (integer,  default: 1) :
-
-The scan data MSM (monitor step multiplier), used for point cloud data reduction, default disabled.
 
 **~capture_images** (bool,  default: False) :
 

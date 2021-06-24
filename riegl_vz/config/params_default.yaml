@@ -3,11 +3,12 @@ riegl_vz_node:
     hostname: "H2222222"
     ssh_user: "user"
     ssh_password: "user"
-    working_dir: "/tmp/.ros_riegl_vz"
+    working_dir: "/tmp/ros_riegl_vz"
     project_name: ""
     stor_media: 2
     meas_program: 3
-    scan_pattern: [30.0,130.0,0.1,0.0,360.0,0.1]
-    scan_filter: ""
+    scan_pattern: [30.0,130.0,0.04,0.0,360.0,0.5]
     scan_publish: True
+    scan_publish_filter: ""
+    scan_publish_lod: 0
     scan_register: True

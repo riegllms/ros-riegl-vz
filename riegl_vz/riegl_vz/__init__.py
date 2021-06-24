@@ -29,17 +29,17 @@ class RieglVzWrapper(Node):
         self.shutdownReq = False
 
         self.declare_parameter('hostname', 'H2222222')
-        self.declare_parameter('working_dir', '.ros_riegl_vz')
+        self.declare_parameter('working_dir', '/tmp/ros_riegl_vz')
         self.declare_parameter('ssh_user', 'user')
         self.declare_parameter('ssh_password', 'user')
         self.declare_parameter('project_name', '')
         self.declare_parameter('stor_media', 2)
-        self.declare_parameter('scan_pattern', [30.0,130.0,0.04,0.0,360.0,0.04])
+        self.declare_parameter('scan_pattern', [30.0,130.0,0.04,0.0,360.0,0.5])
         self.declare_parameter('meas_program', 0)
-        self.declare_parameter('scan_filter', '')
         self.declare_parameter('scan_publish', True)
+        self.declare_parameter('scan_publish_filter', '')
+        self.declare_parameter('scan_publish_lod', 0)
         self.declare_parameter('scan_register', True)
-        self.declare_parameter('msm', 1)
 
         self.hostname = str(self.get_parameter('hostname').value)
         self.workingDir = str(self.get_parameter('working_dir').value)
@@ -57,10 +57,12 @@ class RieglVzWrapper(Node):
         self.scanPattern.frameStop = scanPattern[4]
         self.scanPattern.frameIncrement = scanPattern[5]
         self.measProgram = int(self.get_parameter('meas_program').value)
-        self.scanFilter = str(self.get_parameter('scan_filter').value)
         self.scanPublish = bool(self.get_parameter('scan_publish').value)
+        self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
+        self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
+        if self.scanPublishLOD < 0:
+            self.scanPublishLOD = 0
         self.scanRegister = bool(self.get_parameter('scan_register').value)
-        self.msm = int(self.get_parameter('msm').value)
 
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
 
@@ -85,12 +87,11 @@ class RieglVzWrapper(Node):
             projectName = self.projectName,
             scanposName = scanposName,
             scanPattern = self.scanPattern,
-            scanFilter = self.scanFilter,
+            scanPublishFilter = self.scanPublishFilter,
             scanPublish = self.scanPublish,
+            scanPublishLOD = self.scanPublishLOD,
             scanRegister = self.scanRegister,
             reflSearchSettings = None,
-            lineStep = self.msm,
-            echoStep = self.msm,
             captureImages = False,
             captureMode = 1,
             imageOverlap = 25)

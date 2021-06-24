@@ -72,22 +72,26 @@ class RieglVz():
             dtype = np.float32
             itemsize = np.dtype(dtype).itemsize
 
+            numTotalPoints = 0
             numPoints = 0
             data = bytearray()
             for points in rdb.select(
-                self.scanFilter,
+                self.scanPublishFilter,
                 chunk_size=100000
                 ):
+                pointStep = 2 ** self.scanPublishLOD
                 for point in points:
-                    data.extend(point["riegl.xyz"].astype(dtype).tobytes())
-                    data.extend(point["riegl.reflectance"].astype(dtype).tobytes())
-                    numPoints += 1
+                    if not (numTotalPoints % pointStep):
+                        data.extend(point["riegl.xyz"].astype(dtype).tobytes())
+                        data.extend(point["riegl.reflectance"].astype(dtype).tobytes())
+                        numPoints += 1
+                    numTotalPoints += 1
 
             fields = [sensor_msgs.PointField(
                 name = n, offset = i*itemsize, datatype = rosDtype, count = 1)
                 for i, n in enumerate('xyzr')]
 
-            header = std_msgs.Header(frame_id = "SOCS", stamp = ts)
+            header = std_msgs.Header(frame_id = "RIEGL_SOCS", stamp = ts)
 
             pointCloud = sensor_msgs.PointCloud2(
                 header = header,
@@ -117,9 +121,7 @@ class RieglVz():
             "python3", scriptPath,
             "--connectionstring", self.connectionString,
             "--project", self.projectName,
-            "--scanposition", self.scanposName,
-            "--line-stop", str(self.lineStep),
-            "--echo-step", str(self.echoStep)]
+            "--scanposition", self.scanposName]
         if self.reflSearchSettings:
             rssFilepath = join(self.workingDir, "reflsearchsettings.json")
             with open(rssFilepath, "w") as f:
@@ -171,8 +173,8 @@ class RieglVz():
             scriptPath = os.path.join(appDir, "bin", "register-scan.py")
             cmd = [
                 "python3", scriptPath,
-                "--project", projectName,
-                "--scanposition", scanposName]
+                "--project", self.projectName,
+                "--scanposition", self.scanposName]
             self.logger.debug("CMD = {}".format(" ".join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
             subproc.waitFor("Registration failed.")
@@ -185,12 +187,11 @@ class RieglVz():
         projectName: str,
         scanposName: str,
         scanPattern: ScanPattern,
-        scanFilter: str,
         scanPublish: bool = True,
+        scanPublishFilter: str = "",
+        scanPublishLOD: int = 1,
         scanRegister: bool = True,
         reflSearchSettings: dict = None,
-        lineStep: int = 1,
-        echoStep: int = 1,
         captureImages: bool = False,
         captureMode: int = 1,
         imageOverlap: int = 25):
@@ -206,12 +207,11 @@ class RieglVz():
         self.projectName = projectName
         self.scanposName = scanposName
         self.scanPattern = scanPattern
-        self.scanFilter = scanFilter
         self.scanPublish = scanPublish
+        self.scanPublishFilter = scanPublishFilter
+        self.scanPublishLOD = scanPublishLOD
         self.scanRegister = scanRegister
         self.reflSearchSettings = reflSearchSettings
-        self.lineStep = lineStep
-        self.echoStep = echoStep
         self.captureImages = captureImages
         self.captureMode = captureMode
         self.imageOverlap = imageOverlap
