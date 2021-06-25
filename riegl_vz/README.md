@@ -1,4 +1,4 @@
-# ROS 2 RIEGL-VZ Package API 
+# ROS 2 RIEGL-VZ Package API
 
 ## 1. Coordinate Systems
 
@@ -33,34 +33,44 @@ If the user is only interested in relative registration of scan positions to eac
 
 **riegl_vz_interfaces/GetPointCloud**:
 ```
-uint32 index   # The scan position number within a project
+uint32 scanpos   # The scan position number within a project, starting with 1
 ---
-PointCloud2 pointcloud
+sensor_msgs/PointCloud2 pointcloud
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)  
-A negative index implicitly refers to the last scan position, 0 is the first scan position.  
+Scanpos 0 implicitly refers to the last scan position, 1 is the first scan position.  
 The 'frame_id' in the header is either 'RIEGL_SOCS'.
+
+**riegl_vz_interfaces/GetPose**:
+```
+---
+geometry_msgs/PoseStamped pose
+bool success   # indicate successful run of service
+string message # informational, e.g. for error messages
+```
+See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
+The 'frame_id' in the header is either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
 
 **riegl_vz_interfaces/GetPoses**:
 ```
 ---
-PoseStamped[] poses
+geometry_msgs/PoseStamped[] poses
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
-See PoseStamped definition: [sensor_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
+See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
 The 'frame_id' in the header is either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
 
 **riegl_vz_interfaces/SetPose**:
 ```
-PoseStamped pose
+geometry_msgs/PoseStamped pose
 ---
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
-See PoseStamped definition: [sensor_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
+See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
 The 'frame_id' in the header has to be either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
 
 ## 3. Nodes
@@ -132,7 +142,7 @@ Enable automatic scan position registration in current project after scan data a
 
 **pointcloud** ([sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)) :
 
-Point cloud with scan data from the laser scanner in SOCS.
+Point cloud with scan data from the laser scanner. Included are xyz cartesian coordinates in SOCS and reflectance.
 
 **status** ([diagnostic_msgs/DiagnosticStatus.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticStatus.msg)):
 
@@ -187,7 +197,7 @@ success = False -> message: ready
 
 Get point cloud of a previously acquired scan in actual project.
 
-**get_sopv** (riegl_vz_interfaces/GetPoses) :
+**get_sopv** (riegl_vz_interfaces/GetPose) :
 
 Request position and orientation (SOPV) of the last acquired scan.
 
@@ -195,13 +205,9 @@ Request position and orientation (SOPV) of the last acquired scan.
 
 Request positions and orientations (SOPV) of all previously acquired scans in current project.
 
-**get_vop** (riegl_vz_interfaces/GetPoses) :
+**get_vop** (riegl_vz_interfaces/GetPose) :
 
 Get current VOP, which is the position and orientation of the voxel coordinate system (VOCS) origin based on the project coordinate system (PRCS).
-
-**set_pose** (riegl_vz_interfaces/SetPose) :
-
-Set position of the scanner origin in a referenced coordinate system (VOCS or PRCS). This is used for scan registration.
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
@@ -217,7 +223,7 @@ Stop data acquisition and power down the laser scanner.
 Response:  
 success = True -> message: "RIEGL VZ is shutting down"  
 
-#### 3.1.4 Extension
+#### 3.1.4 Extensions
 
 Not available in first implementation but for further extension:
 
@@ -230,6 +236,10 @@ Not available in first implementation but for further extension:
 Enable capturing of camera images.
 
 * Additional services:
+
+**set_pose** (riegl_vz_interfaces/SetPose) :
+
+Set position of the scanner origin in a referenced coordinate system (VOCS or PRCS). This is used for scan registration.
 
 **get_voxel** (riegl_vz_interfaces/GetPointcloud) :
 

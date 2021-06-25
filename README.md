@@ -1,8 +1,19 @@
 # ROS 2 RIEGL-VZ Package
 
-This ROS package is based on ROS 2 Galactic Geochelone and has been tested on Ubuntu Desktop 20.04 (Focal Fossa).
+This package is based on ROS 2 [Galactic Geochelone](https://docs.ros.org/en/galactic/index.html) distribution and has been tested on Ubuntu Desktop 20.04 (Focal Fossa).
+
+**ROS 2 installation and setup:**
+
+Follow ROS 2 installation instructions on https://docs.ros.org/en/galactic/Installation.html.
+
+Configure the ROS 2 environment according to https://docs.ros.org/en/galactic/Tutorials/Configuring-ROS2-Environment.html.
+
+Create a new workspace (https://docs.ros.org/en/galactic/Tutorials/Workspace/Creating-A-Workspace.html)
+and clone repository into subdirectory 'src'.
 
 **Install python requirements:**
+
+Switch to 'src' subdirectory and install required python modules:
 
 ```python3 -m pip install -r requirements.txt```
 
@@ -36,7 +47,7 @@ Execute the scan trigger service:
 
 ```ros2 service call /scan std_srvs/srv/Trigger```
 
-Visualize scan data point cloud with rviz:
+**Visualize scan data point cloud with rviz:**
 
 Start rviz tool:
 

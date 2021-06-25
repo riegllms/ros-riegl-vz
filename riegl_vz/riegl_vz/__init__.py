@@ -8,6 +8,11 @@ from std_srvs.srv import (
 from sensor_msgs.msg import (
     PointCloud2
 )
+from riegl_vz_interfaces.srv import (
+    GetPointCloud,
+    GetPoses,
+    SetPose
+)
 import rclpy
 from rclpy.node import Node
 from rclpy.logging import LoggingSeverity
@@ -63,6 +68,7 @@ class RieglVzWrapper(Node):
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
         self._isBusyService = self.create_service(SetBool, 'is_scan_busy', self._isBusyCallback)
         self._isBusyService = self.create_service(SetBool, 'is_busy', self._isBusyCallback)
+        self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
         self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
 
@@ -136,6 +142,27 @@ class RieglVzWrapper(Node):
             response.message = "RIEGL VZ is busy"
             return response
 
+        response.success = True
+        response.message = "success"
+
+        return response
+
+    def getPointCloud(self, scanpos, pointcloud):
+        return True
+
+    def _getPointCloudCallback(self, request, response):
+        if self._shutdownReq is True:
+            response.success = False
+            response.message = "RIEGL VZ is shutting down"
+            return response
+
+        pointcloud: PointCloud
+        if not self.getPointCloud(request.scanpos, pointcloud):
+            response.success = False
+            response.message = "Point cloud is not available"
+            return response
+
+        response.pointcloud = pointcloud
         response.success = True
         response.message = "success"
 
