@@ -36,50 +36,33 @@ class ScanPattern(object):
 
 class RieglVz():
     def __init__(self, node):
-        self.node = node
         self.hostname = node.hostname
         self.sshUser = node.sshUser
         self.sshPwd = node.sshPwd
         self.workingDir = node.workingDir
-        self.logger = node.get_logger()
-        self.connectionString = self.hostname + ":20000"
-        self.busy = False
-        self.scanBusy = False
-        self.rdbxFileRemote = None
-        self.rdbxFileLocal = None
+        self._node = node
+        self._logger = node.get_logger()
+        self._connectionString = self.hostname + ":20000"
+        self._busy = False
+        self._scanBusy = False
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
 
-    def setProject(self, projectName: str):
-        """Create a scan projectName.
-
-        Args:
-          projectName ... the project name"""
-        if self.busy:
-            return False
-
-        self.projectName = projectName
-        self.logger.info("Create project '{}'..".format(self.projectName))
-
-        projSvc = ProjectService(self.connectionString)
-        projSvc.createProject(self.projectName)
-        projSvc.loadProject(self.projectName)
-
-    def downloadAndPublishScan(self):
-        self.logger.info("Downloading RDBX..")
-        procSvc = DataprocService(self.connectionString)
+    def _downloadAndPublishScan(self):
+        self._logger.info("Downloading RDBX..")
+        procSvc = DataprocService(self._connectionString)
         scanId = procSvc.actualFile(0)
-        self.logger.debug("scan id = {}".format(scanId))
-        self.rdbxFileRemote = "/media/" + scanId.replace(".rxp", ".rdbx")
-        self.logger.debug("remote rdbx file = {}".format(self.rdbxFileRemote))
-        self.rdbxFileLocal = self.workingDir + "/scan.rdbx"
-        self.logger.debug("local rdbx file  = {}".format(self.rdbxFileLocal))
+        self._logger.debug("scan id = {}".format(scanId))
+        rdbxFileRemote = "/media/" + scanId.replace(".rxp", ".rdbx")
+        self._logger.debug("remote rdbx file = {}".format(rdbxFileRemote))
+        rdbxFileLocal = self.workingDir + "/scan.rdbx"
+        self._logger.debug("local rdbx file  = {}".format(rdbxFileLocal))
         ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-        ssh.download_file(filepath=self.rdbxFileRemote, localpath=self.rdbxFileLocal)
+        ssh.download_file(filepath=rdbxFileRemote, localpath=rdbxFileLocal)
         ssh.disconnect()
-        self.logger.info("RDBX download finished")
+        self._logger.info("RDBX download finished")
 
-        self.logger.info("Extracting and publishing point cloud..")
+        self._logger.info("Extracting and publishing point cloud..")
         with riegl.rdb.rdb_open(self.rdbxFileLocal) as rdb:
             ts = builtin_msgs.Time(sec = 0, nanosec = 0)
             filter = ""
@@ -123,23 +106,40 @@ class RieglVz():
                 data = data
             )
             #for point in rdb.points():
-            #    self.logger.debug("{0}".format(point.riegl_xyz))
+            #    self._logger.debug("{0}".format(point.riegl_xyz))
 
-            self.node.pointCloudPublisher.publish(pointCloud)
+            self._node.pointCloudPublisher.publish(pointCloud)
 
-        self.logger.info("Point cloud published")
+        self._logger.info("Point cloud published")
 
-    def scanThread(self):
-        self.busy = True
+    def _scanThread(self):
+        self._busy = True
 
-        self.scanBusy = True
-        self.logger.info("Starting data acquisition..")
+        self._scanBusy = True
+        self._logger.info("Starting data acquisition..")
+        self._logger.info("project name = {}".format(self.projectName))
+        self._logger.info("scanpos name = {}".format(self.scanposName))
+        self._logger.info("storage media = {}".format(self.storageMedia))
+        self._logger.info("scan pattern = {0}, {1}, {2}, {3}, {4}, {5}".format(
+            self.scanPattern.lineStart,
+            self.scanPattern.lineStop,
+            self.scanPattern.lineIncrement,
+            self.scanPattern.frameStart,
+            self.scanPattern.frameStop,
+            self.scanPattern.frameIncrement))
+        self._logger.info("meas program = {}".format(self.scanPattern.measProgram))
+        self._logger.info("scan publish = {}".format(self.scanPublish))
+        self._logger.info("scan publish filter = '{}'".format(self.scanPublishFilter))
+        self._logger.info("scan publish LOD = {}".format(self.scanPublishLOD))
+        self._logger.info("scan register = {}".format(self.scanRegister))
+
         scriptPath = join(appDir, "acquire-data.py")
         cmd = [
             "python3", scriptPath,
-            "--connectionstring", self.connectionString,
+            "--connectionstring", self._connectionString,
             "--project", self.projectName,
-            "--scanposition", self.scanposName]
+            "--scanposition", self.scanposName,
+            "--storage-media", str(self.storageMedia)]
         if self.reflSearchSettings:
             rssFilepath = join(self.workingDir, "reflsearchsettings.json")
             with open(rssFilepath, "w") as f:
@@ -162,48 +162,49 @@ class RieglVz():
                 "--capture-mode", str(self.captureMode),
                 "--image-overlap", str(self.imageOverlap)
             ])
-        self.logger.debug("CMD = {}".format(" ".join(cmd)))
+        self._logger.debug("CMD = {}".format(" ".join(cmd)))
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-        self.logger.debug("Subprocess started.")
+        self._logger.debug("Subprocess started.")
         subproc.waitFor("Data acquisition failed.")
-        self.logger.info("Data acquisition finished")
-        self.scanBusy = False
+        self._logger.info("Data acquisition finished")
+        self._scanBusy = False
 
-        self.logger.info("Converting RXP to RDBX..")
+        self._logger.info("Converting RXP to RDBX..")
         scriptPath = join(appDir, "create-rdbx.py")
         cmd = [
             "python3", scriptPath,
-            "--connectionstring", self.connectionString,
+            "--connectionstring", self._connectionString,
             "--project", self.projectName,
             "--scanposition", self.scanposName]
-        self.logger.debug("CMD = {}".format(" ".join(cmd)))
+        self._logger.debug("CMD = {}".format(" ".join(cmd)))
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-        self.logger.debug("Subprocess started.")
+        self._logger.debug("Subprocess started.")
         subproc.waitFor("RXP to RDBX conversion failed.")
-        self.logger.info("RXP to RDBX conversion finished")
+        self._logger.info("RXP to RDBX conversion finished")
 
         if self.scanPublish:
-            self.downloadAndPublishScan()
+            self._downloadAndPublishScan()
 
         if self.scanRegister:
             print("Registering", flush=True)
-            self.logger.info("Starting registration")
+            self._logger.info("Starting registration")
             scriptPath = os.path.join(appDir, "bin", "register-scan.py")
             cmd = [
                 "python3", scriptPath,
                 "--project", self.projectName,
                 "--scanposition", self.scanposName]
-            self.logger.debug("CMD = {}".format(" ".join(cmd)))
+            self._logger.debug("CMD = {}".format(" ".join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
             subproc.waitFor("Registration failed.")
-            self.logger.info("Registration finished")
+            self._logger.info("Registration finished")
 
-        self.busy = False
+        self._busy = False
 
     def scan(
         self,
         projectName: str,
         scanposName: str,
+        storageMedia: int,
         scanPattern: ScanPattern,
         scanPublish: bool = True,
         scanPublishFilter: str = "",
@@ -218,12 +219,14 @@ class RieglVz():
         Args:
           projectName ... the project name
           scanposName ... the name of the new scan position
+          storageMedia ... storage media for data recording
           scanPattern ... the scan pattern"""
-        if self.busy:
+        if self._busy:
             return False
 
         self.projectName = projectName
         self.scanposName = scanposName
+        self.storageMedia = storageMedia
         self.scanPattern = scanPattern
         self.scanPublish = scanPublish
         self.scanPublishFilter = scanPublishFilter
@@ -234,7 +237,7 @@ class RieglVz():
         self.captureMode = captureMode
         self.imageOverlap = imageOverlap
 
-        thread = threading.Thread(target=self.scanThread, args=())
+        thread = threading.Thread(target=self._scanThread, args=())
         thread.daemon = True
         thread.start()
 
@@ -242,26 +245,26 @@ class RieglVz():
 
     def isScanBusy(self, block = True):
         if block:
-            while self.scanBusy:
+            while self._scanBusy:
                 time.sleep(0.2)
-        return self.scanBusy
+        return self._scanBusy
 
     def isBusy(self, block = True):
         if block:
-            while self.busy:
+            while self._busy:
                 time.sleep(0.2)
-        return self.busy
+        return self._busy
 
     def status(self):
         # tbd...
         return
 
     def stop(self):
-        ctrlSvc = ControlService(self.connectionString)
+        ctrlSvc = ControlService(self._connectionString)
         ctrlSvc.stop()
         isBusy()
 
     def shutdown(self):
         stop()
-        scnSvc = ScannerService(self.connectionString)
+        scnSvc = ScannerService(self._connectionString)
         scnSvc.shutdown()

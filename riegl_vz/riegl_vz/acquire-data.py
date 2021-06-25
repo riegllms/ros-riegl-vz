@@ -124,6 +124,8 @@ def createArgumentParser():
         help='project name')
     parser.add_argument('--scanposition',
         help='scanposition name')
+    parser.add_argument('--storage-media', type=int, default=2,
+        help='storage media for data recording (default=2)')
     parser.add_argument('--reflsearch',
         help='file path of JSON file containing reflector search settings')
     parser.add_argument('--line-start', type=float, default=30.0,
@@ -167,6 +169,7 @@ def main():
     ctrlSvc = ControlService(args.connectionstring)
 
     # prepare project
+    projSvc.setStorageMedia(args.storageMedia)
     projSvc.createProject(args.project)
     projSvc.loadProject(args.project)
     projSvc.createScanposition(args.scanposition)

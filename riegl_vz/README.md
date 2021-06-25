@@ -1,4 +1,4 @@
-# RIEGL-VZ ROS 2 Driver API
+# ROS 2 RIEGL-VZ Package API 
 
 ## 1. Coordinate Systems
 
@@ -89,9 +89,9 @@ The linux user password for SSH login on the scanner.
 
 The scan project name used by service 'set_project'. An existing project will be loaded, otherwise a new project will be created. If string is empty, a default project name will be composed from current local time and date.
 
-**~stor_media** (integer, default: 2) :
+**~storage_media** (integer, default: 2) :
 
-The active storage media for scan data (1: AUTO, 2: INTERNAL SSD, 3: USB).
+The active storage media for scan data recording (1: AUTO, 2: INTERNAL SSD, 3: USB).
 
 **~scan_pattern** (double[], default: {30.0,130.0,0.04,0.0,360.0,0.04})
 

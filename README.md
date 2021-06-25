@@ -1,6 +1,6 @@
-# RIEGL-VZ ROS 2 Driver
+# ROS 2 RIEGL-VZ Package
 
-This driver is based on ROS 2 Galactic Geochelone and has been tested on Ubuntu Desktop 20.04 (Focal Fossa).
+This ROS package is based on ROS 2 Galactic Geochelone and has been tested on Ubuntu Desktop 20.04 (Focal Fossa).
 
 **Install python requirements:**
 

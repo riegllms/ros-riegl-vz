@@ -5,7 +5,7 @@ riegl_vz_node:
     ssh_password: "user"
     working_dir: "/tmp/ros_riegl_vz"
     project_name: ""
-    stor_media: 2
+    storage_media: 2
     meas_program: 3
     scan_pattern: [30.0,130.0,0.04,0.0,360.0,0.5]
     scan_publish: True
