@@ -15,6 +15,11 @@ from .riegl_vz import (
     ScanPattern,
     RieglVz
 )
+from vzi_services.scannerservice import (
+    RectScanPattern,
+    ScannerService,
+)
+from vzi_services.projectservice import ProjectService
 from .utils import (
     SubProcess
 )
@@ -27,6 +32,7 @@ class RieglVzWrapper(Node):
         super().__init__('riegl_vz')
 
         self.shutdownReq = False
+        self.scanpos = 1
 
         self.declare_parameter('hostname', 'H2222222')
         self.declare_parameter('working_dir', '/tmp/ros_riegl_vz')
@@ -41,7 +47,19 @@ class RieglVzWrapper(Node):
         self.declare_parameter('scan_publish_lod', 0)
         self.declare_parameter('scan_register', True)
 
-        self.readParameters()
+        self.hostname = str(self.get_parameter('hostname').value)
+        self.connectionString = self.hostname + ":20000"
+        self.workingDir = str(self.get_parameter('working_dir').value)
+        self.sshUser = str(self.get_parameter('ssh_user').value)
+        self.sshPwd = str(self.get_parameter('ssh_password').value)
+        self.projectName = str(self.get_parameter('project_name').value)
+        self.get_logger().debug("hostname = {}".format(self.hostname))
+        self.get_logger().debug("workingDir = {}".format(self.workingDir))
+        self.get_logger().debug("sshUser = {}".format(self.sshUser))
+        self.get_logger().debug("sshPwd = {}".format(self.sshPwd))
+        self.get_logger().debug("projectName = {}".format(self.projectName))
+
+        self.applyScannerSettings()
 
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
 
@@ -56,13 +74,9 @@ class RieglVzWrapper(Node):
 
         self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.hostname))
 
-    def readParameters(self):
-        self.hostname = str(self.get_parameter('hostname').value)
-        self.workingDir = str(self.get_parameter('working_dir').value)
-        self.sshUser = str(self.get_parameter('ssh_user').value)
-        self.sshPwd = str(self.get_parameter('ssh_password').value)
-        self.projectName = str(self.get_parameter('project_name').value)
-        self.scanpos = 1
+    def applyScannerSettings(self):
+        self.get_logger().debug("Get parameters..")
+        
         self.storMedia = int(self.get_parameter('stor_media').value)
         scanPattern = self.get_parameter('scan_pattern').value
         self.scanPattern = ScanPattern()
@@ -73,19 +87,33 @@ class RieglVzWrapper(Node):
         self.scanPattern.frameStop = scanPattern[4]
         self.scanPattern.frameIncrement = scanPattern[5]
         self.measProgram = int(self.get_parameter('meas_program').value)
-        self.scanPublish = bool(self.get_parameter('scan_publish').value)
-        self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
-        self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
-        if self.scanPublishLOD < 0:
-            self.scanPublishLOD = 0
-        self.scanRegister = bool(self.get_parameter('scan_register').value)
+        self.get_logger().debug("storMedia = {}".format(self.storMedia))
+        self.get_logger().debug("scanPattern = {0},{1},{2},{3},{4},{5}".format(self.scanPattern.lineStart,self.scanPattern.lineStop,self.scanPattern.lineIncrement,self.scanPattern.frameStart,self.scanPattern.frameStop,self.scanPattern.frameIncrement))
+        self.get_logger().debug("measProgram = {}".format(self.measProgram))
+
+        self.get_logger().debug("Apply scanner settings..")
+
+        projSvc = ProjectService(self.connectionString)
+        projSvc.setStorageMedia(self.storMedia)
+        scnSvc = ScannerService(args.connectionString)
+        pattern: RectScanPattern
+        pattern["theta_start"] = self.scanPattern.lineStart
+        pattern["theta_stop"] = self.scanPattern.lineStop
+        pattern["theta_incr"] = self.scanPattern.lineIncrement
+        pattern["phi_start"] = self.scanPattern.frameStart
+        pattern["phi_stop"] = self.scanPattern.frameStop
+        pattern["phi_incr"] = self.scanPattern.frameIncrement
+        scnSvc.setRectScan(pattern, 1)
+        scnSvc.setMeasurementProgram(self.measProgram)
+
+        self.get_logger().debug("Scanner settings applied.")
 
     def setProject(self):
-        self.readParameters()
         if not self.projectName:
             now = datetime.now()
             self.projectName = now.strftime("%y%m%d_%H%M%S")
         self.scanpos = 1
+
         return self.rieglVz.setProject(self.projectName)
 
     def setProjectCallback(self, request, response):
@@ -93,12 +121,20 @@ class RieglVzWrapper(Node):
             response.success = False
             response.message = "RIEGL VZ is shutting down"
             return response
+
+        self.projectName = str(self.get_parameter('project_name').value)
+        self.get_logger().debug("projectName = {}".format(self.projectName))
+
+        applyScannerSettings()
+
         if not self.setProject():
             response.success = False
             response.message = "RIEGL VZ is busy"
             return response
+
         response.success = True
         response.message = "success"
+
         return response
 
     def scan(self):
@@ -107,6 +143,7 @@ class RieglVzWrapper(Node):
             self.projectName = now.strftime("%y%m%d_%H%M%S")
         scanposName = str(self.scanpos)
         self.scanpos = self.scanpos + 1
+
         return self.rieglVz.scan(
             projectName = self.projectName,
             scanposName = scanposName,
@@ -125,12 +162,24 @@ class RieglVzWrapper(Node):
             response.success = False
             response.message = "RIEGL VZ is shutting down"
             return response
+
+        self.scanPublish = bool(self.get_parameter('scan_publish').value)
+        self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
+        self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
+        self.scanRegister = bool(self.get_parameter('scan_register').value)
+        self.get_logger().debug("  scanPublish = {}".format(self.scanPublish))
+        self.get_logger().debug("  scanPublishFilter = {}".format(self.scanPublishFilter))
+        self.get_logger().debug("  scanPublishLOD = {}".format(self.scanPublishLOD))
+        self.get_logger().debug("  scanRegister = {}".format(self.scanRegister))
+
         if not self.scan():
             response.success = False
             response.message = "RIEGL VZ is busy"
             return response
+
         response.success = True
         response.message = "success"
+
         return response
 
     def isBusy(self):
@@ -157,12 +206,15 @@ class RieglVzWrapper(Node):
             response.success = False
             response.message = "RIEGL VZ is shutting down"
             return response
+
         if not self.isScanBusy():
             response.success = False
             response.message = "RIEGL VZ is not busy"
             return response
+
         response.success = True
         response.message = "RIEGL VZ is busy"
+
         return response
 
     def stop(self):
@@ -173,9 +225,11 @@ class RieglVzWrapper(Node):
             response.success = False
             response.message = "RIEGL VZ is shutting down"
             return response
+
         self.stop()
         response.success = True
         response.message = "RIEGL VZ has been stopped"
+
         return response
 
     def shutdown(self):
@@ -187,6 +241,7 @@ class RieglVzWrapper(Node):
         self.shutdown()
         response.success = True
         response.message = "RIEGL VZ scanner is shutting down"
+
         return response
 
 def stop_node():

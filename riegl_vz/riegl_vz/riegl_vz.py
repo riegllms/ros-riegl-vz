@@ -60,7 +60,7 @@ class RieglVz():
 
         self.projectName = projectName
         self.logger.info("Create project '{}'..".format(self.projectName))
-        
+
         projSvc = ProjectService(self.connectionString)
         projSvc.createProject(self.projectName)
         projSvc.loadProject(self.projectName)
@@ -90,11 +90,14 @@ class RieglVz():
             numTotalPoints = 0
             numPoints = 0
             data = bytearray()
+            scanPublishLOD = self.scanPublishLOD
+            if self.scanPublishLOD < 0:
+                scanPublishLOD = 0
             for points in rdb.select(
                 self.scanPublishFilter,
                 chunk_size=100000
                 ):
-                pointStep = 2 ** self.scanPublishLOD
+                pointStep = 2 ** scanPublishLOD
                 for point in points:
                     if not (numTotalPoints % pointStep):
                         data.extend(point["riegl.xyz"].astype(dtype).tobytes())

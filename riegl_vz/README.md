@@ -73,7 +73,7 @@ The 'frame_id' in the header has to be either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
 
 The scanners hostname or IP address.
 
-**~working_dir** (string, default: "~/.ros_riegl_vz") :
+**~working_dir** (string, default: "/tmp/ros_riegl_vz") :
 
 The root working directory for runtime execution.
 

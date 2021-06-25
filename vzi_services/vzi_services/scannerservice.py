@@ -398,10 +398,10 @@ class ScannerService(object):
              progId (int): the program ID"""
         if not isinstance(progId, int):
             raise TypeError("Program ID must be and int.")
-        val = riconnect.Value()
-        val.i32 = progId
+        inputs = [riconnect.Value() for i in range(0, 1)]
+        inputs[0].i32 = progId
         with self._lock:
-            self._svc.setProperty("MEAS_PROG", val)
+            self._svc.callFunction("MEAS_SET_PROG", inputs=inputs)
 
     def setFineScan(self, pattern):
         """Set (apply) a fine scan pattern.
