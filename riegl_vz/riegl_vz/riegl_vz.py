@@ -34,6 +34,39 @@ class ScanPattern(object):
         self.frameIncrement = 0.04
         self.measProgram = 3
 
+class Status(object):
+    def __init__(self):
+        self.opstate = "waiting"
+        self.progress = 0.0
+
+class StatusMaintainer(object):
+    def __init__(self):
+        self._status: Status = Status()
+        self._threadLock = threading.Lock()
+
+    def _lock(self):
+        self._threadLock.acquire()
+
+    def _unlock(self):
+        self._threadLock.release()
+
+    def setOpstate(self, opstate):
+        self._lock()
+        self._status.opstate = opstate
+        self._unlock()
+
+    def setProgress(self, progress):
+        self._lock()
+        self._status.progress = progress
+        self._unlock()
+
+    def getStatus(self):
+        status: Status
+        self._lock()
+        status = self._status
+        self._unlock()
+        return status
+
 class RieglVz():
     def __init__(self, node):
         self.hostname = node.hostname
@@ -43,12 +76,25 @@ class RieglVz():
         self._node = node
         self._logger = node.get_logger()
         self._connectionString = self.hostname + ":20000"
-        self._busy = False
-        self._scanning = False
+        self._status: StatusMaintainer = StatusMaintainer()
+
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
 
     def _downloadAndPublishScan(self):
+        self._logger.info("Converting RXP to RDBX..")
+        scriptPath = join(appDir, "create-rdbx.py")
+        cmd = [
+            "python3", scriptPath,
+            "--connectionstring", self._connectionString,
+            "--project", self.projectName,
+            "--scanposition", self.scanposName]
+        self._logger.debug("CMD = {}".format(" ".join(cmd)))
+        subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+        self._logger.debug("Subprocess started.")
+        subproc.waitFor("RXP to RDBX conversion failed.")
+        self._logger.info("RXP to RDBX conversion finished")
+
         self._logger.info("Downloading RDBX..")
         procSvc = DataprocService(self._connectionString)
         scanId = procSvc.actualFile(0)
@@ -113,10 +159,9 @@ class RieglVz():
         self._logger.info("Point cloud published")
 
     def _scanThread(self):
-        self._busy = True
-
-        self._scanning = True
         self._logger.info("Starting data acquisition..")
+        self._status.setOpstate("scanning")
+        self._status.setProgress(0)
         self._logger.info("project name = {}".format(self.projectName))
         self._logger.info("scanpos name = {}".format(self.scanposName))
         self._logger.info("storage media = {}".format(self.storageMedia))
@@ -166,27 +211,17 @@ class RieglVz():
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         self._logger.debug("Subprocess started.")
         subproc.waitFor("Data acquisition failed.")
+        self._status.setProgress (100)
         self._logger.info("Data acquisition finished")
-        self._scanning = False
-
-        self._logger.info("Converting RXP to RDBX..")
-        scriptPath = join(appDir, "create-rdbx.py")
-        cmd = [
-            "python3", scriptPath,
-            "--connectionstring", self._connectionString,
-            "--project", self.projectName,
-            "--scanposition", self.scanposName]
-        self._logger.debug("CMD = {}".format(" ".join(cmd)))
-        subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-        self._logger.debug("Subprocess started.")
-        subproc.waitFor("RXP to RDBX conversion failed.")
-        self._logger.info("RXP to RDBX conversion finished")
 
         if self.scanPublish:
+            self._status.setOpstate("publishing")
             self._downloadAndPublishScan()
 
         if self.scanRegister:
             print("Registering", flush=True)
+            self._status.setOpstate("registering")
+            self._status.setProgress(0)
             self._logger.info("Starting registration")
             scriptPath = os.path.join(appDir, "bin", "register-scan.py")
             cmd = [
@@ -196,9 +231,10 @@ class RieglVz():
             self._logger.debug("CMD = {}".format(" ".join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
             subproc.waitFor("Registration failed.")
+            self._status.setProgress(100)
             self._logger.info("Registration finished")
 
-        self._busy = False
+        self._status.setOpstate("waiting")
 
     def scan(
         self,
@@ -221,7 +257,7 @@ class RieglVz():
           scanposName ... the name of the new scan position
           storageMedia ... storage media for data recording
           scanPattern ... the scan pattern"""
-        if self._busy:
+        if self.isBusy():
             return False
 
         self.projectName = projectName
@@ -245,19 +281,18 @@ class RieglVz():
 
     def isScanning(self, block = True):
         if block:
-            while self._scanning:
+            while self.getStatus().opstate == "scanning":
                 time.sleep(0.2)
-        return self._scanning
+        return True if self.getStatus().opstate == "scanning" else False
 
     def isBusy(self, block = True):
         if block:
-            while self._busy:
+            while self.getStatus().opstate != "waiting":
                 time.sleep(0.2)
-        return self._busy
+        return False if self.getStatus().opstate == "waiting" else True
 
-    def status(self):
-        # tbd...
-        return
+    def getStatus(self):
+        return self._status.getStatus()
 
     def stop(self):
         ctrlSvc = ControlService(self._connectionString)
