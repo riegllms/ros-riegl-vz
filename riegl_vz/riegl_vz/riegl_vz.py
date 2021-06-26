@@ -81,36 +81,41 @@ class RieglVz():
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
 
-    def _downloadAndPublishScan(self):
-        self._logger.info("Converting RXP to RDBX..")
-        scriptPath = join(appDir, "create-rdbx.py")
-        cmd = [
-            "python3", scriptPath,
-            "--connectionstring", self._connectionString,
-            "--project", self.projectName,
-            "--scanposition", self.scanposName]
-        self._logger.debug("CMD = {}".format(" ".join(cmd)))
-        subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-        self._logger.debug("Subprocess started.")
-        subproc.waitFor("RXP to RDBX conversion failed.")
-        self._logger.info("RXP to RDBX conversion finished")
+    def _getScanId(self, ssh: RemoteClient, scanposName: str):
+        #procSvc = DataprocService(self._connectionString)
+        #return procSvc.actualFile(0)
+        projSvc = ProjectService(self._connectionString)
+        scanposPath = projSvc.projectPath() + '/' + scanposName + '/'
+        cmd = ["ls", scanposPath, "*.rxp"]
+        return ssh.executeCommand(cmd)
 
+    def _getSecondsFromScanId(self, scanId: str):
+        scanFileName: str = os.path.basename(scanId)
+        dateTime = datetime.strptime(scanFileName, '%y%m%d_%H%M%S.rdbx')
+        return int(dateTime.strftime("%s"))
+
+    def downloadAndPublishScan(self, scanpos: int):
         self._logger.info("Downloading RDBX..")
-        procSvc = DataprocService(self._connectionString)
-        scanId = procSvc.actualFile(0)
+
+        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
+
+        scanId = self._getScanId(ssh, scanpos)
         self._logger.debug("scan id = {}".format(scanId))
+
         rdbxFileRemote = "/media/" + scanId.replace(".rxp", ".rdbx")
         self._logger.debug("remote rdbx file = {}".format(rdbxFileRemote))
         rdbxFileLocal = self.workingDir + "/scan.rdbx"
         self._logger.debug("local rdbx file  = {}".format(rdbxFileLocal))
-        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-        ssh.download_file(filepath=rdbxFileRemote, localpath=rdbxFileLocal)
+
+        ssh.downloadFile(filepath=rdbxFileRemote, localpath=rdbxFileLocal)
         ssh.disconnect()
+
         self._logger.info("RDBX download finished")
 
         self._logger.info("Extracting and publishing point cloud..")
-        with riegl.rdb.rdb_open(self.rdbxFileLocal) as rdb:
-            ts = builtin_msgs.Time(sec = 0, nanosec = 0)
+
+        with riegl.rdb.rdb_open(rdbxFileLocal) as rdb:
+            ts = builtin_msgs.Time(sec = self._getSecondsFromScanId(scanId), nanosec = 0)
             filter = ""
             rosDtype = sensor_msgs.PointField.FLOAT32
             dtype = np.float32
@@ -160,6 +165,7 @@ class RieglVz():
 
     def _scanThread(self):
         self._logger.info("Starting data acquisition..")
+
         self._status.setOpstate("scanning")
         self._status.setProgress(0)
         self._logger.info("project name = {}".format(self.projectName))
@@ -210,19 +216,36 @@ class RieglVz():
         self._logger.debug("CMD = {}".format(" ".join(cmd)))
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         self._logger.debug("Subprocess started.")
-        subproc.waitFor("Data acquisition failed.")
+        while not subproc.waitFor(errorMessage="Data acquisition failed.", block=False):
+            time.sleep(1.0)
         self._status.setProgress (100)
+
         self._logger.info("Data acquisition finished")
 
+        self._logger.info("Converting RXP to RDBX..")
+
+        self._status.setOpstate("processing")
+        scriptPath = join(appDir, "create-rdbx.py")
+        cmd = [
+            "python3", scriptPath,
+            "--connectionstring", self._connectionString,
+            "--project", self.projectName,
+            "--scanposition", self.scanposName]
+        self._logger.debug("CMD = {}".format(" ".join(cmd)))
+        subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+        self._logger.debug("Subprocess started.")
+        subproc.waitFor("RXP to RDBX conversion failed.")
+
+        self._logger.info("RXP to RDBX conversion finished")
+
         if self.scanPublish:
-            self._status.setOpstate("publishing")
-            self._downloadAndPublishScan()
+            self.downloadAndPublishScan(self.scanposName)
 
         if self.scanRegister:
-            print("Registering", flush=True)
+            self._logger.info("Starting registration..")
+
             self._status.setOpstate("registering")
             self._status.setProgress(0)
-            self._logger.info("Starting registration")
             scriptPath = os.path.join(appDir, "bin", "register-scan.py")
             cmd = [
                 "python3", scriptPath,
@@ -230,8 +253,10 @@ class RieglVz():
                 "--scanposition", self.scanposName]
             self._logger.debug("CMD = {}".format(" ".join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-            subproc.waitFor("Registration failed.")
+            while not subproc.waitFor(errorMessage="Registration failed.", block=False):
+                time.sleep(1.0)
             self._status.setProgress(100)
+
             self._logger.info("Registration finished")
 
         self._status.setOpstate("waiting")

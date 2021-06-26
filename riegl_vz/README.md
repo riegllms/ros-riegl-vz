@@ -150,7 +150,7 @@ Riegl VZ status information, published once per second:
 
 ```
 errors       : scanner errors
-opstate      : operating state ("waiting", "scanning", "publishing", "registering")
+opstate      : operating state ("waiting", "scanning", "processing", "registering")
 progress     : progress of scan data acquisition or registration in percent
 memory_usage : memory usage of active storage media in percent
 ```

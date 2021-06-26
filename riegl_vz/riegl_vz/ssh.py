@@ -46,7 +46,7 @@ class RemoteClient:
         if self.client:
             self.client.close()
 
-    def bulk_upload(self, files: List[str], remote_path: str):
+    def bulkUpload(self, files: List[str], remote_path: str):
         """
         Upload multiple files to a remote directory.
 
@@ -60,13 +60,24 @@ class RemoteClient:
         except Exception as e:
             raise e
 
-    def download_file(self, filepath: str, localpath: str = "./"):
+    def downloadFile(self, filepath: str, localpath: str = "./"):
         """Download file from remote host."""
         scp = self.scp
         scp.get(filepath, localpath)
         scp.close()
 
-    def execute_commands(self, commands: List[str]):
+    def executeCommand(self, command: str):
+        """
+        Execute a single command.
+
+        :param command: unix command as strings.
+        :type command: str
+        """
+        stdin, stdout, stderr = self.connection.exec_command(cmd)
+        stdout.channel.recv_exit_status()
+        return stdout.readlines()
+
+    def executeCommands(self, commands: List[str]):
         """
         Execute multiple commands in succession.
 
