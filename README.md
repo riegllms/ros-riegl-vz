@@ -4,12 +4,16 @@ This package is based on ROS 2 [Galactic Geochelone](https://docs.ros.org/en/gal
 
 **ROS 2 installation and setup:**
 
-Follow ROS 2 installation instructions on https://docs.ros.org/en/galactic/Installation.html.
+Follow ROS 2 installation instructions on https://docs.ros.org/en/galactic/Installation/Ubuntu-Development-Setup.html.
 
 Configure the ROS 2 environment according to https://docs.ros.org/en/galactic/Tutorials/Configuring-ROS2-Environment.html.
 
 Create a new workspace (https://docs.ros.org/en/galactic/Tutorials/Workspace/Creating-A-Workspace.html)
 and clone repository into subdirectory 'src'.
+
+**Install diagnostics updater package:**
+
+```sudo apt-get install ros-galactic-diagnostic-updater```
 
 **Install python requirements:**
 
@@ -49,10 +53,18 @@ Execute the scan trigger service:
 
 **Visualize scan data point cloud with rviz:**
 
-Start rviz tool:
+Start 'rviz' tool:
 
 ```rviz2```
 
 Set fixed-frame to 'RIEGL_SOCS' and bind to riegl_vz/pointcloud topic:
 
 ![rviz2](riegl_vz/img/rviz2.png)
+
+**Monitor diagnostics with rqt:**
+
+Start 'rqt' tool, activate 'Topic Monitor' plugin and select '/diagnostics' topic for monitoring:
+
+```rqt```
+
+![rqt](riegl_vz/img/rqt.png)

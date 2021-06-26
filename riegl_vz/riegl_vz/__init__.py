@@ -8,6 +8,11 @@ from std_srvs.srv import (
 from sensor_msgs.msg import (
     PointCloud2
 )
+from diagnostic_msgs.msg import (
+    DiagnosticArray,
+    DiagnosticStatus
+)
+from diagnostic_updater import Updater
 from riegl_vz_interfaces.srv import (
     GetPointCloud,
     GetPoses,
@@ -72,7 +77,18 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
+        self._updater = Updater(self)
+        self._updater.setHardwareID('riegl_vz')
+        self._updater.add("status", self.produceDiagnostics)
+
         self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.hostname))
+
+    def produceDiagnostics(self, diag):
+        status = self._rieglVz.getStatus()
+        diag.summary(DiagnosticStatus.OK, 'RIEGL VZ Scanner is ready to scan.')
+        diag.add('opstate', status.opstate)
+        diag.add('progress', str(status.progress))
+        return diag
 
     def setProject(self):
         self.projectName = str(self.get_parameter('project_name').value)
