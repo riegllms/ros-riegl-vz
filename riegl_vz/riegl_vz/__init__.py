@@ -66,7 +66,7 @@ class RieglVzWrapper(Node):
 
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
-        self._isBusyService = self.create_service(SetBool, 'is_scan_busy', self._isBusyCallback)
+        self._isScanningService = self.create_service(SetBool, 'is_scanning', self._isScanningCallback)
         self._isBusyService = self.create_service(SetBool, 'is_busy', self._isBusyCallback)
         self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
@@ -88,7 +88,7 @@ class RieglVzWrapper(Node):
     def _setProjectCallback(self, request, response):
         if self._shutdownReq is True:
             response.success = False
-            response.message = "RIEGL VZ is shutting down"
+            response.message = "node is shutting down"
             return response
 
         self.setProject()
@@ -134,12 +134,12 @@ class RieglVzWrapper(Node):
     def _scanCallback(self, request, response):
         if self._shutdownReq is True:
             response.success = False
-            response.message = "RIEGL VZ is shutting down"
+            response.message = "node is shutting down"
             return response
 
         if not self.scan():
             response.success = False
-            response.message = "RIEGL VZ is busy"
+            response.message = "node is locked"
             return response
 
         response.success = True
@@ -153,13 +153,13 @@ class RieglVzWrapper(Node):
     def _getPointCloudCallback(self, request, response):
         if self._shutdownReq is True:
             response.success = False
-            response.message = "RIEGL VZ is shutting down"
+            response.message = "snode is hutting down"
             return response
 
         pointcloud: PointCloud
         if not self.getPointCloud(request.scanpos, pointcloud):
             response.success = False
-            response.message = "Point cloud is not available"
+            response.message = "point cloud is not available"
             return response
 
         response.pointcloud = pointcloud
@@ -174,35 +174,35 @@ class RieglVzWrapper(Node):
     def _isBusyCallback(self, request, response):
         if self._shutdownReq is True:
             response.success = False
-            response.message = "RIEGL VZ is shutting down"
+            response.message = "node is shutting down"
             return response
 
         if not self.isBusy():
             response.success = False
-            response.message = "RIEGL VZ is not busy"
+            response.message = "ready"
             return response
 
         response.success = True
-        response.message = "RIEGL VZ is busy"
+        response.message = "busy"
 
         return response
 
-    def isScanBusy(self):
+    def isScanning(self):
         return self._rieglVz.isBusy()
 
-    def _isScanBusyCallback(self, request, response):
+    def _isScanningCallback(self, request, response):
         if self._shutdownReq is True:
             response.success = False
-            response.message = "RIEGL VZ is shutting down"
+            response.message = "node is shutting down"
             return response
 
-        if not self.isScanBusy():
+        if not self.isScanning():
             response.success = False
-            response.message = "RIEGL VZ is not busy"
+            response.message = "ready"
             return response
 
         response.success = True
-        response.message = "RIEGL VZ is busy"
+        response.message = "scanning"
 
         return response
 
@@ -212,13 +212,13 @@ class RieglVzWrapper(Node):
     def _stopCallback(self, request, response):
         if self._shutdownReq is True:
             response.success = False
-            response.message = "RIEGL VZ is shutting down"
+            response.message = "node is shutting down"
             return response
 
         self.stop()
 
         response.success = True
-        response.message = "RIEGL VZ has been stopped"
+        response.message = "success"
 
         return response
 
@@ -231,7 +231,7 @@ class RieglVzWrapper(Node):
         self.shutdown()
 
         response.success = True
-        response.message = "RIEGL VZ scanner is shutting down"
+        response.message = "success"
 
         return response
 

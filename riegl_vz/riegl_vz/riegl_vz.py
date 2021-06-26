@@ -44,7 +44,7 @@ class RieglVz():
         self._logger = node.get_logger()
         self._connectionString = self.hostname + ":20000"
         self._busy = False
-        self._scanBusy = False
+        self._scanning = False
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
 
@@ -115,7 +115,7 @@ class RieglVz():
     def _scanThread(self):
         self._busy = True
 
-        self._scanBusy = True
+        self._scanning = True
         self._logger.info("Starting data acquisition..")
         self._logger.info("project name = {}".format(self.projectName))
         self._logger.info("scanpos name = {}".format(self.scanposName))
@@ -167,7 +167,7 @@ class RieglVz():
         self._logger.debug("Subprocess started.")
         subproc.waitFor("Data acquisition failed.")
         self._logger.info("Data acquisition finished")
-        self._scanBusy = False
+        self._scanning = False
 
         self._logger.info("Converting RXP to RDBX..")
         scriptPath = join(appDir, "create-rdbx.py")
@@ -243,11 +243,11 @@ class RieglVz():
 
         return True
 
-    def isScanBusy(self, block = True):
+    def isScanning(self, block = True):
         if block:
-            while self._scanBusy:
+            while self._scanning:
                 time.sleep(0.2)
-        return self._scanBusy
+        return self._scanning
 
     def isBusy(self, block = True):
         if block:
