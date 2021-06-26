@@ -66,8 +66,6 @@ class RieglVzWrapper(Node):
 
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
-        self._isScanningService = self.create_service(SetBool, 'is_scanning', self._isScanningCallback)
-        self._isBusyService = self.create_service(SetBool, 'is_busy', self._isBusyCallback)
         self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
         self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
@@ -94,7 +92,7 @@ class RieglVzWrapper(Node):
         self.setProject()
 
         response.success = True
-        response.message = "success"
+        response.message = self._projectName
 
         return response
 
@@ -165,44 +163,6 @@ class RieglVzWrapper(Node):
         response.pointcloud = pointcloud
         response.success = True
         response.message = "success"
-
-        return response
-
-    def isBusy(self):
-        return self._rieglVz.isBusy()
-
-    def _isBusyCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
-            return response
-
-        if not self.isBusy():
-            response.success = False
-            response.message = "ready"
-            return response
-
-        response.success = True
-        response.message = "busy"
-
-        return response
-
-    def isScanning(self):
-        return self._rieglVz.isBusy()
-
-    def _isScanningCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
-            return response
-
-        if not self.isScanning():
-            response.success = False
-            response.message = "ready"
-            return response
-
-        response.success = True
-        response.message = "scanning"
 
         return response
 

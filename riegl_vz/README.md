@@ -144,13 +144,13 @@ Enable automatic scan position registration in current project after scan data a
 
 Point cloud with scan data from the laser scanner. Included are xyz cartesian coordinates in SOCS and reflectance.
 
-**status** ([diagnostic_msgs/DiagnosticStatus.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticStatus.msg)):
+**diagnostics** ([diagnostic_msgs/DiagnosticArray.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticArray.msg)):
 
 Riegl VZ status information, published once per second:
 
 ```
-errors       : scanner errors ("no", "yes", "fatal")
-opstate      : operating state ("ready", "scanning", "busy")
+errors       : scanner errors
+opstate      : operating state ("waiting", "scanning", "publishing", "registering")
 progress     : progress of scan data acquisition or registration in percent
 memory_usage : memory usage of active storage media in percent
 ```
@@ -167,31 +167,11 @@ success = False -> message: Error Message
 
 **scan** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
-Start laser scan acquisition, and scan registration if parameter '\~scan_register' is enabled. If parameter '\~scan_publish' is enabled and laser scan has finished, scan data will be published on 'pointcloud' topic. Use 'is_scanning' and/or 'is_busy' services to poll background tasks busy state or get it from 'status' topic.
+Start a background task for scan data acquisition, and scan registration if parameter '\~scan_register' is enabled. If parameter '\~scan_publish' is enabled and laser scan has finished, scan data will be published on 'pointcloud' topic. The execution state will be published in 'optime' field of 'diagnostics' topic. The node is locked until all background tasks have finished and the operating state is 'waiting' again.
 
 Response:  
 success = True -> message: success  
-success = False -> message: Error Message  
-
-**is_scanning** ([std_srvs/SetBool](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/SetBool.srv)) :
-
-Check if scan data acquisition has finished, otherwise the device is locked. If 'data' in request is true, the call will block until scan has finished.
-
-Request:  
-data: set blocking execution  
-Response:  
-success = True -> message: scanning  
-success = False -> message: ready  
-
-**is_busy** ([std_srvs/SetBool](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/SetBool.srv)) :
-
-Check if background tasks (scan data acquisition AND scan registration) have finished, otherwise the device is locked. If 'data' in request is true, the call will block until all background tasks have finished.
-
-Request:  
-data: enable blocking execution mode
-Response:  
-success = True -> message: busy  
-success = False -> message: ready  
+success = False -> message: node is locked
 
 **get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
 
