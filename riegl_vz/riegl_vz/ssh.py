@@ -73,7 +73,7 @@ class RemoteClient:
         :param command: unix command as strings.
         :type command: str
         """
-        stdin, stdout, stderr = self.connection.exec_command(cmd)
+        stdin, stdout, stderr = self.connection.exec_command(command)
         stdout.channel.recv_exit_status()
         return stdout.readlines()
 

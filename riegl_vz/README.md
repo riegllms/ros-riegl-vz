@@ -41,7 +41,7 @@ string message # informational, e.g. for error messages
 ```
 See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)  
 Scanpos 0 implicitly refers to the last scan position, 1 is the first scan position.  
-The 'frame_id' in the header is either 'RIEGL_SOCS'.
+The 'frame_id' in the header is 'RIEGL_SOCS'.
 
 **riegl_vz_interfaces/GetPose**:
 ```
@@ -150,8 +150,8 @@ Riegl VZ status information, published once per second:
 
 ```
 errors       : scanner errors
-opstate      : operating state ("waiting", "scanning", "processing", "registering")
-progress     : progress of scan data acquisition or registration in percent
+opstate      : operating state ("waiting", "scanning", "processing")
+progress     : progress of scan data acquisition and processing in percent
 memory_usage : memory usage of active storage media in percent
 ```
 
@@ -163,45 +163,56 @@ Create a new or load an existing project on the scanner with name from parameter
 
 Response:  
 success = True -> message: Project Name  
-success = False -> message: Error Message  
+success = False -> message: node is shutting down
 
 **scan** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
-Start a background task for scan data acquisition, and scan registration if parameter '\~scan_register' is enabled. If parameter '\~scan_publish' is enabled and laser scan has finished, scan data will be published on 'pointcloud' topic. The execution state will be published in 'optime' field of 'diagnostics' topic. The node is locked until all background tasks have finished and the operating state is 'waiting' again.
+Start a background task for laser scan data acquisition
+
+The execution state will be published in 'opstate' field of 'diagnostics' topic.  
+The node is locked until all background tasks have finished and the operating state is 'waiting' again.
+
+If parameter '\~scan_publish' is enabled, acquired data will be published on 'pointcloud' topic soon after scanning has finished.
+
+The parameter '\~scan_register' enables automatic scan position registration after scanning.
+The registration result is valid after processing, if operating state is 'waiting' again.
+It can be requested by separate service calls (see 'get_sopv', 'get_all_sopv' and 'get_vop').
 
 Response:  
 success = True -> message: success  
 success = False -> message: node is locked
+success = False -> message: node is shutting down
 
 **get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
 
-Get point cloud of a previously acquired scan in actual project.
+Get point cloud of a previously acquired scan position in actual project.
 
 **get_sopv** (riegl_vz_interfaces/GetPose) :
 
-Request position and orientation (SOPV) of the last acquired scan.
+Request position and orientation (SOPV) of the last scan.
 
 **get_all_sopv** (riegl_vz_interfaces/GetPoses) :
 
-Request positions and orientations (SOPV) of all previously acquired scans in current project.
+Request positions and orientations (SOPV) of all previous scans in current project.
 
 **get_vop** (riegl_vz_interfaces/GetPose) :
 
-Get current VOP, which is the position and orientation of the voxel coordinate system (VOCS) origin based on the project coordinate system (PRCS).
+Get current VOP, which is the position and orientation of the VOXEL coordinate system (VOCS) origin based on the project coordinate system (PRCS).
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
 Stop laser scan data acquisition and registration background tasks.
 
 Response:  
-success = True -> message: "RIEGL VZ has been stopped"  
+success = True -> message: "success"  
+success = False -> message: node is shutting down
 
 **shutdown** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
-Stop data acquisition and power down the laser scanner.
+Stop data acquisition and power down the laser scanner device.
 
 Response:  
-success = True -> message: "RIEGL VZ is shutting down"  
+success = True -> message: "success"  
 
 #### 3.1.4 Extensions
 

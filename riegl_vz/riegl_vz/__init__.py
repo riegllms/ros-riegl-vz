@@ -44,7 +44,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('ssh_user', 'user')
         self.declare_parameter('ssh_password', 'user')
         self.declare_parameter('project_name', '')
-        self.declare_parameter('storage_media', 2)
+        self.declare_parameter('storage_media', 0)
         self.declare_parameter('scan_pattern', [30.0,130.0,0.04,0.0,360.0,0.5])
         self.declare_parameter('meas_program', 0)
         self.declare_parameter('scan_publish', True)
@@ -77,15 +77,15 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
-        self._updater = Updater(self)
-        self._updater.setHardwareID('riegl_vz')
-        self._updater.add("status", self.produceDiagnostics)
+        #self._statusUpdater = Updater(self)
+        #self._statusUpdater.setHardwareID('riegl_vz')
+        #self._statusUpdater.add("status", self.produceDiagnostics)
 
         self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.hostname))
 
     def produceDiagnostics(self, diag):
         status = self._rieglVz.getStatus()
-        diag.summary(DiagnosticStatus.OK, 'RIEGL VZ Scanner is ready to scan.')
+        diag.summary(DiagnosticStatus.OK, 'RIEGL VZ is ready to scan.')
         diag.add('opstate', status.opstate)
         diag.add('progress', str(status.progress))
         return diag
@@ -159,24 +159,25 @@ class RieglVzWrapper(Node):
         response.success = True
         response.message = "success"
 
+        #self._statusUpdater.force_update()
+
         return response
 
     def getPointCloud(self, scanpos, pointcloud):
-        return True
+        ok, pointcloud = self.rieglVz.downloadAndPublishScan(scanpos, pointcloud)
+        return ok
 
     def _getPointCloudCallback(self, request, response):
         if self._shutdownReq is True:
             response.success = False
-            response.message = "snode is hutting down"
+            response.message = "node is hutting down"
             return response
 
-        pointcloud: PointCloud
-        if not self.getPointCloud(request.scanpos, pointcloud):
+        if not self.getPointCloud(request.scanpos, response.pointcloud):
             response.success = False
             response.message = "point cloud is not available"
             return response
 
-        response.pointcloud = pointcloud
         response.success = True
         response.message = "success"
 

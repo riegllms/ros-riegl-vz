@@ -4,9 +4,13 @@ import time
 import subprocess
 import threading
 import numpy as np
+from datetime import datetime
 from os.path import join, dirname, abspath
 
-import sensor_msgs.msg as sensor_msgs
+from sensor_msgs.msg import (
+    PointCloud2,
+    PointField
+)
 import std_msgs.msg as std_msgs
 import builtin_interfaces.msg as builtin_msgs
 
@@ -15,6 +19,7 @@ from rclpy.node import Node
 import riegl.rdb
 
 from vzi_services.controlservice import ControlService
+from vzi_services.projectservice import ProjectService
 from vzi_services.dataprocservice import DataprocService
 
 from .ssh import RemoteClient
@@ -85,39 +90,36 @@ class RieglVz():
         #procSvc = DataprocService(self._connectionString)
         #return procSvc.actualFile(0)
         projSvc = ProjectService(self._connectionString)
-        scanposPath = projSvc.projectPath() + '/' + scanposName + '/'
-        cmd = ["ls", scanposPath, "*.rxp"]
-        return ssh.executeCommand(cmd)
+        scanposPath = projSvc.projectPath() + '/' + scanposName + '.SCNPOS/scans/'
+        cmd = ["ls -t", scanposPath + "*.rxp"]
+        self._logger.debug("CMD = {}".format(" ".join(cmd)))
+        response = ssh.executeCommand(" ".join(cmd))
+        return (scanposPath + os.path.basename(response[0]).split(".")[0] + ".rxp").replace("/media/", "")
 
-    def _getSecondsFromScanId(self, scanId: str):
+    def _getTimeStampFromScanId(self, scanId: str):
         scanFileName: str = os.path.basename(scanId)
-        dateTime = datetime.strptime(scanFileName, '%y%m%d_%H%M%S.rdbx')
+        dateTime = datetime.strptime(scanFileName, '%y%m%d_%H%M%S.rxp')
+        #self._logger.debug("dateTime = {}".format(dateTime))
         return int(dateTime.strftime("%s"))
 
-    def downloadAndPublishScan(self, scanpos: int):
+    def downloadAndPublishScan(self, scanpos: int, pointcloud: PointCloud2):
         self._logger.info("Downloading RDBX..")
-
         ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-
         scanId = self._getScanId(ssh, scanpos)
         self._logger.debug("scan id = {}".format(scanId))
-
         rdbxFileRemote = "/media/" + scanId.replace(".rxp", ".rdbx")
         self._logger.debug("remote rdbx file = {}".format(rdbxFileRemote))
         rdbxFileLocal = self.workingDir + "/scan.rdbx"
         self._logger.debug("local rdbx file  = {}".format(rdbxFileLocal))
-
         ssh.downloadFile(filepath=rdbxFileRemote, localpath=rdbxFileLocal)
         ssh.disconnect()
-
         self._logger.info("RDBX download finished")
 
         self._logger.info("Extracting and publishing point cloud..")
-
         with riegl.rdb.rdb_open(rdbxFileLocal) as rdb:
-            ts = builtin_msgs.Time(sec = self._getSecondsFromScanId(scanId), nanosec = 0)
+            ts = builtin_msgs.Time(sec = self._getTimeStampFromScanId(scanId), nanosec = 0)
             filter = ""
-            rosDtype = sensor_msgs.PointField.FLOAT32
+            rosDtype = PointField.FLOAT32
             dtype = np.float32
             itemsize = np.dtype(dtype).itemsize
 
@@ -139,13 +141,13 @@ class RieglVz():
                         numPoints += 1
                     numTotalPoints += 1
 
-            fields = [sensor_msgs.PointField(
+            fields = [PointField(
                 name = n, offset = i*itemsize, datatype = rosDtype, count = 1)
                 for i, n in enumerate('xyzr')]
 
             header = std_msgs.Header(frame_id = "RIEGL_SOCS", stamp = ts)
 
-            pointCloud = sensor_msgs.PointCloud2(
+            pointcloud = PointCloud2(
                 header = header,
                 height = 1,
                 width = numPoints,
@@ -159,14 +161,15 @@ class RieglVz():
             #for point in rdb.points():
             #    self._logger.debug("{0}".format(point.riegl_xyz))
 
-            self._node.pointCloudPublisher.publish(pointCloud)
-
+            self._node.pointCloudPublisher.publish(pointcloud)
         self._logger.info("Point cloud published")
 
-    def _scanThread(self):
-        self._logger.info("Starting data acquisition..")
+        return True, pointcloud
 
+    def _scanThread(self):
         self._status.setOpstate("scanning")
+
+        self._logger.info("Starting data acquisition..")
         self._status.setProgress(0)
         self._logger.info("project name = {}".format(self.projectName))
         self._logger.info("scanpos name = {}".format(self.scanposName))
@@ -216,15 +219,15 @@ class RieglVz():
         self._logger.debug("CMD = {}".format(" ".join(cmd)))
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         self._logger.debug("Subprocess started.")
-        while not subproc.waitFor(errorMessage="Data acquisition failed.", block=False):
-            time.sleep(1.0)
+        subproc.waitFor(errorMessage="Data acquisition failed.", block=True)
+        #while not subproc.waitFor(errorMessage="Data acquisition failed.", block=False):
+        #    time.sleep(1.0)
         self._status.setProgress (100)
-
         self._logger.info("Data acquisition finished")
 
-        self._logger.info("Converting RXP to RDBX..")
-
         self._status.setOpstate("processing")
+
+        self._logger.info("Converting RXP to RDBX..")
         scriptPath = join(appDir, "create-rdbx.py")
         cmd = [
             "python3", scriptPath,
@@ -235,16 +238,14 @@ class RieglVz():
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         self._logger.debug("Subprocess started.")
         subproc.waitFor("RXP to RDBX conversion failed.")
-
         self._logger.info("RXP to RDBX conversion finished")
 
         if self.scanPublish:
-            self.downloadAndPublishScan(self.scanposName)
+            pointcloud: PointCloud2 = PointCloud2()
+            ok, pointcloud = self.downloadAndPublishScan(self.scanposName, pointcloud)
 
         if self.scanRegister:
             self._logger.info("Starting registration..")
-
-            self._status.setOpstate("registering")
             self._status.setProgress(0)
             scriptPath = os.path.join(appDir, "bin", "register-scan.py")
             cmd = [
@@ -253,10 +254,10 @@ class RieglVz():
                 "--scanposition", self.scanposName]
             self._logger.debug("CMD = {}".format(" ".join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-            while not subproc.waitFor(errorMessage="Registration failed.", block=False):
-                time.sleep(1.0)
+            subproc.waitFor(errorMessage="Registration failed.", block=True)
+            #while not subproc.waitFor(errorMessage="Registration failed.", block=False):
+            #    time.sleep(1.0)
             self._status.setProgress(100)
-
             self._logger.info("Registration finished")
 
         self._status.setOpstate("waiting")
@@ -301,6 +302,9 @@ class RieglVz():
         thread = threading.Thread(target=self._scanThread, args=())
         thread.daemon = True
         thread.start()
+
+        while not self.isScanning(block=False):
+            time.sleep(0.2)
 
         return True
 
