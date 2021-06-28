@@ -28,7 +28,6 @@ endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GetPointCloud.srv"
-  "srv/GetPose.srv"
   "srv/GetPoses.srv"
   "srv/SetPose.srv"
   DEPENDENCIES sensor_msgs geometry_msgs

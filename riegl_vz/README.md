@@ -43,16 +43,6 @@ See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/co
 Scanpos 0 implicitly refers to the last scan position, 1 is the first scan position.  
 The 'frame_id' in the header is 'RIEGL_SOCS'.
 
-**riegl_vz_interfaces/GetPose**:
-```
----
-geometry_msgs/PoseStamped pose
-bool success   # indicate successful run of service
-string message # informational, e.g. for error messages
-```
-See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
-The 'frame_id' in the header is either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
-
 **riegl_vz_interfaces/GetPoses**:
 ```
 ---
@@ -187,17 +177,17 @@ success = False -> message: node is shutting down
 
 Get point cloud of a previously acquired scan position in actual project.
 
-**get_sopv** (riegl_vz_interfaces/GetPose) :
+**get_sopv** (riegl_vz_interfaces/GetPoses) :
 
-Request position and orientation (SOPV) of the last scan.
+Request single position and orientation (SOPV) of the last scan.
 
 **get_all_sopv** (riegl_vz_interfaces/GetPoses) :
 
 Request positions and orientations (SOPV) of all previous scans in current project.
 
-**get_vop** (riegl_vz_interfaces/GetPose) :
+**get_vop** (riegl_vz_interfaces/GetPoses) :
 
-Get current VOP, which is the position and orientation of the VOXEL coordinate system (VOCS) origin based on the project coordinate system (PRCS).
+Get current VOP, which is a single position and orientation of the VOXEL coordinate system (VOCS) origin based on the project coordinate system (PRCS).
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 

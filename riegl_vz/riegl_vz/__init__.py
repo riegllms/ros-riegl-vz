@@ -173,7 +173,8 @@ class RieglVzWrapper(Node):
             response.message = "node is hutting down"
             return response
 
-        if not self.getPointCloud(request.scanpos, response.pointcloud):
+        ok, response.pointcloud = self.getPointCloud(request.scanpos, response.pointcloud)
+        if not ok:
             response.success = False
             response.message = "point cloud is not available"
             return response
@@ -215,6 +216,7 @@ class RieglVzWrapper(Node):
 def stop_node():
     if _rieglVzWrapper is not None:
         _rieglVzWrapper.stop()
+
     rclpy.shutdown()
 
 def main(args=None):
