@@ -3,7 +3,7 @@
 <package format="3">
   <name>riegl_vz</name>
   <version>0.0.0</version>
-  <description>ROS 2 (Roboter Operating System) Driver for RIEGL VZ scanner series</description>
+  <description>ROS 2 (Roboter Operating System) package for RIEGL VZ scanner series</description>
   <maintainer email="afriedl@riegl.com">Andreas Friedl</maintainer>
   <license>Apache License 2.0</license>
 

@@ -1,5 +1,4 @@
-uint32 seq     # Scan position number within a project, starting with 1
 ---
-sensor_msgs/PointCloud2 pointcloud
+ScanPose[] scanposes
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages

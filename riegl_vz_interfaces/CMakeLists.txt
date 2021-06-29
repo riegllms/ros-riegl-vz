@@ -27,8 +27,10 @@ if(BUILD_TESTING)
 endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
+  "msg/ScanPose.msg"
   "srv/GetPointCloud.srv"
-  "srv/GetPoses.srv"
+  "srv/GetScanPoses.srv"
+  "srv/GetPose.srv"
   "srv/SetPose.srv"
   DEPENDENCIES sensor_msgs geometry_msgs
  )

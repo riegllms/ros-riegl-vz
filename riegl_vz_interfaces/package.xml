@@ -3,9 +3,9 @@
 <package format="3">
   <name>riegl_vz_interfaces</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
-  <maintainer email="afriedl@riegl.com">af</maintainer>
-  <license>TODO: License declaration</license>
+  <description>Specific interfaces for RIEGL VZ package</description>
+  <maintainer email="afriedl@riegl.com">Andreas Friedl</maintainer>
+  <license>Apache License 2.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

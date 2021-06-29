@@ -22,6 +22,10 @@ from vzi_services.controlservice import ControlService
 from vzi_services.projectservice import ProjectService
 from vzi_services.dataprocservice import DataprocService
 
+from .pose import (
+    readVop,
+    readAllSopv
+)
 from .ssh import RemoteClient
 from .utils import (
     SubProcess
@@ -42,7 +46,6 @@ class ScanPattern(object):
 class Status(object):
     def __init__(self):
         self.opstate = "waiting"
-        self.progress = 0.0
 
 class StatusMaintainer(object):
     def __init__(self):
@@ -58,11 +61,6 @@ class StatusMaintainer(object):
     def setOpstate(self, opstate):
         self._lock()
         self._status.opstate = opstate
-        self._unlock()
-
-    def setProgress(self, progress):
-        self._lock()
-        self._status.progress = progress
         self._unlock()
 
     def getStatus(self):
@@ -81,20 +79,41 @@ class RieglVz():
         self._node = node
         self._logger = node.get_logger()
         self._connectionString = self.hostname + ":20000"
+        self.scanposName = None
         self._status: StatusMaintainer = StatusMaintainer()
 
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
 
-    def _getScanId(self, ssh: RemoteClient, scanposName: str):
-        #procSvc = DataprocService(self._connectionString)
-        #return procSvc.actualFile(0)
+    def _downloadFile(self, remoteFile: str, localFile: str):
+        self._logger.info("Downloading file..")
+        self._logger.debug("remote file = {}".format(remoteFile))
+        self._logger.debug("local file  = {}".format(localFile))
+        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
+        ssh.downloadFile(filepath=remoteFile, localpath=localFile)
+        ssh.disconnect()
+        self._logger.info("File download finished")
+        return localFile
+
+    def _getProjectPath(self):
         projSvc = ProjectService(self._connectionString)
-        scanposPath = projSvc.projectPath() + '/' + scanposName + '.SCNPOS/scans/'
-        cmd = ["ls -t", scanposPath + "*.rxp"]
+        return projSvc.projectPath()
+
+    def _getScanposPath(self, scanposName: str):
+        return self._getProjectPath() + '/' + scanposName + '.SCNPOS/scans'
+
+    def _getScanId(self, scanposName: str):
+        if int(scanposName) == 0:
+            procSvc = DataprocService(self._connectionString)
+            return procSvc.actualFile(0)
+
+        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
+        scanposPath = self._getScanposPath(scanposName)
+        cmd = ["ls -t", scanposPath + "/*.rxp"]
         self._logger.debug("CMD = {}".format(" ".join(cmd)))
         response = ssh.executeCommand(" ".join(cmd))
-        return (scanposPath + os.path.basename(response[0]).split(".")[0] + ".rxp").replace("/media/", "")
+        ssh.disconnect()
+        return (scanposPath + "/" + os.path.basename(response[0]).split(".")[0] + ".rxp").replace("/media/", "")
 
     def _getTimeStampFromScanId(self, scanId: str):
         scanFileName: str = os.path.basename(scanId)
@@ -102,21 +121,15 @@ class RieglVz():
         #self._logger.debug("dateTime = {}".format(dateTime))
         return int(dateTime.strftime("%s"))
 
-    def downloadAndPublishScan(self, scanpos: int, pointcloud: PointCloud2):
-        self._logger.info("Downloading RDBX..")
-        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-        scanId = self._getScanId(ssh, scanpos)
+    def downloadAndPublishScan(self, scanposName: str, pointcloud: PointCloud2):
+        scanId = self._getScanId(scanposName)
         self._logger.debug("scan id = {}".format(scanId))
-        rdbxFileRemote = "/media/" + scanId.replace(".rxp", ".rdbx")
-        self._logger.debug("remote rdbx file = {}".format(rdbxFileRemote))
-        rdbxFileLocal = self.workingDir + "/scan.rdbx"
-        self._logger.debug("local rdbx file  = {}".format(rdbxFileLocal))
-        ssh.downloadFile(filepath=rdbxFileRemote, localpath=rdbxFileLocal)
-        ssh.disconnect()
-        self._logger.info("RDBX download finished")
+        remoteFile = "/media/" + scanId.replace(".rxp", ".rdbx")
+        localFile = self.workingDir + "/scan.rdbx"
+        self._downloadFile(remoteFile, localFile)
 
         self._logger.info("Extracting and publishing point cloud..")
-        with riegl.rdb.rdb_open(rdbxFileLocal) as rdb:
+        with riegl.rdb.rdb_open(localFile) as rdb:
             ts = builtin_msgs.Time(sec = self._getTimeStampFromScanId(scanId), nanosec = 0)
             filter = ""
             rosDtype = PointField.FLOAT32
@@ -170,7 +183,6 @@ class RieglVz():
         self._status.setOpstate("scanning")
 
         self._logger.info("Starting data acquisition..")
-        self._status.setProgress(0)
         self._logger.info("project name = {}".format(self.projectName))
         self._logger.info("scanpos name = {}".format(self.scanposName))
         self._logger.info("storage media = {}".format(self.storageMedia))
@@ -195,11 +207,11 @@ class RieglVz():
             "--scanposition", self.scanposName,
             "--storage-media", str(self.storageMedia)]
         if self.reflSearchSettings:
-            rssFilepath = join(self.workingDir, "reflsearchsettings.json")
-            with open(rssFilepath, "w") as f:
+            rssFilePath = join(self.workingDir, "reflsearchsettings.json")
+            with open(rssFilePath, "w") as f:
                 json.dump(self.reflSearchSettings, f)
             cmd.append("--reflsearch")
-            cmd.append(rssFilepath)
+            cmd.append(rssFilePath)
         if self.scanPattern:
             cmd.extend([
                 "--line-start", str(self.scanPattern.lineStart),
@@ -222,7 +234,6 @@ class RieglVz():
         subproc.waitFor(errorMessage="Data acquisition failed.", block=True)
         #while not subproc.waitFor(errorMessage="Data acquisition failed.", block=False):
         #    time.sleep(1.0)
-        self._status.setProgress (100)
         self._logger.info("Data acquisition finished")
 
         self._status.setOpstate("processing")
@@ -246,7 +257,6 @@ class RieglVz():
 
         if self.scanRegister:
             self._logger.info("Starting registration..")
-            self._status.setProgress(0)
             scriptPath = os.path.join(appDir, "bin", "register-scan.py")
             cmd = [
                 "python3", scriptPath,
@@ -257,7 +267,6 @@ class RieglVz():
             subproc.waitFor(errorMessage="Registration failed.", block=True)
             #while not subproc.waitFor(errorMessage="Registration failed.", block=False):
             #    time.sleep(1.0)
-            self._status.setProgress(100)
             self._logger.info("Registration finished")
 
         self._status.setOpstate("waiting")
@@ -322,6 +331,47 @@ class RieglVz():
 
     def getStatus(self):
         return self._status.getStatus()
+
+    def getAllSopv(self):
+        if self.scanposName is None:
+            return False, None
+
+        sopvFileName = "all_sopv.csv"
+        remoteFile = "/media/" + self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
+        localFile = self.workingDir + "/" + sopvFileName
+        self._downloadFile(remoteFile, localFile)
+
+        ok = True
+        sopvs = readAllSopv(localFile)
+
+        return ok, sopvs
+
+    def getSopv(self):
+        if self.scanposName is None:
+            return False, None
+
+        ok, sopvs = self.getAllSopv()
+        if ok and len(sopvs):
+            sopv = sopvs[-1]
+        else:
+            sopv = None
+            ok = False
+
+        return ok, sopv
+
+    def getVop(self):
+        if self.scanposName is None:
+            return False, None
+
+        vop: geometry_msgs.PoseStamped
+        sopvFileName = "VPP.vop"
+        remoteFile = "/media/" + self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
+        localFile = self.workingDir + "/" + sopvFileName
+        self._downloadFile(remoteFile, localFile)
+
+        vop = readVop()
+
+        return True, vop
 
     def stop(self):
         ctrlSvc = ControlService(self._connectionString)

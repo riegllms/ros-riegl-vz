@@ -15,7 +15,8 @@ from diagnostic_msgs.msg import (
 from diagnostic_updater import Updater
 from riegl_vz_interfaces.srv import (
     GetPointCloud,
-    GetPoses,
+    GetScanPoses,
+    GetPose,
     SetPose
 )
 import rclpy
@@ -72,14 +73,17 @@ class RieglVzWrapper(Node):
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
         self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
+        self._getSopvService = self.create_service(GetScanPoses, 'get_sopv', self._getSopvCallback)
+        self._getSopvService = self.create_service(GetScanPoses, 'get_all_sopv', self._getAllSopvCallback)
+        self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
         self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
 
         self._rieglVz = RieglVz(self)
 
-        #self._statusUpdater = Updater(self)
-        #self._statusUpdater.setHardwareID('riegl_vz')
-        #self._statusUpdater.add("status", self.produceDiagnostics)
+        self._statusUpdater = Updater(self)
+        self._statusUpdater.setHardwareID('riegl_vz')
+        self._statusUpdater.add("status", self.produceDiagnostics)
 
         self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.hostname))
 
@@ -87,7 +91,6 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getStatus()
         diag.summary(DiagnosticStatus.OK, 'RIEGL VZ is ready to scan.')
         diag.add('opstate', status.opstate)
-        diag.add('progress', str(status.progress))
         return diag
 
     def setProject(self):
@@ -159,7 +162,7 @@ class RieglVzWrapper(Node):
         response.success = True
         response.message = "success"
 
-        #self._statusUpdater.force_update()
+        self._statusUpdater.force_update()
 
         return response
 
@@ -170,13 +173,13 @@ class RieglVzWrapper(Node):
     def _getPointCloudCallback(self, request, response):
         if self._shutdownReq is True:
             response.success = False
-            response.message = "node is hutting down"
+            response.message = "node is shutting down"
             return response
 
-        ok, response.pointcloud = self.getPointCloud(request.scanpos, response.pointcloud)
+        ok, response.pointcloud = self.getPointCloud(request.seq, response.pointcloud)
         if not ok:
             response.success = False
-            response.message = "point cloud is not available"
+            response.message = "data unavailable"
             return response
 
         response.success = True
@@ -184,6 +187,69 @@ class RieglVzWrapper(Node):
 
         return response
 
+    def getSopv(self):
+        return self._rieglVz.getSopv()
+
+    def _getSopvCallback(self, request, response):
+        if self._shutdownReq is True:
+            response.success = False
+            response.message = "node is shutting down"
+            return response
+
+        ok, sopv = getSopv()
+        if not ok:
+            response.success = False
+            response.message = "data unavailable"
+            return response
+
+        response.poses.append(sopv)
+        response.success = True
+        response.message = "success"
+
+        return response
+
+    def getAllSopv(self):
+        return self._rieglVz.getAllSopv()
+
+    def _getAllSopvCallback(self, request, response):
+        if self._shutdownReq is True:
+            response.success = False
+            response.message = "node is shutting down"
+            return response
+
+        ok, sopvs = getAllSopv()
+        if not ok:
+            response.success = False
+            response.message = "data unavailable"
+            return response
+
+        for sopv in sopvs:
+            response.poses.append(sopv)
+        response.success = True
+        response.message = "success"
+
+        return response
+
+    def getVop(self):
+        return self._rieglVz.getVop()
+
+    def _getVopCallback(self, request, response):
+        if self._shutdownReq is True:
+            response.success = False
+            response.message = "node is shutting down"
+            return response
+
+        ok, vop = getVop()
+        if not ok:
+            response.success = False
+            response.message = "data unavailable"
+            return response
+
+        response.poses.append(vop)
+        response.success = True
+        response.message = "success"
+
+        return response
     def stop(self):
         self._rieglVz.stop()
 

@@ -29,29 +29,48 @@ If the user is only interested in relative registration of scan positions to eac
 
 ## 2. RIEGL Interfaces
 
-### 2.1 Services
+### 2.1 Messages
+
+**riegl_vz_interfaces/ScanPose**:
+```
+uint32 seq   # Scan position number within a project, starting with 1
+geometry_msgs/PoseStamped pose
+```
+'seq' is the scan position number.  
+See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)
+
+### 2.2 Services
 
 **riegl_vz_interfaces/GetPointCloud**:
 ```
-uint32 scanpos   # The scan position number within a project, starting with 1
+uint32 seq     # Scan position number within a project, starting with 1
 ---
 sensor_msgs/PointCloud2 pointcloud
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)  
-Scanpos 0 implicitly refers to the last scan position, 1 is the first scan position.  
+'seq' is the scan position number, 0 implicitly refers to the last scan position, 1 is the first scan position.  
 The 'frame_id' in the header is 'RIEGL_SOCS'.
 
-**riegl_vz_interfaces/GetPoses**:
+**riegl_vz_interfaces/GetScanPoses**:
 ```
 ---
-geometry_msgs/PoseStamped[] poses
+ScanPose[] scanposes
+bool success   # indicate successful run of service
+string message # informational, e.g. for error messages
+```   
+The 'frame_id' in the scanposes[n].header is either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
+
+**riegl_vz_interfaces/GetPose**:
+```
+---
+geometry_msgs/PoseStamped pose
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
-The 'frame_id' in the header is either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
+The 'frame_id' in the pose.header is either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
 
 **riegl_vz_interfaces/SetPose**:
 ```
@@ -61,7 +80,7 @@ bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
-The 'frame_id' in the header has to be either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
+The 'frame_id' in the pose.header has to be either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
 
 ## 3. Nodes
 
@@ -139,10 +158,7 @@ Point cloud with scan data from the laser scanner. Included are xyz cartesian co
 Riegl VZ status information, published once per second:
 
 ```
-errors       : scanner errors
 opstate      : operating state ("waiting", "scanning", "processing")
-progress     : progress of scan data acquisition and processing in percent
-memory_usage : memory usage of active storage media in percent
 ```
 
 #### 3.1.3 Services
@@ -153,7 +169,6 @@ Create a new or load an existing project on the scanner with name from parameter
 
 Response:  
 success = True -> message: Project Name  
-success = False -> message: node is shutting down
 
 **scan** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
@@ -169,25 +184,40 @@ The registration result is valid after processing, if operating state is 'waitin
 It can be requested by separate service calls (see 'get_sopv', 'get_all_sopv' and 'get_vop').
 
 Response:  
-success = True -> message: success  
-success = False -> message: node is locked
-success = False -> message: node is shutting down
+success = True -> message: "success"  
+success = False -> message: "node is locked"  
 
 **get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
 
 Get point cloud of a previously acquired scan position in actual project.
 
-**get_sopv** (riegl_vz_interfaces/GetPoses) :
+Response:  
+success = True -> message: "success", pointcloud: Scan Data  
+success = False -> message: "data unavailable"  
 
-Request single position and orientation (SOPV) of the last scan.
+**get_sopv** (riegl_vz_interfaces/GetScanPoses) :
 
-**get_all_sopv** (riegl_vz_interfaces/GetPoses) :
+Request a single SOPV of the previously registered scan position in actual project.
 
-Request positions and orientations (SOPV) of all previous scans in current project.
+Response:  
+success = True -> message: "success", scanposes[0]: Last SOPV Pose  
+success = False -> message: "data unavailable"  
 
-**get_vop** (riegl_vz_interfaces/GetPoses) :
+**get_all_sopv** (riegl_vz_interfaces/GetScanPoses) :
+
+Request all SOPVs of previously registered scan positions in actual project.
+
+Response:  
+success = True -> message: "success", scanposes[..]: All SOPV Poses  
+success = False -> message: "data unavailable"  
+
+**get_vop** (riegl_vz_interfaces/GetPose) :
 
 Get current VOP, which is a single position and orientation of the VOXEL coordinate system (VOCS) origin based on the project coordinate system (PRCS).
+
+Response:  
+success = True -> message: "success", pose: VOP Pose  
+success = False -> message: "data unavailable"  
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
@@ -195,7 +225,6 @@ Stop laser scan data acquisition and registration background tasks.
 
 Response:  
 success = True -> message: "success"  
-success = False -> message: node is shutting down
 
 **shutdown** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
@@ -209,6 +238,8 @@ success = True -> message: "success"
 Not available in first implementation but for further extension:
 
 * Providing covariance of pose (see [sensor_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg))
+
+* More diagnostic status information, e.g. memory usage, scanner errors or execution progress
 
 * Additional parameters:
 
