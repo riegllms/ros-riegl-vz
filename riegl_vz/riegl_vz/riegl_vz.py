@@ -1,6 +1,7 @@
 import sys
 import os
 import time
+import json
 import subprocess
 import threading
 import numpy as np
@@ -46,6 +47,7 @@ class ScanPattern(object):
 class Status(object):
     def __init__(self):
         self.opstate = "waiting"
+        self.progress = 0
 
 class StatusMaintainer(object):
     def __init__(self):
@@ -61,6 +63,12 @@ class StatusMaintainer(object):
     def setOpstate(self, opstate):
         self._lock()
         self._status.opstate = opstate
+        self._unlock()
+
+    def setProgress(self, progress):
+        self._lock()
+        #if self._status.opstate == "scanning":
+        self._status.progress = progress
         self._unlock()
 
     def getStatus(self):
@@ -84,6 +92,16 @@ class RieglVz():
 
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
+
+        def onTaskProgress(arg0):
+            obj = json.loads(arg0)
+            self._logger.debug("scan progress: {0} % ({1}, {2})".format(obj["progress"], obj["id"], obj["progresstext"]))
+            if obj["id"] == 1:
+                self._status.setProgress(obj["progress"])
+            self._node._statusUpdater.force_update()
+
+        self.ctrlSvc = ControlService(self._connectionString)
+        self.taskProgress = self.ctrlSvc.taskProgress().connect(onTaskProgress)
 
     def _downloadFile(self, remoteFile: str, localFile: str):
         self._logger.info("Downloading file..")
@@ -181,6 +199,7 @@ class RieglVz():
 
     def _scanThread(self):
         self._status.setOpstate("scanning")
+        self._status.setProgress(0)
 
         self._logger.info("Starting data acquisition..")
         self._logger.info("project name = {}".format(self.projectName))
@@ -258,9 +277,10 @@ class RieglVz():
         if self.scanRegister:
             self._logger.info("Starting registration..")
 
-            scriptPath = os.path.join(appDir, "bin", "register-scan.py")
+            scriptPath = os.path.join(appDir, "register-scan.py")
             cmd = [
                 "python3", scriptPath,
+                "--connectionstring", self._connectionString,
                 "--project", self.projectName,
                 "--scanposition", self.scanposName]
             self._logger.debug("CMD = {}".format(" ".join(cmd)))
@@ -272,7 +292,7 @@ class RieglVz():
             self._logger.info("Registration finished")
 
             self._logger.info("Downloading and publishing pose..")
-            ok, sopv = getSopv()
+            ok, sopv = self.getSopv()
             if ok:
                 self._node.posePublisher.publish(sopv.pose)
             self._logger.info("Pose published")
@@ -345,7 +365,7 @@ class RieglVz():
             return False, None
 
         sopvFileName = "all_sopv.csv"
-        remoteFile = "/media/" + self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
+        remoteFile = self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
         localFile = self.workingDir + "/" + sopvFileName
         self._downloadFile(remoteFile, localFile)
 
@@ -373,7 +393,7 @@ class RieglVz():
 
         vop: geometry_msgs.PoseStamped
         sopvFileName = "VPP.vop"
-        remoteFile = "/media/" + self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
+        remoteFile = self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
         localFile = self.workingDir + "/" + sopvFileName
         self._downloadFile(remoteFile, localFile)
 

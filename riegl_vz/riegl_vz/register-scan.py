@@ -40,7 +40,7 @@ def registerScanposition(sigHandler, ctrlSvc, media, project, scanposition, mode
         except Exception:
             pass
         return False
-        
+
     sigcon.disconnect()
 
     return True
@@ -95,7 +95,7 @@ Supported values:
 
     # prepare project
     media = mediaString(projSvc)
-
+    print("media = {}".format(media))
     registerScanposition(
         sigHandler, ctrlSvc, media,
         args.project, args.scanposition, args.registrationmode)

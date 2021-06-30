@@ -151,11 +151,11 @@ Enable automatic scan position registration in current project after scan data a
 
 **pointcloud** ([sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)) :
 
-Point cloud with scan data from the laser scanner. Included are xyz cartesian coordinates in SOCS and reflectance. Data will be published only if parameter '~scan_publish' is enabled.
+Point cloud with scan data from the laser scanner. Included are xyz cartesian coordinates in SOCS and reflectance in dB. Data will be published only if parameter '~scan_publish' is enabled.
 
 **pose** ([geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)):
 
-Topic provides SOPV (Scan Position and Orientation in VOCS) of the previously registered scan position.
+Topic provides SOPV (Scan Position and Orientation in VOCS) of the currently registered scan position.
 
 **diagnostics** ([diagnostic_msgs/DiagnosticArray.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticArray.msg)):
 
@@ -163,6 +163,7 @@ Riegl VZ status information, published once per second:
 
 ```
 opstate      : operating state ("waiting", "scanning", "processing")
+progress     : scan progress in percent
 ```
 
 #### 3.1.3 Services
@@ -243,7 +244,7 @@ Not available in first implementation but for further extension:
 
 * Providing covariance of pose (see [sensor_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg))
 
-* More diagnostic status information, e.g. memory usage, scanner errors or execution progress
+* More diagnostic status information, e.g. memory usage, scanner errors
 
 * Additional parameters:
 

@@ -6,7 +6,10 @@ from std_srvs.srv import (
     SetBool
 )
 from sensor_msgs.msg import (
-    PointCloud2
+    PointCloud2,
+)
+from geometry_msgs.msg import (
+    PoseStamped
 )
 from diagnostic_msgs.msg import (
     DiagnosticArray,
@@ -69,7 +72,7 @@ class RieglVzWrapper(Node):
         self.get_logger().debug("projectName = {}".format(self._projectName))
 
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
-        self.posePublisher = self.create_publisher(Pose, 'pose', 10)
+        self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
 
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
@@ -90,8 +93,9 @@ class RieglVzWrapper(Node):
 
     def produceDiagnostics(self, diag):
         status = self._rieglVz.getStatus()
-        diag.summary(DiagnosticStatus.OK, 'RIEGL VZ is ready to scan.')
+        diag.summary(DiagnosticStatus.OK, "RIEGL VZ is " + status.opstate)
         diag.add('opstate', status.opstate)
+        diag.add('progress', str(status.progress))
         return diag
 
     def setProject(self):

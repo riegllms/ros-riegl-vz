@@ -3,6 +3,9 @@ import json
 import numpy as np
 
 import builtin_interfaces.msg as builtin_msgs
+from std_msgs.msg import (
+    Header
+)
 from geometry_msgs.msg import (
     Point,
     Quaternion,
@@ -35,6 +38,7 @@ def quaternionFromEuler(roll, pitch, yaw):
     """
     Converts euler roll, pitch, yaw to quaternion
     """
+
     cy = math.cos(yaw * 0.5)
     sy = math.sin(yaw * 0.5)
     cp = math.cos(pitch * 0.5)
@@ -43,10 +47,10 @@ def quaternionFromEuler(roll, pitch, yaw):
     sr = math.sin(roll * 0.5)
 
     q = Quaternion()
-    q.x = cy * cp * cr + sy * sp * sr
-    q.y = cy * cp * sr - sy * sp * cr
+    q.w = cy * cp * cr + sy * sp * sr
+    q.x = cy * cp * sr - sy * sp * cr
     q.y = sy * cp * sr + cy * sp * cr
-    q.w = sy * cp * cr - cy * sp * sr
+    q.z = sy * cp * cr - cy * sp * sr
 
     return q
 
