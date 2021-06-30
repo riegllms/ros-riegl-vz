@@ -59,14 +59,21 @@ def readVop(vopPath):
     with open(vopPath, "r") as f:
         vpp_vop = json.load(f)
 
+    x = float(vpp_vop["translation"]["x"])
+    y = float(vpp_vop["translation"]["y"])
+    z = float(vpp_vop["translation"]["z"])
+    
+    R = np.empty((3,3))
+    R[:3, :3] = vpp_vop["matrix3x3"]
+
     vop = PoseStamped()
     vop.header = Header(
         frame_id = "RIEGL_PRCS",
         stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
         )
     vop.pose = Pose(
-        position = Point(x=vpp_vop["translation"]["x"], y=vpp_vop["translation"]["y"], z=vpp_vop["translation"]["z"]),
-        orientation = quaternionFromRotationMatrix(vpp_vop["matrix3x3"])
+        position = Point(x=x, y=y, z=z),
+        orientation = quaternionFromRotationMatrix(R)
         )
 
     return vop

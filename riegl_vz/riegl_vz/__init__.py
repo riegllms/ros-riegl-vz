@@ -201,13 +201,13 @@ class RieglVzWrapper(Node):
             response.message = "node is shutting down"
             return response
 
-        ok, sopv = getSopv()
+        ok, sopv = self.getSopv()
         if not ok:
             response.success = False
             response.message = "data unavailable"
             return response
 
-        response.poses.append(sopv.pose)
+        response.pose = sopv.pose
         response.success = True
         response.message = "success"
 
@@ -222,14 +222,14 @@ class RieglVzWrapper(Node):
             response.message = "node is shutting down"
             return response
 
-        ok, sopvs = getAllSopv()
+        ok, sopvs = self.getAllSopv()
         if not ok:
             response.success = False
             response.message = "data unavailable"
             return response
 
         for sopv in sopvs:
-            response.poses.append(sopv)
+            response.scanposes.append(sopv)
         response.success = True
         response.message = "success"
 
@@ -244,13 +244,13 @@ class RieglVzWrapper(Node):
             response.message = "node is shutting down"
             return response
 
-        ok, vop = getVop()
+        ok, vop = self.getVop()
         if not ok:
             response.success = False
             response.message = "data unavailable"
             return response
 
-        response.poses.append(vop)
+        response.pose = vop
         response.success = True
         response.message = "success"
 
@@ -274,7 +274,7 @@ class RieglVzWrapper(Node):
     def shutdown(self):
         self._shutdownReq = True
         self.stop()
-        self.rieglVZ.shutdown()
+        self._rieglVz.shutdown()
 
     def _shutdownCallback(self, request, response):
         self.shutdown()

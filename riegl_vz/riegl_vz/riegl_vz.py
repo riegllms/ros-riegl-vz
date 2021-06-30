@@ -22,6 +22,7 @@ import riegl.rdb
 from vzi_services.controlservice import ControlService
 from vzi_services.projectservice import ProjectService
 from vzi_services.dataprocservice import DataprocService
+from vzi_services.scannerservice import ScannerService
 
 from .pose import (
     readVop,
@@ -89,6 +90,7 @@ class RieglVz():
         self._connectionString = self.hostname + ":20000"
         self.scanposName = None
         self._status: StatusMaintainer = StatusMaintainer()
+        self._stopReq = False
 
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
@@ -251,8 +253,11 @@ class RieglVz():
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         self._logger.debug("Subprocess started.")
         subproc.waitFor(errorMessage="Data acquisition failed.", block=True)
-        #while not subproc.waitFor(errorMessage="Data acquisition failed.", block=False):
-        #    time.sleep(1.0)
+        if self._stopReq:
+            self._stopReq = False
+            self._status.setOpstate("waiting")
+            self._logger.info("Scan stopped")
+            return
         self._logger.info("Data acquisition finished")
 
         self._status.setOpstate("processing")
@@ -268,6 +273,11 @@ class RieglVz():
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         self._logger.debug("Subprocess started.")
         subproc.waitFor("RXP to RDBX conversion failed.")
+        if self._stopReq:
+            self._stopReq = False
+            self._status.setOpstate("waiting")
+            self._logger.info("Scan stopped")
+            return
         self._logger.info("RXP to RDBX conversion finished")
 
         if self.scanPublish:
@@ -276,7 +286,6 @@ class RieglVz():
 
         if self.scanRegister:
             self._logger.info("Starting registration..")
-
             scriptPath = os.path.join(appDir, "register-scan.py")
             cmd = [
                 "python3", scriptPath,
@@ -286,9 +295,11 @@ class RieglVz():
             self._logger.debug("CMD = {}".format(" ".join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
             subproc.waitFor(errorMessage="Registration failed.", block=True)
-            #while not subproc.waitFor(errorMessage="Registration failed.", block=False):
-            #    time.sleep(1.0)
-
+            if self._stopReq:
+                self._stopReq = False
+                self._status.setOpstate("waiting")
+                self._logger.info("Scan stopped")
+                return
             self._logger.info("Registration finished")
 
             self._logger.info("Downloading and publishing pose..")
@@ -397,16 +408,17 @@ class RieglVz():
         localFile = self.workingDir + "/" + sopvFileName
         self._downloadFile(remoteFile, localFile)
 
-        vop = readVop()
+        vop = readVop(localFile)
 
         return True, vop
 
     def stop(self):
+        self._stopReq = True
         ctrlSvc = ControlService(self._connectionString)
         ctrlSvc.stop()
-        isBusy()
+        self.isBusy()
 
     def shutdown(self):
-        stop()
+        self.stop()
         scnSvc = ScannerService(self._connectionString)
         scnSvc.shutdown()

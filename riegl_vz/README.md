@@ -33,7 +33,7 @@ If the user is only interested in relative registration of scan positions to eac
 
 **riegl_vz_interfaces/ScanPose**:
 ```
-uint32 seq   # Scan position number within a project, starting with 1
+uint32 seq   # Scan position number within a project
 geometry_msgs/PoseStamped pose
 ```
 'seq' is the scan position number.  
@@ -43,7 +43,7 @@ See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/
 
 **riegl_vz_interfaces/GetPointCloud**:
 ```
-uint32 seq     # Scan position number within a project, starting with 1, 0 means last scan position
+uint32 seq     # Scan position number within a project, starting with 1, 0 refers to last scan position
 ---
 sensor_msgs/PointCloud2 pointcloud
 bool success   # indicate successful run of service
