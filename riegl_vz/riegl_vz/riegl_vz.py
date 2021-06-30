@@ -257,6 +257,7 @@ class RieglVz():
 
         if self.scanRegister:
             self._logger.info("Starting registration..")
+
             scriptPath = os.path.join(appDir, "bin", "register-scan.py")
             cmd = [
                 "python3", scriptPath,
@@ -267,7 +268,14 @@ class RieglVz():
             subproc.waitFor(errorMessage="Registration failed.", block=True)
             #while not subproc.waitFor(errorMessage="Registration failed.", block=False):
             #    time.sleep(1.0)
+
             self._logger.info("Registration finished")
+
+            self._logger.info("Downloading and publishing pose..")
+            ok, sopv = getSopv()
+            if ok:
+                self._node.posePublisher.publish(sopv.pose)
+            self._logger.info("Pose published")
 
         self._status.setOpstate("waiting")
 

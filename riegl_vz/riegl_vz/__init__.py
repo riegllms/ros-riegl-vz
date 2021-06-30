@@ -69,12 +69,13 @@ class RieglVzWrapper(Node):
         self.get_logger().debug("projectName = {}".format(self._projectName))
 
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
+        self.posePublisher = self.create_publisher(Pose, 'pose', 10)
 
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
         self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
-        self._getSopvService = self.create_service(GetScanPoses, 'get_sopv', self._getSopvCallback)
         self._getSopvService = self.create_service(GetScanPoses, 'get_all_sopv', self._getAllSopvCallback)
+        self._getSopvService = self.create_service(GetPose, 'get_sopv', self._getSopvCallback)
         self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
         self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
@@ -202,7 +203,7 @@ class RieglVzWrapper(Node):
             response.message = "data unavailable"
             return response
 
-        response.poses.append(sopv)
+        response.poses.append(sopv.pose)
         response.success = True
         response.message = "success"
 

@@ -43,7 +43,7 @@ See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/
 
 **riegl_vz_interfaces/GetPointCloud**:
 ```
-uint32 seq     # Scan position number within a project, starting with 1
+uint32 seq     # Scan position number within a project, starting with 1, 0 means last scan position
 ---
 sensor_msgs/PointCloud2 pointcloud
 bool success   # indicate successful run of service
@@ -151,7 +151,11 @@ Enable automatic scan position registration in current project after scan data a
 
 **pointcloud** ([sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)) :
 
-Point cloud with scan data from the laser scanner. Included are xyz cartesian coordinates in SOCS and reflectance.
+Point cloud with scan data from the laser scanner. Included are xyz cartesian coordinates in SOCS and reflectance. Data will be published only if parameter '~scan_publish' is enabled.
+
+**pose** ([geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)):
+
+Topic provides SOPV (Scan Position and Orientation in VOCS) of the previously registered scan position.
 
 **diagnostics** ([diagnostic_msgs/DiagnosticArray.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticArray.msg)):
 
