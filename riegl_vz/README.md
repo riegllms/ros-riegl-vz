@@ -51,7 +51,7 @@ string message # informational, e.g. for error messages
 ```
 See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)  
 'seq' is the scan position number, 0 implicitly refers to the last scan position, 1 is the first scan position.  
-The 'frame_id' in the header is 'RIEGL_SOCS'.
+The 'frame_id' in the header is 'riegl_vz_socs'.
 
 **riegl_vz_interfaces/GetScanPoses**:
 ```
@@ -60,7 +60,7 @@ ScanPose[] scanposes
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```   
-The 'frame_id' in the scanposes[n].header is either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
+The 'frame_id' in the scanposes[n].header is either 'riegl_vz_prcs' or 'riegl_vz_vocs'.
 
 **riegl_vz_interfaces/GetPose**:
 ```
@@ -70,7 +70,7 @@ bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
-The 'frame_id' in the pose.header is either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
+The 'frame_id' in the pose.header is either 'riegl_vz_prcs' or 'riegl_vz_vocs'.
 
 **riegl_vz_interfaces/SetPose**:
 ```
@@ -80,7 +80,7 @@ bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
-The 'frame_id' in the pose.header has to be either 'RIEGL_PRCS' or 'RIEGL_VOCS'.
+The 'frame_id' in the pose.header has to be either 'riegl_vz_prcs' or 'riegl_vz_vocs'.
 
 ## 3. Nodes
 

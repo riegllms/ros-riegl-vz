@@ -11,6 +11,10 @@ from sensor_msgs.msg import (
 from geometry_msgs.msg import (
     PoseStamped
 )
+from nav_msgs.msg import (
+    Path,
+    Odometry
+)
 from diagnostic_msgs.msg import (
     DiagnosticArray,
     DiagnosticStatus
@@ -73,6 +77,8 @@ class RieglVzWrapper(Node):
 
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
         self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
+        self.pathPublisher = self.create_publisher(Path, 'path', 10)
+        self.odomPublisher = self.create_publisher(Odometry, 'odom', 10)
 
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
@@ -102,8 +108,7 @@ class RieglVzWrapper(Node):
         self.projectName = str(self.get_parameter('project_name').value)
 
         if not self.projectName:
-            now = datetime.now()
-            self._projectName = now.strftime("%y%m%d_%H%M%S")
+            self._rieglVz.setProject(self.projectName)
 
         self._nextScanpos = 1
 

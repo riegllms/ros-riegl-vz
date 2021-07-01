@@ -8,9 +8,19 @@ import numpy as np
 from datetime import datetime
 from os.path import join, dirname, abspath
 
+from std_msgs.msg import (
+    Header
+)
 from sensor_msgs.msg import (
     PointCloud2,
     PointField
+)
+from geometry_msgs.msg import (
+    PoseWithCovariance
+)
+from nav_msgs.msg import (
+    Path,
+    Odometry
 )
 import std_msgs.msg as std_msgs
 import builtin_interfaces.msg as builtin_msgs
@@ -90,6 +100,7 @@ class RieglVz():
         self._connectionString = self.hostname + ":20000"
         self.scanposName = None
         self._status: StatusMaintainer = StatusMaintainer()
+        self._path = Path()
         self._stopReq = False
 
         if not os.path.exists(self.workingDir):
@@ -104,6 +115,12 @@ class RieglVz():
 
         self.ctrlSvc = ControlService(self._connectionString)
         self.taskProgress = self.ctrlSvc.taskProgress().connect(onTaskProgress)
+
+    def setProject(self, projectName):
+        self._path = Path()
+        now = datetime.now()
+        projectName = now.strftime("%y%m%d_%H%M%S")
+        return projectName
 
     def _downloadFile(self, remoteFile: str, localFile: str):
         self._logger.info("Downloading file..")
@@ -178,7 +195,7 @@ class RieglVz():
                 name = n, offset = i*itemsize, datatype = rosDtype, count = 1)
                 for i, n in enumerate('xyzr')]
 
-            header = std_msgs.Header(frame_id = "RIEGL_SOCS", stamp = ts)
+            header = std_msgs.Header(frame_id = "riegl_vz_socs", stamp = ts)
 
             pointcloud = PointCloud2(
                 header = header,
@@ -306,6 +323,15 @@ class RieglVz():
             ok, sopv = self.getSopv()
             if ok:
                 self._node.posePublisher.publish(sopv.pose)
+                self._path.header = sopv.pose.header
+                self._path.poses.append(sopv.pose)
+                self._node.pathPublisher.publish(self._path)
+                odom = Odometry(
+                    header = Header(frame_id = "riegl_vz_vocs"),
+                    child_frame_id = "riegl_vz_socs",
+                    pose = PoseWithCovariance(pose = sopv.pose.pose)
+                )
+                self._node.odomPublisher.publish(odom)
             self._logger.info("Pose published")
 
         self._status.setOpstate("waiting")
@@ -381,7 +407,7 @@ class RieglVz():
         self._downloadFile(remoteFile, localFile)
 
         ok = True
-        sopvs = readAllSopv(localFile)
+        sopvs = readAllSopv(localFile, self._logger)
 
         return ok, sopvs
 

@@ -62,13 +62,13 @@ def readVop(vopPath):
     x = float(vpp_vop["translation"]["x"])
     y = float(vpp_vop["translation"]["y"])
     z = float(vpp_vop["translation"]["z"])
-    
+
     R = np.empty((3,3))
     R[:3, :3] = vpp_vop["matrix3x3"]
 
     vop = PoseStamped()
     vop.header = Header(
-        frame_id = "RIEGL_PRCS",
+        frame_id = "riegl_vz_prcs",
         stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
         )
     vop.pose = Pose(
@@ -78,7 +78,7 @@ def readVop(vopPath):
 
     return vop
 
-def extractSopv(data):
+def extractSopv(data, logger = None):
     """Extract scanposition information from all_sopv.csv data entry."""
     deg = math.pi / 180.0
     obj = {
@@ -90,21 +90,29 @@ def extractSopv(data):
         "pitch": float(data[5])*deg,
         "yaw": float(data[6])*deg
     }
+    if logger is not None:
+        logger.debug("sopv (x y z yaw pitch roll)= {0} {1} {2} {3} {4} {5}".format(
+            obj["x"],
+            obj["y"],
+            obj["z"],
+            obj["yaw"],
+            obj["pitch"],
+            obj["roll"]))
     pose = PoseStamped()
     pose.header = Header(
-        frame_id = "RIEGL_VOCS",
+        frame_id = "riegl_vz_vocs",
         stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
         )
     pose.pose = Pose(
-        position = Point(x=obj["x"], y=obj["y"], z=obj["z"]),
-        orientation = quaternionFromEuler(obj["roll"], obj["pitch"], obj["yaw"])
+        position = Point(x=float(obj["x"]), y=float(obj["y"]), z=float(obj["z"])),
+        orientation = quaternionFromEuler(float(obj["roll"]), float(obj["pitch"]), float(obj["yaw"]))
         )
 
     sopv = ScanPose(seq = int(obj["name"]), pose = pose)
 
     return sopv
 
-def readAllSopv(sopvFilepath):
+def readAllSopv(sopvFilepath, logger = None):
     """Return information of all registered scanposes in VOCS."""
     sopvs = []
     first_line = True
@@ -113,5 +121,5 @@ def readAllSopv(sopvFilepath):
             if first_line:
                 first_line = False
                 continue
-            sopvs.append(extractSopv(line.split(",")))
+            sopvs.append(extractSopv(line.split(","), logger))
     return sopvs

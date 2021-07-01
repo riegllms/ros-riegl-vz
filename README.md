@@ -57,7 +57,7 @@ Start 'rviz' tool:
 
 ```rviz2```
 
-Set fixed-frame to 'RIEGL_SOCS' and bind to riegl_vz/pointcloud topic:
+Set 'fixed-frame' in 'Global Options' to 'riegl_vz_socs'. Activate 'PointCloud2' plugin and bind it to riegl_vz/pointcloud topic:
 
 ![rviz2](riegl_vz/img/rviz2.png)
 
