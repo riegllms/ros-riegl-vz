@@ -1,0 +1,46 @@
+Copyright (c) 2015-2021 RIEGL LASER MEASUREMENT SYSTEMS
+
+1. By downloading, installing, copying or otherwise using the Software
+   you (the "Licensee") agree to be bound by the licensing terms set
+   forth herein.
+
+2. Obligations of the Licensee:
+
+i.   Licensee must not, nor attempt to, itself, or by encouraging any
+     third party to do so, decompile, disassemble or otherwise reverse
+     engineer the Software.
+
+ii.  Licensee shall not be entitled to distribute the Software alone as
+     a separate product.
+
+iii. Licensee may distribute the Software bundled with third party software
+     with a name distinguishable from the Software's name and provided that
+     it agrees with the end-users on terms at least as protective for RIEGL
+     as the terms set forth herein.
+
+iv.  Licensee shall be solely responsible for testing the Software and
+     ensuring its compatibility with other software.
+
+3. The Software is provided on an "AS IS" basis. To the maximum extent
+   permitted by law, ALL EXPRESS OR IMPLIED CONDITIONS, REPRESENTATIONS,
+   AND WARRANTIES including, without limitation, any implied warranty or
+   condition of merchantability and fitness for a particular purpose ARE
+   HEREBY EXPRESSLY EXCLUDED AND ARE EXPRESSLY DISCLAIMED BY RIEGL AND ITS
+   SUPPLIERS. Without limiting the generality of the foregoing, RIEGL does
+   not warrant that the licensed Software is accurate, will meet Licensee's
+   requirements, will operate in any combination that may be selected for
+   use by Licensee or in combination with other software, will operate
+   uninterrupted or error free etc. Furthermore, RIEGL does not warrant
+   that any errors, defects or inefficiencies will be recovered, nor does
+   RIEGL assume any liability for failure to correct any such error, defect
+   or inefficiency. RIEGL makes no warranty, and Licensee assumes the entire
+   risk as to the integrity of any data and the results, capabilities,
+   suitability, use, or performance of the Software.
+
+4. Licensee acknowledges that RIEGL has the right but NOT THE OBLIGATION
+   to provide maintenance, support, updates, enhancements, modifications,
+   information about the availability on new downloads or other support
+   services related to the Software. RIEGL reserves the right to cease the
+   development of the Software, or the Software's free distribution at any
+   time under express preclusion of any and all reimbursement to (or other
+   raise of claims by) the Licensee.

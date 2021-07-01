@@ -5,7 +5,7 @@
   <version>0.0.0</version>
   <description>ROS 2 (Roboter Operating System) package for RIEGL VZ scanner series</description>
   <maintainer email="afriedl@riegl.com">Andreas Friedl</maintainer>
-  <license>Apache License 2.0</license>
+  <license>RIEGL License</license>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
