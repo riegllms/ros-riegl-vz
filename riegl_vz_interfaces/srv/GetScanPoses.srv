@@ -1,4 +1,5 @@
 ---
+string project # Scan project name
 ScanPose[] scanposes
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages

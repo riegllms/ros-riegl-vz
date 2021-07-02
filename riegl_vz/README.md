@@ -184,13 +184,13 @@ The node is locked until all background tasks have finished and the operating st
 
 If parameter '\~scan_publish' is enabled, acquired data will be published on 'pointcloud' topic soon after scanning has finished.
 
-The parameter '\~scan_register' enables automatic scan position registration after scanning.
-The registration result is valid after processing, if operating state is 'waiting' again.
-It can be requested by separate service calls (see 'get_sopv', 'get_all_sopv' and 'get_vop').
+The parameter '\~scan_register' enables automatic scan position registration after scanning. The registration result is published on topic 'pose' or it can be requested by separate service calls (see 'get_sopv', 'get_all_sopv' and 'get_vop') after processing, if operating state is 'waiting' again. 
 
 Response:  
 success = True -> message: "success"  
 success = False -> message: "node is locked"  
+
+![ROS Scan Service](img/scan.png)
 
 **get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
 

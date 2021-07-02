@@ -123,13 +123,13 @@ class RieglVz():
         return projectName
 
     def _downloadFile(self, remoteFile: str, localFile: str):
-        self._logger.info("Downloading file..")
+        self._logger.debug("Downloading file..")
         self._logger.debug("remote file = {}".format(remoteFile))
         self._logger.debug("local file  = {}".format(localFile))
         ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
         ssh.downloadFile(filepath=remoteFile, localpath=localFile)
         ssh.disconnect()
-        self._logger.info("File download finished")
+        self._logger.debug("File download finished")
         return localFile
 
     def _getProjectPath(self):
@@ -158,14 +158,14 @@ class RieglVz():
         #self._logger.debug("dateTime = {}".format(dateTime))
         return int(dateTime.strftime("%s"))
 
-    def downloadAndPublishScan(self, scanposName: str, pointcloud: PointCloud2):
+    def getPointCloud(self, scanposName: str, pointcloud: PointCloud2):
         scanId = self._getScanId(scanposName)
         self._logger.debug("scan id = {}".format(scanId))
         remoteFile = "/media/" + scanId.replace(".rxp", ".rdbx")
         localFile = self.workingDir + "/scan.rdbx"
         self._downloadFile(remoteFile, localFile)
 
-        self._logger.info("Extracting and publishing point cloud..")
+        self._logger.debug("Generate point cloud..")
         with riegl.rdb.rdb_open(localFile) as rdb:
             ts = builtin_msgs.Time(sec = self._getTimeStampFromScanId(scanId), nanosec = 0)
             filter = ""
@@ -210,9 +210,7 @@ class RieglVz():
             )
             #for point in rdb.points():
             #    self._logger.debug("{0}".format(point.riegl_xyz))
-
-            self._node.pointCloudPublisher.publish(pointcloud)
-        self._logger.info("Point cloud published")
+        self._logger.debug("Point cloud generated")
 
         return True, pointcloud
 
@@ -298,8 +296,12 @@ class RieglVz():
         self._logger.info("RXP to RDBX conversion finished")
 
         if self.scanPublish:
+            self._logger.info("Downloading and publishing point cloud..")
             pointcloud: PointCloud2 = PointCloud2()
-            ok, pointcloud = self.downloadAndPublishScan(self.scanposName, pointcloud)
+            ok, pointcloud = self.getPointCloud(self.scanposName, pointcloud)
+            if ok:
+                self._node.pointCloudPublisher.publish(pointcloud)
+            self._logger.info("Point cloud published")
 
         if self.scanRegister:
             self._logger.info("Starting registration..")

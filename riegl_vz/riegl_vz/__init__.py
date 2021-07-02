@@ -45,13 +45,11 @@ class RieglVzWrapper(Node):
         super().__init__('riegl_vz')
 
         self._shutdownReq = False
-        self._nextScanpos = 1
 
         self.declare_parameter('hostname', 'H2222222')
         self.declare_parameter('working_dir', '/tmp/ros_riegl_vz')
         self.declare_parameter('ssh_user', 'user')
         self.declare_parameter('ssh_password', 'user')
-        self.declare_parameter('project_name', '')
         self.declare_parameter('storage_media', 0)
         self.declare_parameter('scan_pattern', [30.0,130.0,0.04,0.0,360.0,0.5])
         self.declare_parameter('meas_program', 0)
@@ -69,12 +67,6 @@ class RieglVzWrapper(Node):
         self.get_logger().debug("sshUser = {}".format(self.sshUser))
         self.get_logger().debug("sshPwd = {}".format(self.sshPwd))
 
-        self.projectName = str(self.get_parameter('project_name').value)
-        if not self.projectName:
-            now = datetime.now()
-            self._projectName = now.strftime("%y%m%d_%H%M%S")
-        self.get_logger().debug("projectName = {}".format(self._projectName))
-
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
         self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
@@ -91,6 +83,10 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
+        self.projectName = ""
+        self.setProject()
+        self.get_logger().debug("projectName = {}".format(self._projectName))
+
         self._statusUpdater = Updater(self)
         self._statusUpdater.setHardwareID('riegl_vz')
         self._statusUpdater.add("status", self.produceDiagnostics)
@@ -105,11 +101,7 @@ class RieglVzWrapper(Node):
         return diag
 
     def setProject(self):
-        self.projectName = str(self.get_parameter('project_name').value)
-
-        if not self.projectName:
-            self._rieglVz.setProject(self.projectName)
-
+        self.projectName = self._rieglVz.setProject(self.projectName)
         self._nextScanpos = 1
 
     def _setProjectCallback(self, request, response):
@@ -177,7 +169,7 @@ class RieglVzWrapper(Node):
         return response
 
     def getPointCloud(self, scanpos, pointcloud):
-        ok, pointcloud = self.rieglVz.downloadAndPublishScan(scanpos, pointcloud)
+        ok, pointcloud = self.rieglVz.getPointCloud(scanpos, pointcloud)
         return ok
 
     def _getPointCloudCallback(self, request, response):
@@ -233,6 +225,7 @@ class RieglVzWrapper(Node):
             response.message = "data unavailable"
             return response
 
+        response.project = self.projectName
         for sopv in sopvs:
             response.scanposes.append(sopv)
         response.success = True
