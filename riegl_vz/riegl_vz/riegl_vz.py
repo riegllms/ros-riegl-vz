@@ -116,11 +116,8 @@ class RieglVz():
         self.ctrlSvc = ControlService(self._connectionString)
         self.taskProgress = self.ctrlSvc.taskProgress().connect(onTaskProgress)
 
-    def setProject(self, projectName):
+    def resetPath(self):
         self._path = Path()
-        now = datetime.now()
-        projectName = now.strftime("%y%m%d_%H%M%S")
-        return projectName
 
     def _downloadFile(self, remoteFile: str, localFile: str):
         self._logger.debug("Downloading file..")
@@ -324,10 +321,13 @@ class RieglVz():
             self._logger.info("Downloading and publishing pose..")
             ok, sopv = self.getSopv()
             if ok:
+                # publish pose
                 self._node.posePublisher.publish(sopv.pose)
+                # publish path
                 self._path.header = sopv.pose.header
                 self._path.poses.append(sopv.pose)
                 self._node.pathPublisher.publish(self._path)
+                #publish odometry
                 odom = Odometry(
                     header = Header(frame_id = "riegl_vz_vocs"),
                     child_frame_id = "riegl_vz_socs",
@@ -430,7 +430,6 @@ class RieglVz():
         if self.scanposName is None:
             return False, None
 
-        vop: geometry_msgs.PoseStamped
         sopvFileName = "VPP.vop"
         remoteFile = self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
         localFile = self.workingDir + "/" + sopvFileName

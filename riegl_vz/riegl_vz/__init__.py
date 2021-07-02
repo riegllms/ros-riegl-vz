@@ -83,7 +83,6 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
-        self.projectName = ""
         self.setProject()
         self.get_logger().debug("projectName = {}".format(self._projectName))
 
@@ -101,8 +100,10 @@ class RieglVzWrapper(Node):
         return diag
 
     def setProject(self):
-        self.projectName = self._rieglVz.setProject(self.projectName)
+        now = datetime.now()
+        self._projectName = now.strftime("%y%m%d_%H%M%S")
         self._nextScanpos = 1
+        self._rieglVz.resetPath()
 
     def _setProjectCallback(self, request, response):
         if self._shutdownReq is True:
@@ -225,7 +226,7 @@ class RieglVzWrapper(Node):
             response.message = "data unavailable"
             return response
 
-        response.project = self.projectName
+        response.project = self._projectName
         for sopv in sopvs:
             response.scanposes.append(sopv)
         response.success = True

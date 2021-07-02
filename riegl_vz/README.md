@@ -56,12 +56,13 @@ The 'frame_id' in the header is 'riegl_vz_socs'.
 **riegl_vz_interfaces/GetScanPoses**:
 ```
 ---
-string project # Scan project name
+string project                # Scan project name
 ScanPose[] scanposes
-bool success   # indicate successful run of service
-string message # informational, e.g. for error messages
+geometry_msgs/PoseStamped vop # position and orientation of VOCS in PRCS
+bool success                  # indicate successful run of service
+string message                # informational, e.g. for error messages
 ```   
-The 'frame_id' in the scanposes[n].header is either 'riegl_vz_prcs' or 'riegl_vz_vocs'.
+The 'frame_id' in the scanposes[n].header is 'riegl_vz_vocs'.
 
 **riegl_vz_interfaces/GetPose**:
 ```
@@ -197,20 +198,12 @@ Response:
 success = True -> message: "success", pointcloud: Scan Data  
 success = False -> message: "data unavailable"  
 
-**get_sopv** (riegl_vz_interfaces/GetScanPoses) :
+**get_sopv** (riegl_vz_interfaces/GetPose) :
 
 Request a single SOPV of the previously registered scan position in actual project.
 
 Response:  
 success = True -> message: "success", scanposes[0]: Last SOPV Pose  
-success = False -> message: "data unavailable"  
-
-**get_all_sopv** (riegl_vz_interfaces/GetScanPoses) :
-
-Request all SOPVs of previously registered scan positions in actual project.
-
-Response:  
-success = True -> message: "success", scanposes[..]: All SOPV Poses  
 success = False -> message: "data unavailable"  
 
 **get_vop** (riegl_vz_interfaces/GetPose) :
@@ -219,6 +212,14 @@ Get current VOP, which is a single position and orientation of the VOXEL coordin
 
 Response:  
 success = True -> message: "success", pose: VOP Pose  
+success = False -> message: "data unavailable"  
+
+**get_scan_poses** (riegl_vz_interfaces/GetScanPoses) :
+
+Request all SOPVs of previously registered scan positions in actual project.
+
+Response:  
+success = True -> message: "success", scanposes[..]: All SOPV Poses  
 success = False -> message: "data unavailable"  
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
