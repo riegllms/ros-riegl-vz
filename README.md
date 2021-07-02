@@ -23,7 +23,11 @@ Switch to 'src' subdirectory and install required python modules:
 
 **Install librdb python wheel:**
 
-```pip3 install librdb/riegl.rdb-2.3.4-cp34.cp35.cp36.cp37.cp38.cp39-none-linux_x86_64.whl```
+Request a python wheel for librdb from RIEGL support: support@riegl.com  
+The wheel includes a shared linux library which must be appropriate for the target processor architecture.  
+Install the wheel, e.g. x86_64:
+
+```pip3 install riegl.rdb-2.3.4-cp34.cp35.cp36.cp37.cp38.cp39-none-linux_x86_64.whl```
 
 **Build package:**
 

@@ -56,6 +56,7 @@ The 'frame_id' in the header is 'riegl_vz_socs'.
 **riegl_vz_interfaces/GetScanPoses**:
 ```
 ---
+string project # Scan project name
 ScanPose[] scanposes
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
@@ -103,10 +104,6 @@ The linux user name for SSH login on the scanner.
 **~ssh_password** (string, default: "user") :
 
 The linux user password for SSH login on the scanner.
-
-**~project_name** (string, default: "") :
-
-The scan project name used by service 'set_project'. An existing project will be loaded, otherwise a new project will be created. If string is empty, a default project name will be composed from current local time and date.
 
 **~storage_media** (integer, default: 2) :
 
@@ -184,7 +181,7 @@ The node is locked until all background tasks have finished and the operating st
 
 If parameter '\~scan_publish' is enabled, acquired data will be published on 'pointcloud' topic soon after scanning has finished.
 
-The parameter '\~scan_register' enables automatic scan position registration after scanning. The registration result is published on topic 'pose' or it can be requested by separate service calls (see 'get_sopv', 'get_all_sopv' and 'get_vop') after processing, if operating state is 'waiting' again. 
+The parameter '\~scan_register' enables automatic scan position registration after scanning. The registration result is published on topic 'pose' or it can be requested by separate service calls (see 'get_sopv', 'get_all_sopv' and 'get_vop') after processing, if operating state is 'waiting' again.
 
 Response:  
 success = True -> message: "success"  
