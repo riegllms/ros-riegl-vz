@@ -190,20 +190,12 @@ success = False -> message: "node is locked"
 
 ![ROS Scan Service](img/scan.png)
 
-**get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
-
-Get point cloud of a previously acquired scan position in actual project.
-
-Response:  
-success = True -> message: "success", pointcloud: Scan Data  
-success = False -> message: "data unavailable"  
-
 **get_sopv** (riegl_vz_interfaces/GetPose) :
 
 Request a single SOPV of the previously registered scan position in actual project.
 
 Response:  
-success = True -> message: "success", scanposes[0]: Last SOPV Pose  
+success = True -> message: "success", pose: Last SOPV Pose  
 success = False -> message: "data unavailable"  
 
 **get_vop** (riegl_vz_interfaces/GetPose) :
@@ -219,7 +211,15 @@ success = False -> message: "data unavailable"
 Request all SOPVs of previously registered scan positions in actual project.
 
 Response:  
-success = True -> message: "success", scanposes[..]: All SOPV Poses  
+success = True -> message: "success", project: Project Name, scanposes: All Scan Poses, vop: VOP Pose  
+success = False -> message: "data unavailable"  
+
+**get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
+
+Get point cloud of a previously acquired scan position in actual project.
+
+Response:  
+success = True -> message: "success", pointcloud: Scan Data  
 success = False -> message: "data unavailable"  
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :

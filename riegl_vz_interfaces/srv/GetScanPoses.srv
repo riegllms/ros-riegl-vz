@@ -1,5 +1,6 @@
 ---
-string project # Scan project name
+string project                # Scan project name
 ScanPose[] scanposes
-bool success   # indicate successful run of service
-string message # informational, e.g. for error messages
+geometry_msgs/PoseStamped vop # position and orientation of VOCS in PRCS
+bool success                  # indicate successful run of service
+string message                # informational, e.g. for error messages

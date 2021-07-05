@@ -75,9 +75,9 @@ class RieglVzWrapper(Node):
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
         self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
-        self._getSopvService = self.create_service(GetScanPoses, 'get_all_sopv', self._getAllSopvCallback)
         self._getSopvService = self.create_service(GetPose, 'get_sopv', self._getSopvCallback)
         self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
+        self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
         self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
 
@@ -214,28 +214,36 @@ class RieglVzWrapper(Node):
     def getAllSopv(self):
         return self._rieglVz.getAllSopv()
 
-    def _getAllSopvCallback(self, request, response):
+    def getVop(self):
+        return self._rieglVz.getVop()
+
+    def _getScanPosesCallback(self, request, response):
         if self._shutdownReq is True:
             response.success = False
             response.message = "node is shutting down"
             return response
+
+        response.project = self._projectName
 
         ok, sopvs = self.getAllSopv()
         if not ok:
             response.success = False
             response.message = "data unavailable"
             return response
-
-        response.project = self._projectName
         for sopv in sopvs:
             response.scanposes.append(sopv)
+
+        ok, vop = self.getVop()
+        if not ok:
+            response.success = False
+            response.message = "data unavailable"
+            return response
+        response.vop = vop
+
         response.success = True
         response.message = "success"
 
         return response
-
-    def getVop(self):
-        return self._rieglVz.getVop()
 
     def _getVopCallback(self, request, response):
         if self._shutdownReq is True:
