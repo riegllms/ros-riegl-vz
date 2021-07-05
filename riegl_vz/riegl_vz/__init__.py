@@ -128,7 +128,7 @@ class RieglVzWrapper(Node):
         self.scanPattern.frameStart = scanPattern[3]
         self.scanPattern.frameStop = scanPattern[4]
         self.scanPattern.frameIncrement = scanPattern[5]
-        self.measProgram = int(self.get_parameter('meas_program').value)
+        self.scanPattern.measProgram = int(self.get_parameter('meas_program').value)
         self.scanPublish = bool(self.get_parameter('scan_publish').value)
         self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
         self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
