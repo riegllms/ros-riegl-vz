@@ -45,7 +45,7 @@ Copy **params_default.yaml** to **params.yaml** end edit parameter settings.
 
 Launch 'riegl_vz' node with parameter settings from params.yaml:
 
-```ros2 launch riegl_vz riegl_vz std_launch.py```
+```ros2 launch riegl_vz std_launch.py```
 
 **Trigger a scan data acquisition:**
 
