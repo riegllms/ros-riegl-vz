@@ -1,3 +1,5 @@
 paramiko
 scp
 protobuf ~= 3.0
+empy
+lark
