@@ -103,6 +103,9 @@ class RieglVz():
         self._path = Path()
         self._stopReq = False
 
+        self.scanPublishFilter = node.scanPublishFilter
+        self.scanPublishLOD = node.scanPublishLOD
+
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
 
@@ -134,7 +137,7 @@ class RieglVz():
         return projSvc.projectPath()
 
     def _getScanposPath(self, scanposName: str):
-        return self._getProjectPath() + '/' + scanposName + '.SCNPOS/scans'
+        return self._getProjectPath() + '/' + str(scanposName) + '.SCNPOS/scans'
 
     def _getScanId(self, scanposName: str):
         if int(scanposName) == 0:
@@ -147,6 +150,10 @@ class RieglVz():
         self._logger.debug("CMD = {}".format(" ".join(cmd)))
         response = ssh.executeCommand(" ".join(cmd))
         ssh.disconnect()
+
+        if len(response) == 0:
+            return "null"
+
         return (scanposPath + "/" + os.path.basename(response[0]).split(".")[0] + ".rxp").replace("/media/", "")
 
     def _getTimeStampFromScanId(self, scanId: str):
@@ -158,6 +165,10 @@ class RieglVz():
     def getPointCloud(self, scanposName: str, pointcloud: PointCloud2):
         scanId = self._getScanId(scanposName)
         self._logger.debug("scan id = {}".format(scanId))
+
+        if scanId == "null":
+            return False, pointcloud
+
         remoteFile = "/media/" + scanId.replace(".rxp", ".rdbx")
         localFile = self.workingDir + "/scan.rdbx"
         self._downloadFile(remoteFile, localFile)

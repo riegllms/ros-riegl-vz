@@ -67,6 +67,11 @@ class RieglVzWrapper(Node):
         self.get_logger().debug("sshUser = {}".format(self.sshUser))
         self.get_logger().debug("sshPwd = {}".format(self.sshPwd))
 
+        self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
+        self.get_logger().debug("scanPublishFilter = {}".format(self.scanPublishFilter))
+        self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
+        self.get_logger().debug("scanPublishLOD = {}".format(self.scanPublishLOD))
+
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
         self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
@@ -170,8 +175,8 @@ class RieglVzWrapper(Node):
         return response
 
     def getPointCloud(self, scanpos, pointcloud):
-        ok, pointcloud = self.rieglVz.getPointCloud(scanpos, pointcloud)
-        return ok
+        ok, pointcloud = self._rieglVz.getPointCloud(scanpos, pointcloud)
+        return ok, pointcloud
 
     def _getPointCloudCallback(self, request, response):
         if self._shutdownReq is True:

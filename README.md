@@ -49,7 +49,7 @@ Launch 'riegl_vz' node with parameter settings from params.yaml:
 
 **Trigger a scan data acquisition:**
 
-Open another terminal. Execute '. install/setup_bash.sh'.
+Open another terminal. Execute '. install/setup.bash'.
 
 Execute the scan trigger service:
 
