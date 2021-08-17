@@ -36,7 +36,7 @@ def createRdbx(sigHandler, ctrlSvc,
     storMedia: str,
     projectName: str,
     scanposName: str,
-    scanId: str):
+    scan: str):
     """Create rdbx from rxp. Blocks until conversion is finished."""
     taskId = None
 
@@ -48,13 +48,12 @@ def createRdbx(sigHandler, ctrlSvc,
 
     sigcon = ctrlSvc.backgroundTaskRemoved().connect(onBackgroundTaskRemoved)
 
-    if createRdbx:
-        taskId = ctrlSvc.addRdbCreationTask(
-            storMedia,
-            projectName,
-            scanposName,
-            scanId
-        )
+    taskId = ctrlSvc.addRdbCreationTask(
+        storMedia,
+        projectName,
+        scanposName,
+        scan
+    )
 
     while not sigHandler.canceled:
         if taskFinishedEvent.is_set():
@@ -101,13 +100,14 @@ def main():
     ctrlSvc = ControlService(args.connectionstring)
 
     scanId = procSvc.actualFile(0)
+    scan: str = os.path.basename(scanId).replace(".rxp", "")
     storMedia = mediaString(projSvc)
     if not createRdbx(
         sigHandler, ctrlSvc,
         storMedia,
         args.project,
         args.scanposition,
-        scanId):
+        scan):
         print("RDB creation canceled.")
         return
 
