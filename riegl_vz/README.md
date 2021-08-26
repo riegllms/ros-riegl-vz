@@ -1,4 +1,4 @@
-# ROS 2 RIEGL-VZ Package API
+# ROS2 RIEGL-VZ Package API
 
 ## 1. Coordinate Systems
 

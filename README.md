@@ -1,12 +1,12 @@
-# ROS 2 RIEGL-VZ Package
+# ROS2 RIEGL-VZ Package
 
-This package is based on ROS 2 [Galactic Geochelone](https://docs.ros.org/en/galactic/index.html) distribution and has been tested on Ubuntu Desktop 20.04 (Focal Fossa).
+This package is based on ROS2 [Galactic Geochelone](https://docs.ros.org/en/galactic/index.html) distribution and has been tested on Ubuntu Desktop 20.04 (Focal Fossa).
 
-**ROS 2 installation and setup:**
+**ROS2 installation and setup:**
 
-Follow ROS 2 installation instructions on https://docs.ros.org/en/galactic/Installation/Ubuntu-Development-Setup.html.
+Follow ROS2 installation instructions on https://docs.ros.org/en/galactic/Installation/Ubuntu-Development-Setup.html.
 
-Configure the ROS 2 environment according to https://docs.ros.org/en/galactic/Tutorials/Configuring-ROS2-Environment.html.
+Configure the ROS2 environment according to https://docs.ros.org/en/galactic/Tutorials/Configuring-ROS2-Environment.html.
 
 Create a new workspace (https://docs.ros.org/en/galactic/Tutorials/Workspace/Creating-A-Workspace.html)
 and clone repository into subdirectory 'src'.
