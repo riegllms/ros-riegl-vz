@@ -1,73 +1,49 @@
-# Run ROS node:
+# Running 'riegl-vz' ROS node in a docker container
 
-**build ros Docker:**
-```docker build -t ros2t1 .```
+**Build docker container:**
 
-**create a build mount:**
-```
-mkdir workdir
-cd workdir
-git clone git@gitlab.riegl-gmbh:riegl/firmware/ros-riegl-vz.git
-cd ..
-```
+Git clone or extract source into local working directory to subfolder 'src'.   
+Stay in local working directory and build the docker container, using a network proxy configuration:
 
-**run ros Docker:**
-```docker run -v "$PWD"/workdir:/media/workdir -w /media/workdir -it --net=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix ros2t1```
+```docker build . -t ros2t1 -f src/docker/Dockerfile --build-arg http_proxy=http://192.168.0.9:3128 --build-arg https_proxy=http://192.168.0.9:3128```
 
-**Install python requirements:**
-```
-cd ros-riegl-vz
-python3 -m pip install -r requirements.txt
-```
+**Run docker container:**
 
-**Install librdb python wheel:**
+```docker run -v $PWD:/media/workdir -w /media/workdir -it --net=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix ros2t1```
+
+Now you can build and execute the ROS node in the docker container.
+
+**Start another bash in an already running container:**
+
+```docker ps```
+
 ```
-cd librdb
-pip3 install riegl.rdb-2.3.4-cp34.cp35.cp36.cp37.cp38.cp39-none-linux_x86_64.whl
-cd ..
+CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS          PORTS     NAMES
+56cbea55fe70   ros2t1    "/ros_entrypoint.sh …"   15 seconds ago   Up 14 seconds             condescending_merkle
 ```
 
-**Build package:**
-```colcon build```
+```docker exec -it 56cbea55fe70 bash```
 
-**Start 'riegl_vz' node:**
-```. install/local_setup.sh```
-
-**configure node parameters**
-```
-cp install/riegl_vz/share/riegl_vz/config/params_default.yaml install/riegl_vz/share/riegl_vz/config/params.yaml
-vi install/riegl_vz/share/riegl_vz/config/params.yaml
-```
-
-**Launch 'riegl_vz' node with parameter settings from params.yaml:**
-```ros2 launch riegl_vz std_launch.py```
-
-**open 2nd terminal:**
-```
-docker ps
-docker exec -it aca9ba982d7a bash
-```
+In the container setup the ROS environment:
 
 ```. /opt/ros/galactic/local_setup.sh```
 
-**Execute the scan trigger service:**
-```ros2 service call /scan std_srvs/srv/Trigger```
+**Run rviz in a docker container:**
 
+Get xauth from host:
 
-# Visualize scan data point cloud with rviz:
-
-**get xauth form host <cookie>**
 ```xauth list```
 
-**run docker**
-docker run -v "$PWD"/workdir:/media/workdir -w /media/workdir -it --net=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix ros2t1
-
-xauth add <cookie>
 ```
-xauth add zr-comp/unix:0  MIT-MAGIC-COOKIE-1  db11fa96b11f98b443129ab7e1cbxxx
-xauth list
+compaf/unix:  MIT-MAGIC-COOKIE-1  74e2aeecbb5cb3e827559b0bee7e2375
+#ffff#636f6d706166#:  MIT-MAGIC-COOKIE-1  74e2aeecbb5cb3e827559b0bee7e2375
 ```
 
-**run programm** 
+Add xauth in running docker container:
+
+```xauth add compaf/unix:0  MIT-MAGIC-COOKIE-1  74e2aeecbb5cb3e827559b0bee7e2375```
+
+Execute rviz in the docker container:
+
 ```rviz2```
 
