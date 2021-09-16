@@ -1,0 +1,18 @@
+v1.2: 
+
+  * Add description for building and running the ros package in a docker container.
+
+ -- Andreas Friedl <afriedl@riegl.com>  Thu Aug 26 14:51:28 2021 +0200
+
+v1.1:
+
+  * Fix get_pointcloud service.
+
+ -- Andreas Friedl <afriedl@riegl.com>  Mon Jul 5 16:22:06 2021 +0200
+
+v1.0:
+
+  * Initial Release.
+
+ -- Andreas Friedl <afriedl@riegl.com>  Mon Jul 5 16:22:06 2021 +0200
+
