@@ -106,6 +106,10 @@ The linux user name for SSH login on the scanner.
 
 The linux user password for SSH login on the scanner.
 
+**~project_name** (integer, default: "") :
+
+The name of the project to be loaded of created.
+
 **~storage_media** (integer, default: 2) :
 
 The active storage media for scan data recording (1: AUTO, 2: INTERNAL SSD, 3: USB).
@@ -168,7 +172,7 @@ progress     : scan progress in percent
 
 **set_project** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
-Create a new or load an existing project on the scanner with name from parameter '~project_name'.
+Load an existing project on the scanner with name from parameter '~project_name'. If the project name is empty or the project can not be loaded, a new project will be created automatically.
 
 Response:  
 success = True -> message: Project Name  

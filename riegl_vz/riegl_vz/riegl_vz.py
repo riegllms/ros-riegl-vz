@@ -161,12 +161,40 @@ class RieglVz():
         self._logger.debug("File download finished")
         return localFile
 
-    def _getProjectPath(self):
+    def _getActiveProjectPath(self):
         projSvc = ProjectService(self._connectionString)
         return projSvc.projectPath()
 
-    def _getScanposPath(self, scanposName: str):
-        return self._getProjectPath() + '/' + str(scanposName) + '.SCNPOS/scans'
+    def _getProjectPath(self, projectName: str, storageMedia: int):
+        projSvc = ProjectService(self._connectionString)
+        return projSvc.projectPath(storageMedia, projectName)
+
+    def checkProjectPath(self, projectName: str, storageMedia: int):
+        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
+        cmd = ["[ -d", self._getProjectPath(projectName, storageMedia),  "] && echo ok" ]
+        self._logger.debug("CMD = {}".format(" ".join(cmd)))
+        response = ssh.executeCommand(" ".join(cmd))
+        self._logger.debug("RESP = {}".format(" ".join(response)))
+        ssh.disconnect()
+
+        if len(response) > 0 and response[0] == "ok":
+            return True
+        return False
+
+    def _getActiveScanposPath(self, scanposName: str):
+        return self._getActiveProjectPath() + '/' + str(scanposName) + '.SCNPOS/scans'
+
+    def getNextScanpos(self, projectName: str, storageMedia: int):
+        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
+        cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), "| sort", "| grep '.SCNPOS'", "| sed 's/.SCNPOS//g'", "| tail -n 1"]
+        self._logger.debug("CMD = {}".format(" ".join(cmd)))
+        response = ssh.executeCommand(" ".join(cmd))
+        self._logger.debug("RESP = {}".format(" ".join(response)))
+        ssh.disconnect()
+
+        if len(response) == 0:
+            return str(1)
+        return str(int(response[0]) + 1)
 
     def _getScanId(self, scanposName: str):
         if int(scanposName) == 0:
@@ -174,10 +202,11 @@ class RieglVz():
             return procSvc.actualFile(0)
 
         ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-        scanposPath = self._getScanposPath(scanposName)
+        scanposPath = self._getActiveScanposPath(scanposName)
         cmd = ["ls -t", scanposPath + "/*.rxp"]
         self._logger.debug("CMD = {}".format(" ".join(cmd)))
         response = ssh.executeCommand(" ".join(cmd))
+        self._logger.debug("RESP = {}".format(" ".join(response)))
         ssh.disconnect()
 
         if len(response) == 0:
@@ -454,12 +483,15 @@ class RieglVz():
             return False, None
 
         sopvFileName = "all_sopv.csv"
-        remoteFile = self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
+        remoteFile = self._getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
         localFile = self.workingDir + "/" + sopvFileName
-        self._downloadFile(remoteFile, localFile)
-
-        ok = True
-        sopvs = readAllSopv(localFile, self._logger)
+        try:
+            self._downloadFile(remoteFile, localFile)
+            ok = True
+            sopvs = readAllSopv(localFile, self._logger)
+        except Exception as e:
+            ok = False
+            sopvs = None
 
         return ok, sopvs
 
@@ -487,7 +519,7 @@ class RieglVz():
             return False, None
 
         sopvFileName = "VPP.vop"
-        remoteFile = self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
+        remoteFile = self._getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
         localFile = self.workingDir + "/" + sopvFileName
         self._downloadFile(remoteFile, localFile)
 

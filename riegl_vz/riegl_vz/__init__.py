@@ -50,6 +50,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('working_dir', '/tmp/ros_riegl_vz')
         self.declare_parameter('ssh_user', 'user')
         self.declare_parameter('ssh_password', 'user')
+        self.declare_parameter('project_name', '')
         self.declare_parameter('storage_media', 0)
         self.declare_parameter('scan_pattern', [30.0,130.0,0.04,0.0,360.0,0.5])
         self.declare_parameter('meas_program', 0)
@@ -62,10 +63,12 @@ class RieglVzWrapper(Node):
         self.workingDir = str(self.get_parameter('working_dir').value)
         self.sshUser = str(self.get_parameter('ssh_user').value)
         self.sshPwd = str(self.get_parameter('ssh_password').value)
+        self.projectName = str(self.get_parameter('project_name').value)
         self.get_logger().debug("hostname = {}".format(self.hostname))
         self.get_logger().debug("workingDir = {}".format(self.workingDir))
         self.get_logger().debug("sshUser = {}".format(self.sshUser))
         self.get_logger().debug("sshPwd = {}".format(self.sshPwd))
+        self.get_logger().debug("projectName = {}".format(self.projectName))
 
         self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
         self.get_logger().debug("scanPublishFilter = {}".format(self.scanPublishFilter))
@@ -89,14 +92,14 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
-        self.setProject()
-        self.get_logger().debug("projectName = {}".format(self._projectName))
+        self.setProject("")
+        self.get_logger().debug("init projectName = {}".format(self.projectName))
 
         self._statusUpdater = Updater(self)
         self._statusUpdater.setHardwareID('riegl_vz')
         self._statusUpdater.add("status", self.produceDiagnostics)
 
-        self.get_logger().info("RIEGL VZ is now started, ready to get commands. (host = {}).".format(self.hostname))
+        self.get_logger().info("RIEGL VZ is ready, waiting for commands... (host = {}).".format(self.hostname))
 
     def produceDiagnostics(self, diag):
         status = self._rieglVz.getStatus()
@@ -105,11 +108,22 @@ class RieglVzWrapper(Node):
         diag.add('progress', str(status.progress))
         return diag
 
-    def setProject(self):
+    def setProject(self, projectName):
         now = datetime.now()
-        self._projectName = now.strftime("%y%m%d_%H%M%S")
-        self._nextScanpos = 1
+        if projectName == "":
+            self.projectName = now.strftime("%y%m%d_%H%M%S")
+        else:
+            self.projectName = projectName
         self._rieglVz.resetPath()
+
+    def loadProject(self, projectName):
+        self.storageMedia = int(self.get_parameter('storage_media').value)
+        ok = True
+        if projectName == "" or self._rieglVz.checkProjectPath(self.projectName, self.storageMedia):
+            ok = False
+        else:
+            self.projectName = projectName
+        return ok
 
     def _setProjectCallback(self, request, response):
         if self._shutdownReq is True:
@@ -117,10 +131,13 @@ class RieglVzWrapper(Node):
             response.message = "node is shutting down"
             return response
 
-        self.setProject()
+        self.projectName = str(self.get_parameter('project_name').value)
+
+        if self.projectName == "" or not self.loadProject(self.projectName):
+            self.setProject(self.projectName)
 
         response.success = True
-        response.message = self._projectName
+        response.message = self.projectName
 
         return response
 
@@ -140,11 +157,10 @@ class RieglVzWrapper(Node):
         self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
         self.scanRegister = bool(self.get_parameter('scan_register').value)
 
-        self._scanposName = str(self._nextScanpos)
-        self._nextScanpos = self._nextScanpos + 1
+        self._scanposName = self._rieglVz.getNextScanpos(self.projectName, self.storageMedia)
 
         return self._rieglVz.scan(
-            projectName = self._projectName,
+            projectName = self.projectName,
             scanposName = self._scanposName,
             storageMedia = self.storageMedia,
             scanPattern = self.scanPattern,
@@ -229,7 +245,7 @@ class RieglVzWrapper(Node):
             response.message = "node is shutting down"
             return response
 
-        response.project = self._projectName
+        response.project = self.projectName
 
         ok, sopvs = self.getAllSopv()
         if not ok:
