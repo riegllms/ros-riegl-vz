@@ -37,6 +37,7 @@ from vzi_services.scannerservice import ScannerService
 
 from .pose import (
     readVop,
+    readPop,
     readAllSopv
 )
 from .ssh import RemoteClient
@@ -102,6 +103,7 @@ class RieglVz():
         self.scanposName = None
         self._status: StatusMaintainer = StatusMaintainer()
         self._path = Path()
+        self._position = None
         self._stopReq = False
         self._shutdownReq = False
         self._ctrlSvc = None
@@ -159,7 +161,15 @@ class RieglVz():
         ssh.downloadFile(filepath=remoteFile, localpath=localFile)
         ssh.disconnect()
         self._logger.debug("File download finished")
-        return localFile
+
+    def _uploadFile(self, localFile: str, remoteDir: str):
+        self._logger.debug("Uploading file..")
+        self._logger.debug("local file = {}".format(localFile))
+        self._logger.debug("remote dir = {}".format(remoteDir))
+        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
+        ssh.uploadFile(localpath=localFile, remotepath=remoteDir)
+        ssh.disconnect()
+        self._logger.debug("File upload finished")
 
     def _getActiveProjectPath(self):
         projSvc = ProjectService(self._connectionString)
@@ -167,9 +177,11 @@ class RieglVz():
 
     def _getProjectPath(self, projectName: str, storageMedia: int):
         projSvc = ProjectService(self._connectionString)
-        return projSvc.projectPath(storageMedia, projectName)
+        projectPath = projSvc.projectPath(storageMedia, projectName)
+        return projectPath
 
     def checkProjectPath(self, projectName: str, storageMedia: int):
+        self._logger.debug("check project path: projectName={}, storageMedia={}".format(projectName, storageMedia))
         ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
         cmd = ["[ -d", self._getProjectPath(projectName, storageMedia),  "] && echo ok" ]
         self._logger.debug("CMD = {}".format(" ".join(cmd)))
@@ -182,9 +194,10 @@ class RieglVz():
         return False
 
     def _getActiveScanposPath(self, scanposName: str):
-        return self._getActiveProjectPath() + '/' + str(scanposName) + '.SCNPOS/scans'
+        return self._getActiveProjectPath() + '/' + scanposName + '.SCNPOS'
 
     def getNextScanpos(self, projectName: str, storageMedia: int):
+        self._logger.debug("get next scanpos: projectName={}, storageMedia={}".format(projectName, storageMedia))
         ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
         cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), "| sort", "| grep '.SCNPOS'", "| sed 's/.SCNPOS//g'", "| tail -n 1"]
         self._logger.debug("CMD = {}".format(" ".join(cmd)))
@@ -202,7 +215,7 @@ class RieglVz():
             return procSvc.actualFile(0)
 
         ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-        scanposPath = self._getActiveScanposPath(scanposName)
+        scanposPath = self._getActiveScanposPath(scanposName) + '/scans'
         cmd = ["ls -t", scanposPath + "/*.rxp"]
         self._logger.debug("CMD = {}".format(" ".join(cmd)))
         response = ssh.executeCommand(" ".join(cmd))
@@ -219,6 +232,24 @@ class RieglVz():
         dateTime = datetime.strptime(scanFileName, '%y%m%d_%H%M%S.rxp')
         #self._logger.debug("dateTime = {}".format(dateTime))
         return int(dateTime.strftime("%s"))
+
+    def _setPositionEstimate(self, position):
+        scanposPath = self._getActiveScanposPath(self.scanposName)
+        remoteFile = scanposPath + "/final.pose"
+        localFile = self.workingDir + "/final.pose"
+        self._downloadFile(remoteFile, localFile)
+        with open(localFile, "r") as f:
+            finalPose = json.load(f)
+        finalPose["positionEstimate"] = {
+            "coordinateSystem": position.header.frame_id,
+            "coord1": position.point.x,
+            "coord2": position.point.y,
+            "coord3": position.point.z
+        }
+        with open(localFile, "w") as f:
+            json.dump(finalPose, f, indent=4)
+            f.write("\n")
+        self._uploadFile([localFile], scanposPath)
 
     def getPointCloud(self, scanposName: str, pointcloud: PointCloud2):
         if self.getStatus().opstate == "unavailable":
@@ -345,6 +376,19 @@ class RieglVz():
         self._logger.info("Data acquisition finished")
 
         self._status.setOpstate("processing")
+
+        if self._position is not None:
+            if self.scanposName == '1':
+                self._logger.info("Set project position.")
+                projSvc = ProjectService(self._connectionString)
+                projSvc.setProjectLocation(self._position.header.frame_id, self._position.point.x, self._position.point.y, self._position.point.z)
+            self._logger.info("Set scan position estimate..")
+            try:
+                self._setPositionEstimate(self._position)
+                self._logger.info("Set position estimate finished")
+            except:
+                self._logger.error("Set position estimate failed!")
+            self._position = None
 
         self._logger.info("Converting RXP to RDBX..")
         scriptPath = join(appDir, "create-rdbx.py")
@@ -475,6 +519,9 @@ class RieglVz():
     def getStatus(self):
         return self._status.getStatus()
 
+    def setPosition(self, position):
+        self._position = position
+
     def getAllSopv(self):
         if self.scanposName is None:
             return False, None
@@ -521,11 +568,33 @@ class RieglVz():
         sopvFileName = "VPP.vop"
         remoteFile = self._getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
         localFile = self.workingDir + "/" + sopvFileName
-        self._downloadFile(remoteFile, localFile)
+        try:
+            self._downloadFile(remoteFile, localFile)
+        except Exception as e:
+            return False, None
 
         vop = readVop(localFile)
 
         return True, vop
+
+    def getPop(self):
+        if self.scanposName is None:
+            return False, None
+
+        if self.getStatus().opstate == "unavailable":
+            return False, None
+
+        popFileName = "project.pop"
+        remoteFile = self._getActiveProjectPath() + "/" + popFileName
+        localFile = self.workingDir + "/" + popFileName
+        try:
+            self._downloadFile(remoteFile, localFile)
+        except Exception as e:
+            return False, None
+
+        pop = readPop(localFile)
+
+        return True, pop
 
     def stop(self):
         self._stopReq = True

@@ -26,7 +26,7 @@ CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS       
 
 In the container setup the ROS environment:
 
-```. /opt/ros/galactic/local_setup.sh```
+```. install/setup.bash```
 
 **Run rviz in a docker container:**
 
@@ -46,4 +46,3 @@ Add xauth in running docker container:
 Execute rviz in the docker container:
 
 ```rviz2```
-

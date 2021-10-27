@@ -1,4 +1,4 @@
-geometry_msgs/PoseStamped pose
+geometry_msgs/PointStamped position
 ---
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages

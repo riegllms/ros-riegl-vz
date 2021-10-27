@@ -78,6 +78,33 @@ def readVop(vopPath):
 
     return vop
 
+def readPop(popPath):
+    """Extract POP pose."""
+    with open(popPath, "r") as f:
+        obj = json.load(f)
+        pop = np.array(obj.get("4x4"))
+        glcs = "EPSG::4978"
+        if "glcs" in obj:
+            glcs = obj["glcs"].get("designator", glcs)
+
+    T = np.empty(3)
+    T = pop[:3, 3]
+
+    R = np.empty((3,3))
+    R[:3, :3] = pop[:3, :3]
+
+    pop = PoseStamped()
+    pop.header = Header(
+        frame_id = glcs,
+        stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
+        )
+    pop.pose = Pose(
+        position = Point(x=T[0], y=T[1], z=T[2]),
+        orientation = quaternionFromRotationMatrix(R)
+        )
+
+    return pop
+
 def extractSopv(data, logger = None):
     """Extract scanposition information from all_sopv.csv data entry."""
     deg = math.pi / 180.0

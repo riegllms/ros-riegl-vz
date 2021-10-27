@@ -37,7 +37,7 @@ Switch to workspace root directory.
 
 **Start 'riegl_vz' node:**
 
-Open a second terminal. Execute '. install/setup_bash.sh'.
+Open a second terminal. Execute '. install/setup.bash'.
 
 Find .yaml files for configuration of node parameters in package install directory at: **install/riegl_vz/share/riegl_vz/config/**.
 

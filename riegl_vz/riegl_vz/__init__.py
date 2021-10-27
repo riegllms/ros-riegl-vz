@@ -24,7 +24,7 @@ from riegl_vz_interfaces.srv import (
     GetPointCloud,
     GetScanPoses,
     GetPose,
-    SetPose
+    SetPosition
 )
 import rclpy
 from rclpy.node import Node
@@ -83,8 +83,10 @@ class RieglVzWrapper(Node):
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
         self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
+        self._setPositionService = self.create_service(SetPosition, 'set_position', self._setPositionCallback)
         self._getSopvService = self.create_service(GetPose, 'get_sopv', self._getSopvCallback)
         self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
+        self._getPopService = self.create_service(GetPose, 'get_pop', self._getPopCallback)
         self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
         self._trigStartStopService = self.create_service(Trigger, 'trig_start_stop', self._trigStartStopCallback)
@@ -204,8 +206,24 @@ class RieglVzWrapper(Node):
         ok, response.pointcloud = self.getPointCloud(request.seq, response.pointcloud)
         if not ok:
             response.success = False
-            response.message = "data unavailable"
+            response.message = "data not available"
             return response
+
+        response.success = True
+        response.message = "success"
+
+        return response
+
+    def setPosition(self, position):
+        return self._rieglVz.setPosition(position)
+
+    def _setPositionCallback(self, request, response):
+        if self._shutdownReq is True:
+            response.success = False
+            response.message = "node is shutting down"
+            return response
+
+        self.setPosition(request.position)
 
         response.success = True
         response.message = "success"
@@ -224,7 +242,7 @@ class RieglVzWrapper(Node):
         ok, sopv = self.getSopv()
         if not ok:
             response.success = False
-            response.message = "data unavailable"
+            response.message = "data not available"
             return response
 
         response.pose = sopv.pose
@@ -239,6 +257,9 @@ class RieglVzWrapper(Node):
     def getVop(self):
         return self._rieglVz.getVop()
 
+    def getPop(self):
+        return self._rieglVz.getPop()
+
     def _getScanPosesCallback(self, request, response):
         if self._shutdownReq is True:
             response.success = False
@@ -250,7 +271,7 @@ class RieglVzWrapper(Node):
         ok, sopvs = self.getAllSopv()
         if not ok:
             response.success = False
-            response.message = "data unavailable"
+            response.message = "data not available"
             return response
         for sopv in sopvs:
             response.scanposes.append(sopv)
@@ -258,9 +279,15 @@ class RieglVzWrapper(Node):
         ok, vop = self.getVop()
         if not ok:
             response.success = False
-            response.message = "data unavailable"
+            response.message = "data not available"
             return response
         response.vop = vop
+
+        ok, pop = self.getPop()
+        if ok:
+            response.pop = pop
+        else:
+            response.pop = PoseStamped()
 
         response.success = True
         response.message = "success"
@@ -276,10 +303,28 @@ class RieglVzWrapper(Node):
         ok, vop = self.getVop()
         if not ok:
             response.success = False
-            response.message = "data unavailable"
+            response.message = "data not available"
             return response
 
         response.pose = vop
+        response.success = True
+        response.message = "success"
+
+        return response
+
+    def _getPopCallback(self, request, response):
+        if self._shutdownReq is True:
+            response.success = False
+            response.message = "node is shutting down"
+            return response
+
+        ok, pop = self.getPop()
+        if not ok:
+            response.success = False
+            response.message = "data not available"
+            return response
+
+        response.pose = pop
         response.success = True
         response.message = "success"
 

@@ -46,16 +46,13 @@ class RemoteClient:
         if self.client:
             self.client.close()
 
-    def bulkUpload(self, files: List[str], remote_path: str):
+    def uploadFile(self, localpath: str, remotepath: str):
         """
-        Upload multiple files to a remote directory.
-
-        :param files: List of local files to be uploaded.
-        :type files: List[str]
+        Upload file to a remote directory.
         """
         try:
             scp = self.scp
-            scp.put(files, remote_path=remote_path, recursive=True).close()
+            scp.put(localpath, remotepath)
             scp.close()
         except Exception as e:
             raise e

@@ -12,9 +12,15 @@ Angle data and range data are the base for calculation of the data in the Scanne
 
 A number of scan positions and the data acquired therein make up a scan project. The center of the project’s coordinate system (PRCS) coincides horizontally with the center of the first scan position. The axes of PRCS are strictly pointing to east (x-axis, red), north (y-axis, green) and up (z-axis, blue), respectively.
 
-The SOP transforms SOCS into PRCS (Project Coordinate System).
+The SOP transforms SOCS into PRCS.
 
 ![PRCS (Project Coordinate System)](img/prcs.png)
+
+**GLCS** (Global Coordinate System):
+
+A global coordinate system like WGS84.
+
+The POP transforms GLCS into PRCS
 
 **VOCS** (Voxel Coordinate System):  
 
@@ -23,7 +29,7 @@ Automatic registration does not estimate the SOP with every new scan position, b
 After first scan: VOP = eye(4)  
 After each consecutive scan: VOP <> eye(4)  
 
-If the user is only interested in relative registration of scan positions to each other, the VOP can be ignored.
+If the user is only interested in relative registration of scan positions to each other, the VOP and the POP can be ignored.
 
 ![RIEGL Coordinate Systems](img/cs.png)
 
@@ -59,10 +65,13 @@ The 'frame_id' in the header is 'riegl_vz_socs'.
 string project                # Scan project name
 ScanPose[] scanposes
 geometry_msgs/PoseStamped vop # position and orientation of VOCS in PRCS
+geometry_msgs/PoseStamped pop # position and orientation of PRCS in GLCS
 bool success                  # indicate successful run of service
 string message                # informational, e.g. for error messages
 ```   
-The 'frame_id' in the scanposes[n].header is 'riegl_vz_vocs'.
+The 'frame_id' in the scanposes[n].header is 'riegl_vz_vocs'.  
+The 'frame_id' in the vop.header is 'riegl_vz_prcs'.  
+The 'frame_id' in the pop.header is the name of the global coordinate system (e.g. EPSG::4978)
 
 **riegl_vz_interfaces/GetPose**:
 ```
@@ -74,15 +83,15 @@ string message # informational, e.g. for error messages
 See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
 The 'frame_id' in the pose.header is either 'riegl_vz_prcs' or 'riegl_vz_vocs'.
 
-**riegl_vz_interfaces/SetPose**:
+**riegl_vz_interfaces/SetPosition**:
 ```
-geometry_msgs/PoseStamped pose
+geometry_msgs/PointStamped position
 ---
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
-See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
-The 'frame_id' in the pose.header has to be either 'riegl_vz_prcs' or 'riegl_vz_vocs'.
+See PointStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PointStamped.msg)
+The 'frame_id' in the position.header is the name of the global coordinate system (e.g. EPSG::4978)
 
 ## 3. Nodes
 
@@ -108,7 +117,7 @@ The linux user password for SSH login on the scanner.
 
 **~project_name** (integer, default: "") :
 
-The name of the project to be loaded of created.
+The name of the project to be loaded or created.
 
 **~storage_media** (integer, default: 2) :
 
@@ -177,6 +186,10 @@ Load an existing project on the scanner with name from parameter '~project_name'
 Response:  
 success = True -> message: Project Name  
 
+**set_position** (riegl_vz_interfaces/SetPosition) :
+
+Set position of the scanner origin in a global coordinate system (GLCS) supported by RIEGL GeoSys Manager. The position must be set before the scan. This allows transformation of scans into a global coordinate system and furthermore the position is an initial guess for scan registration.
+
 **scan** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
 Start a background task for laser scan data acquisition
@@ -186,7 +199,7 @@ The node is locked until all background tasks have finished and the operating st
 
 If parameter '\~scan_publish' is enabled, acquired data will be published on 'pointcloud' topic soon after scanning has finished.
 
-The parameter '\~scan_register' enables automatic scan position registration after scanning. The registration result is published on topic 'pose' or it can be requested by separate service calls (see 'get_sopv', 'get_vop' and 'get_scan_poses') after processing, if operating state is 'waiting' again.
+The parameter '\~scan_register' enables automatic scan position registration after scanning. The registration result is published on topic 'pose' or it can be requested by separate service calls (see 'get_sopv', 'get_vop', 'get_pop' and 'get_scan_poses') after processing, if operating state is 'waiting' again.
 
 Response:  
 success = True -> message: "success"  
@@ -200,7 +213,7 @@ Request a single SOPV of the previously registered scan position in actual proje
 
 Response:  
 success = True -> message: "success", pose: Last SOPV Pose  
-success = False -> message: "data unavailable"  
+success = False -> message: "data not available"  
 
 **get_vop** (riegl_vz_interfaces/GetPose) :
 
@@ -208,15 +221,23 @@ Get current VOP, which is a single position and orientation of the VOXEL coordin
 
 Response:  
 success = True -> message: "success", pose: VOP Pose  
-success = False -> message: "data unavailable"  
+success = False -> message: "data not available"  
+
+**get_pop** (riegl_vz_interfaces/GetPose) :
+
+Get current POP, which is a single position and orientation of the project coordinate system (PRCS) origin based on the global coordinate system (GLCS).
+
+Response:  
+success = True -> message: "success", pose: POP Pose  
+success = False -> message: "data not available"
 
 **get_scan_poses** (riegl_vz_interfaces/GetScanPoses) :
 
 Request all SOPVs of previously registered scan positions in actual project.
 
 Response:  
-success = True -> message: "success", project: Project Name, scanposes: All Scan Poses, vop: VOP Pose  
-success = False -> message: "data unavailable"  
+success = True -> message: "success", project: Project Name, scanposes: All Scan Poses, vop: VOP Pose, pop: POP Pose
+success = False -> message: "data not available"  
 
 **get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
 
@@ -224,7 +245,7 @@ Get point cloud of a previously acquired scan position in actual project.
 
 Response:  
 success = True -> message: "success", pointcloud: Scan Data  
-success = False -> message: "data unavailable"  
+success = False -> message: "data not available"  
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
@@ -250,24 +271,12 @@ Not available in first implementation but for further extension:
 
 * Additional parameters:
 
-**~capture_images** (bool,  default: False) :
-
-Enable capturing of camera images.
+**~capture_images** (bool,  default: False) : Enable capturing of camera images.
 
 * Additional services:
 
-**set_pose** (riegl_vz_interfaces/SetPose) :
+**get_voxel** (riegl_vz_interfaces/GetPointcloud) : Get voxel data of a previous scan data acquisition.
 
-Set position of the scanner origin in a referenced coordinate system (VOCS or PRCS). This is used for scan registration.
+**get_image** (riegl_vz_interfaces/GetImage) : Get camera image for scan position.
 
-**get_voxel** (riegl_vz_interfaces/GetPointcloud) :
-
-Get voxel data of a previous scan data acquisition.
-
-**get_image** (riegl_vz_interfaces/GetImage) :
-
-Get camera image for scan position.
-
-**get_projectmap** (riegl_vz_interfaces/GetImage) :
-
-Get the project map overview image.
+**get_projectmap** (riegl_vz_interfaces/GetImage) : Get the project map overview image.
