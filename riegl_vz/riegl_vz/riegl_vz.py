@@ -57,7 +57,7 @@ class ScanPattern(object):
 
 class Status(object):
     def __init__(self):
-        self.opstate = "waiting"
+        self.opstate = "unavailable"
         self.progress = 0
 
 class StatusMaintainer(object):
@@ -102,6 +102,8 @@ class RieglVz():
         self._status: StatusMaintainer = StatusMaintainer()
         self._path = Path()
         self._stopReq = False
+        self._shutdownReq = False
+        self._ctrlSvc = None
 
         self.scanPublishFilter = node.scanPublishFilter
         self.scanPublishLOD = node.scanPublishLOD
@@ -109,6 +111,11 @@ class RieglVz():
         if not os.path.exists(self.workingDir):
             os.mkdir(self.workingDir)
 
+        self._statusThread = threading.Thread(target=self._statusThreadFunc, args=())
+        self._statusThread.daemon = True
+        self._statusThread.start()
+
+    def _statusThreadFunc(self):
         def onTaskProgress(arg0):
             obj = json.loads(arg0)
             self._logger.debug("scan progress: {0} % ({1}, {2})".format(obj["progress"], obj["id"], obj["progresstext"]))
@@ -116,8 +123,14 @@ class RieglVz():
                 self._status.setProgress(obj["progress"])
             self._node._statusUpdater.force_update()
 
-        self.ctrlSvc = ControlService(self._connectionString)
-        self.taskProgress = self.ctrlSvc.taskProgress().connect(onTaskProgress)
+        while self._ctrlSvc is None:
+            try:
+                self._ctrlSvc = ControlService(self._connectionString)
+                self.taskProgress = self._ctrlSvc.taskProgress().connect(onTaskProgress)
+                self._status.setOpstate("waiting")
+            except:
+                self._logger.debug("Scanner is not available!")
+            time.sleep(1.0)
 
     def resetPath(self):
         self._path = Path()
@@ -163,6 +176,9 @@ class RieglVz():
         return int(dateTime.strftime("%s"))
 
     def getPointCloud(self, scanposName: str, pointcloud: PointCloud2):
+        if self.getStatus().opstate == "unavailable":
+            return False, pointcloud
+
         scanId = self._getScanId(scanposName)
         self._logger.debug("scan id = {}".format(scanId))
 
@@ -222,7 +238,7 @@ class RieglVz():
 
         return True, pointcloud
 
-    def _scanThread(self):
+    def _scanThreadFunc(self):
         self._status.setOpstate("scanning")
         self._status.setProgress(0)
 
@@ -370,6 +386,10 @@ class RieglVz():
           scanposName ... the name of the new scan position
           storageMedia ... storage media for data recording
           scanPattern ... the scan pattern"""
+
+        if self.getStatus().opstate == "unavailable":
+            return False
+
         if self.isBusy():
             return False
 
@@ -386,7 +406,7 @@ class RieglVz():
         self.captureMode = captureMode
         self.imageOverlap = imageOverlap
 
-        thread = threading.Thread(target=self._scanThread, args=())
+        thread = threading.Thread(target=self._scanThreadFunc, args=())
         thread.daemon = True
         thread.start()
 
@@ -414,6 +434,9 @@ class RieglVz():
         if self.scanposName is None:
             return False, None
 
+        if self.getStatus().opstate == "unavailable":
+            return False, None
+
         sopvFileName = "all_sopv.csv"
         remoteFile = self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
         localFile = self.workingDir + "/" + sopvFileName
@@ -426,6 +449,9 @@ class RieglVz():
 
     def getSopv(self):
         if self.scanposName is None:
+            return False, None
+
+        if self.getStatus().opstate == "unavailable":
             return False, None
 
         ok, sopvs = self.getAllSopv()
@@ -441,6 +467,9 @@ class RieglVz():
         if self.scanposName is None:
             return False, None
 
+        if self.getStatus().opstate == "unavailable":
+            return False, None
+
         sopvFileName = "VPP.vop"
         remoteFile = self._getProjectPath() + "/Voxels1.VPP/" + sopvFileName
         localFile = self.workingDir + "/" + sopvFileName
@@ -452,11 +481,14 @@ class RieglVz():
 
     def stop(self):
         self._stopReq = True
-        ctrlSvc = ControlService(self._connectionString)
-        ctrlSvc.stop()
-        self.isBusy()
+
+        if self.getStatus().opstate != "unavailable":
+            ctrlSvc = ControlService(self._connectionString)
+            ctrlSvc.stop()
+            self.isBusy()
 
     def shutdown(self):
         self.stop()
-        scnSvc = ScannerService(self._connectionString)
-        scnSvc.shutdown()
+        if self.getStatus().opstate != "unavailable":
+            scnSvc = ScannerService(self._connectionString)
+            scnSvc.shutdown()
