@@ -30,6 +30,7 @@ from rclpy.node import Node
 import riegl.rdb
 
 from vzi_services.controlservice import ControlService
+from vzi_services.interfaceservice import InterfaceService
 from vzi_services.projectservice import ProjectService
 from vzi_services.dataprocservice import DataprocService
 from vzi_services.scannerservice import ScannerService
@@ -486,6 +487,10 @@ class RieglVz():
             ctrlSvc = ControlService(self._connectionString)
             ctrlSvc.stop()
             self.isBusy()
+
+    def trigStartStop(self):
+        intfSvc = InterfaceService(self._connectionString)
+        intfSvc.triggerInputEvent("ACQ_START_STOP")
 
     def shutdown(self):
         self.stop()

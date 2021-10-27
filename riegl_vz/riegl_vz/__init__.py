@@ -84,6 +84,7 @@ class RieglVzWrapper(Node):
         self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
         self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
+        self._trigStartStopService = self.create_service(Trigger, 'trig_start_stop', self._trigStartStopCallback)
         self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
 
         self._rieglVz = RieglVz(self)
@@ -267,6 +268,7 @@ class RieglVzWrapper(Node):
         response.message = "success"
 
         return response
+
     def stop(self):
         self._rieglVz.stop()
 
@@ -277,6 +279,22 @@ class RieglVzWrapper(Node):
             return response
 
         self.stop()
+
+        response.success = True
+        response.message = "success"
+
+        return response
+
+    def trigStartStop(self):
+        self._rieglVz.trigStartStop()
+
+    def _trigStartStopCallback(self, request, response):
+        if self._shutdownReq is True:
+            response.success = False
+            response.message = "node is shutting down"
+            return response
+
+        self.trigStartStop()
 
         response.success = True
         response.message = "success"

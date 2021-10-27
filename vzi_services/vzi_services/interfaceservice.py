@@ -1100,10 +1100,10 @@ class InterfaceService(object):
 
     def getNetworkInterface(self, name):
         """Get the specified network Interface.
-           
+
            Arguments:
-             name (str): 
-           
+             name (str):
+
            Returns: NetworkInterface
              A NetworkInterface on success. On error a NetworkInterface with an empty name is returned."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1118,10 +1118,10 @@ class InterfaceService(object):
 
     def getNetworkInterfaces(self, eType):
         """Gets a list of network Interfaces.
-           
+
            Arguments:
              eType (NetworkInterfaceType): Network interface type mask, e.g. NETIF_ETHERNET|NETIF_WIFI or NETIF_ANY etc.
-           
+
            Returns: list(NetworkInterface)
                  A vector of netif objects to describe each network interface requested."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1136,10 +1136,10 @@ class InterfaceService(object):
 
     def getNetworkInterfaceState(self, name):
         """Gets the current network interface state.
-           
+
            Arguments:
              name (str): Interface name, as returned in a netif object from getNetworkInterfaces()
-           
+
            Returns: NetworkInterfaceState
                     An object to describe the lan link status, lan link speed, wlan link quality, ..."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1154,7 +1154,7 @@ class InterfaceService(object):
 
     def NetworkHostname(self):
         """Get the machines network hostname.
-           
+
            Returns: str
              The network hostname string."""
         inputs = None
@@ -1168,11 +1168,11 @@ class InterfaceService(object):
 
     def disableNetworkInterface(self, name, disable):
         """Deactivate/Activate network interface.
-           
+
            Arguments:
              name (str): Interface name, as returned in a netif object from getNetworkInterfaces()
              disable (bool): Set inteface up/down.
-           
+
            Returns: Error
              ERROR_NONE  On success."""
         inputs = [riconnect.Value() for i in range(0, 2)]
@@ -1190,22 +1190,22 @@ class InterfaceService(object):
         """
            setNetworkInterfaceConfig(name, ipconfig)
                Allows configuration of a network interface.
-               
+
                Arguments:
                  name (str): Interface name, as returned in a netif object from getNetworkInterfaces();
                  ipconfig (IPconfig): Configuration data for the interface's IP settings.
-               
+
                Returns: Error
                     ERROR_NONE     On success.
 
            setNetworkInterfaceConfig(name, ipconfig, wifiConfig)
                Allows configuration of a WIFI network interface.
-               
+
                Arguments:
                  name (str): Interface name, as returned in a netif object from getNetworkInterfaces();
                  ipconfig (IPconfig): Configuration data for the interface's IP settings.
-                 wifiConfig (WIFIconfig): 
-               
+                 wifiConfig (WIFIconfig):
+
                Returns: Error
                     ERROR_NONE     On success.
 
@@ -1219,11 +1219,11 @@ class InterfaceService(object):
 
     def _setNetworkInterfaceConfig_072f61ad(self, name, ipconfig):
         """Allows configuration of a network interface.
-           
+
            Arguments:
              name (str): Interface name, as returned in a netif object from getNetworkInterfaces();
              ipconfig (IPconfig): Configuration data for the interface's IP settings.
-           
+
            Returns: Error
                 ERROR_NONE     On success."""
         inputs = [riconnect.Value() for i in range(0, 2)]
@@ -1239,12 +1239,12 @@ class InterfaceService(object):
 
     def _setNetworkInterfaceConfig_ffcec136(self, name, ipconfig, wifiConfig):
         """Allows configuration of a WIFI network interface.
-           
+
            Arguments:
              name (str): Interface name, as returned in a netif object from getNetworkInterfaces();
              ipconfig (IPconfig): Configuration data for the interface's IP settings.
-             wifiConfig (WIFIconfig): 
-           
+             wifiConfig (WIFIconfig):
+
            Returns: Error
                 ERROR_NONE     On success."""
         inputs = [riconnect.Value() for i in range(0, 3)]
@@ -1261,11 +1261,11 @@ class InterfaceService(object):
 
     def getNetworkInterfaceConfig(self, name, eMode):
         """Get the specified network interface configuration.
-           
+
            Arguments:
              name (str): Interface name, as returned in a netif object from getNetworkInterfaces();
              eMode (IPconfigMode): IP configuration mode.
-           
+
            Returns: NetworkInterface
              A NetworkInterface on success. On error a NetworkInterface with an empty name is returned."""
         inputs = [riconnect.Value() for i in range(0, 2)]
@@ -1281,11 +1281,11 @@ class InterfaceService(object):
 
     def getNetworkInterfaceConfigs(self, eType, eMode):
         """Returns configuration of network interfaces.
-           
+
            Arguments:
              eType (NetworkInterfaceType): Network interface type mask, e.g. NETIF_ETHERNET|NETIF_WIFI or NETIF_ANY etc.
              eMode (IPconfigMode): IP configuration mode.
-           
+
            Returns: list(NetworkInterface)
                      A map of objects to describe each configured network interface."""
         inputs = [riconnect.Value() for i in range(0, 2)]
@@ -1301,10 +1301,10 @@ class InterfaceService(object):
 
     def scanWifiNetworks(self, name):
         """Gets a list of available WIFI Access Points.
-           
+
            Arguments:
              name (str): Interface name, as returned in a netif object from getNetworkInterfaces();
-           
+
            Returns: list(WIFInetwork)
                     A vector of available WIFI networks."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1319,10 +1319,10 @@ class InterfaceService(object):
 
     def listWifiNetworkChannels(self, name):
         """Gets a list of available WIFI channels.
-           
+
            Arguments:
              name (str): Interface name, as returned in a netif object from getNetworkInterfaces()
-           
+
            Returns: list(WIFIchannel)
                     A vector of available WIFI channels."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1337,7 +1337,7 @@ class InterfaceService(object):
 
     def getNetworkIpForwarding(self):
         """Get the IP forward system configuration.
-           
+
            Returns: bool
                     IP forward mode - 1 if forwarding is enabled, 0 if not."""
         inputs = None
@@ -1351,7 +1351,7 @@ class InterfaceService(object):
 
     def setNetworkIpForwarding(self, enable):
         """Set the IP forward system configuratin.
-           
+
            Arguments:
              enable (bool): Enable IP forwarding."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1359,10 +1359,10 @@ class InterfaceService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setNetworkIpForwarding_bed0b705", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def getPreferredInternetRoute(self):
         """Get the preferred interface for route to internet.
-           
+
            Returns: str
                     The interface name."""
         inputs = None
@@ -1376,7 +1376,7 @@ class InterfaceService(object):
 
     def setPreferredInternetRoute(self, name):
         """Set the preferred interface for route to internet.
-           
+
            Arguments:
              name (str): The interface name."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1384,10 +1384,10 @@ class InterfaceService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setPreferredInternetRoute_f8da77e6", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def getInternetConnectionStatus(self):
         """Get the internet connection status.
-           
+
            Returns: InetConnStatus
                     An object describing the internet connection, containing the connection state and the interface used for routing."""
         inputs = None
@@ -1401,7 +1401,7 @@ class InterfaceService(object):
 
     def setInternetProxy(self, server_name, port_number):
         """Set http/shttp/ftp/rsync proxy.
-           
+
            Arguments:
              server_name (str): The proxy server name or ip address, with optional user and password <user>:<password>@<name>:<port>. e.g. user:user@192.168.1.1
              port_number (int): The proxy server port number."""
@@ -1411,10 +1411,10 @@ class InterfaceService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setInternetProxy_8069e116", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def setInternetProxyEnable(self, enable):
         """Enable internet proxy server configuration.
-           
+
            Arguments:
              enable (bool): Enable/disable proxy settings."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1422,10 +1422,10 @@ class InterfaceService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setInternetProxyEnable_d7328bd2", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def getInternetProxyConfig(self):
         """Get http/shttp/ftp/rsync proxy server configuration.
-           
+
            Returns: tuple(str, int, bool)
              1: The proxy server name or ip address, with optional user and password <user>:<password>@<name>:<port>. e.g. user:user@192.168.1.1
              2: The proxy server port number.
@@ -1442,11 +1442,11 @@ class InterfaceService(object):
 
     def setNetworkMtu(self, name, mtu):
         """Set MTU (Maximum Transmission Unit) for network interface.
-           
+
            Arguments:
              name (str): Interface name, as returned in a netif object from getNetworkInterfaces().
              mtu (int): Maximum Transmission Unit.
-           
+
            Returns: Error"""
         inputs = [riconnect.Value() for i in range(0, 2)]
         inputs[0].s = name
@@ -1461,10 +1461,10 @@ class InterfaceService(object):
 
     def getNetworkMtu(self, name):
         """Get MTU (Maximum Transmission Unit) for network interface.
-           
+
            Arguments:
              name (str): Interface name, as returned in a netif object from getNetworkInterfaces().
-           
+
            Returns: int
              Maximum Transmission Unit."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1479,10 +1479,10 @@ class InterfaceService(object):
 
     def setNetworkControlPortsEnable(self, enable):
         """Activates/Deactivates network control ports (20000/Riconnect, 20002/Rid-Interpreter).
-           
+
            Arguments:
              enable (bool): Enable/disable network control ports.
-           
+
            Returns: Error"""
         inputs = [riconnect.Value() for i in range(0, 1)]
         inputs[0].i32 = 1 if enable else 0
@@ -1496,7 +1496,7 @@ class InterfaceService(object):
 
     def getNetworkControlPortsEnable(self):
         """Check if network control ports (20000/Riconnect, 20002/Rid-Interpreter) are enabled.
-           
+
            Returns: bool
              True if etwork control ports are enabled, otherwise false."""
         inputs = None
@@ -1510,10 +1510,10 @@ class InterfaceService(object):
 
     def getStorageInterfaces(self, eType):
         """Get a list of the available storage interfaces.
-           
+
            Arguments:
              eType (StorageInterfaceType): Filter the list by @see storageif_type. E.g. STORAGEIF_USB | STORAGEIF_SDCARD or STORAGEIF_ANY
-           
+
            Returns: list(StorageInterface)
              List of storageif objects."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1528,10 +1528,10 @@ class InterfaceService(object):
 
     def getStorageInterface(self, name):
         """Get a StorageInterface by its name.
-           
+
            Arguments:
              name (str): Name of the storage interface to get.
-           
+
            Returns: StorageInterface
              A StorageInterface on success, on Error the returned StorageInterface will have no name."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1546,10 +1546,10 @@ class InterfaceService(object):
 
     def setNetworkStorageConfig(self, config):
         """Set network storage configuration.
-           
+
            Arguments:
              config (NetworkStorageConfig): The network storage configuration data.
-           
+
            Returns: NetworkStorageConfig
              The network storage configuration data."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1563,9 +1563,9 @@ class InterfaceService(object):
 
     def getNetworkStorageConfig(self):
         """Get network storage configuration.
-           
+
            return The network storage configuration data.
-           
+
            Returns: NetworkStorageConfig"""
         inputs = None
         inputTransfers = None
@@ -1578,7 +1578,7 @@ class InterfaceService(object):
 
     def mountNetworkStorageInterface(self):
         """Mount network storage interface.
-           
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = None
@@ -1592,10 +1592,10 @@ class InterfaceService(object):
 
     def unmountStorageInterface(self, mount_path):
         """Unmount storage interface partition.
-           
+
            Arguments:
              mount_path (str): Path of the mount-point.
-           
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1610,10 +1610,10 @@ class InterfaceService(object):
 
     def ejectStorageInterface(self, name):
         """Eject storage interface device.
-           
+
            Arguments:
-             name (str): 
-           
+             name (str):
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1628,7 +1628,7 @@ class InterfaceService(object):
 
     def mobileAPN(self):
         """Set mobile APN (Access Point Name).
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -1647,10 +1647,10 @@ class InterfaceService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setMobileAPN_fdae079c", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def getMobileDeviceInfo(self):
         """Read mobile device info (manufacturer, serial number, firmware version, ...).
-           
+
            Returns: tuple(Error, MobileDeviceInfo)
              1: ERROR_NONE On success.
              2: A reference to an object containing the resulting data."""
@@ -1666,7 +1666,7 @@ class InterfaceService(object):
 
     def detectMobileSIM(self):
         """Detect if mobile SIM card has been inserted.
-           
+
            Returns: bool
              True if detected."""
         inputs = None
@@ -1680,11 +1680,11 @@ class InterfaceService(object):
 
     def setMobilePIN(self, pin, remember):
         """Set PIN for mobile SIM.
-           
+
            Arguments:
              pin (str): 4-digit PIN code.
              remember (bool): Remember PIN across device reboots.
-           
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = [riconnect.Value() for i in range(0, 2)]
@@ -1700,11 +1700,11 @@ class InterfaceService(object):
 
     def setMobilePUK(self, puk, newpin):
         """Set PUK for mobile SIM. If a wrong PIN is given three times, the PUK must be inserted in place  of the PIN, followed by the <newpin> which replaces the old pin in the SIM.
-           
+
            Arguments:
              puk (str): 4-digit PUK code.
              newpin (str): New 4-digit PIN code, replaces the old PIN.
-           
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = [riconnect.Value() for i in range(0, 2)]
@@ -1720,7 +1720,7 @@ class InterfaceService(object):
 
     def getMobilePINStatus(self):
         """Read mobile PIN/PUK status and attempt counters.
-           
+
            Returns: tuple(Error, str, int, int, int, int)
              1: ERROR_NONE On success.
              2: String identifying the mobile PIN status (READY, SIM PIN, SIM PUK, SIM PIN2, SIM PUK2)
@@ -1744,7 +1744,7 @@ class InterfaceService(object):
 
     def mobileNetworkOperatorName(self):
         """Select the mobile network operator.
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -1779,7 +1779,7 @@ class InterfaceService(object):
 
     def setMobileNetworkOperator(self, automatic, numeric_oper):
         """Arguments:
-             automatic (bool): 
+             automatic (bool):
              numeric_oper (str): """
         inputs = [riconnect.Value() for i in range(0, 2)]
         inputs[0].i32 = 1 if automatic else 0
@@ -1787,13 +1787,13 @@ class InterfaceService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setMobileNetworkOperator_ffd4583f", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def mobileNetworkOperatorSearch(self, block):
         """Mobile network operator search.
-           
+
            Arguments:
              block (bool): Block until search has finished, or send a finished signal.
-           
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1808,7 +1808,7 @@ class InterfaceService(object):
 
     def getMobileNetworkOperators(self):
         """Get a list of available network operators.
-           
+
            Returns: list(MobileNetworkOperator)
              A list of network operator descriptors."""
         inputs = None
@@ -1822,10 +1822,10 @@ class InterfaceService(object):
 
     def mobileNetworkRegistration(self, block):
         """Mobile network registration.
-           
+
            Arguments:
              block (bool): Block until registration has finished, or send a finished signal.
-           
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1840,7 +1840,7 @@ class InterfaceService(object):
 
     def getMobileNetworkStatus(self):
         """Get the mobile network registration status.
-           
+
            Returns: tuple(Error, MobileNetworkStatus)
              1: ERROR_NONE On success.
              2: A reference to an object containing the resulting network status."""
@@ -1856,7 +1856,7 @@ class InterfaceService(object):
 
     def getMobileSignalQuality(self):
         """Get the received mobile signal quality.
-           
+
            Returns: tuple(Error, int)
              1: ERROR_NONE On success.
              2: Received Signal Quality in percent."""
@@ -1872,7 +1872,7 @@ class InterfaceService(object):
 
     def mobileAirplaneMode(self):
         """Activates mobile network airplane mode.
-           
+
            Returns: bool
              ERROR_NONE On success."""
         inputs = None
@@ -1886,8 +1886,8 @@ class InterfaceService(object):
 
     def setMobileAirplaneMode(self, enable):
         """Arguments:
-             enable (bool): 
-           
+             enable (bool):
+
            Returns: Error"""
         inputs = [riconnect.Value() for i in range(0, 1)]
         inputs[0].i32 = 1 if enable else 0
@@ -1901,7 +1901,7 @@ class InterfaceService(object):
 
     def getMobileSimSelect(self):
         """Get the selected mobile SIM card.
-           
+
            Returns: MobileSimSelect
              The automatically at startup selected SIM card, either 1 = USER (if present) or 0 = FACTORY."""
         inputs = None
@@ -1915,7 +1915,7 @@ class InterfaceService(object):
 
     def getBluetoothInterface(self):
         """Get the local bluetooth interface with description.
-           
+
            Returns: BluetoothInterface
              Object describint the local bluetooth interface."""
         inputs = None
@@ -1929,7 +1929,7 @@ class InterfaceService(object):
 
     def bluetoothInterfaceDisable(self):
         """Get bluetooth interface state.
-           
+
            Returns: bool
              True if disabled, false if enabled."""
         inputs = None
@@ -1943,10 +1943,10 @@ class InterfaceService(object):
 
     def setBluetoothInterfaceDisable(self, disable):
         """Set bluetooth interface active or inactive.
-           
+
            Arguments:
              disable (bool): De-/activate bluetooth interface.
-           
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1961,10 +1961,10 @@ class InterfaceService(object):
 
     def bluetoothDeviceScan(self, block):
         """Start bluetooth device inquisition.
-           
+
            Arguments:
              block (bool): Blocking or non-blocking mode.
-           
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -1979,7 +1979,7 @@ class InterfaceService(object):
 
     def getBluetoothDevices(self):
         """Get list of discovered bluetooth devices.
-           
+
            Returns: list(BluetoothDevice)
              Vector of bluetooth device objects."""
         inputs = None
@@ -1993,10 +1993,10 @@ class InterfaceService(object):
 
     def getBluetoothSerialPortServices(self, mac):
         """Get list of provided serial port services of remote bluetooth device.
-           
+
            Arguments:
-             mac (str): 
-           
+             mac (str):
+
            Returns: list(BluetoothSerialPortService)
              Vector of bluetooth serial port service objects."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -2011,11 +2011,11 @@ class InterfaceService(object):
 
     def bluetoothConnect(self, mac, remember):
         """Connect to all supported services of remote bluetooth device.
-           
+
            Arguments:
              mac (str): MAC address of the remote bluetooth device.
              remember (bool): Remember connection settings across device power cycles.
-           
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = [riconnect.Value() for i in range(0, 2)]
@@ -2031,10 +2031,10 @@ class InterfaceService(object):
 
     def bluetoothDisconnect(self, mac):
         """Disconnect from all services fo a remote bluetooth device .
-           
+
            Arguments:
              mac (str): MAC address of the remote bluetooth device.
-           
+
            Returns: Error
              ERROR_NONE On success."""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -2047,13 +2047,24 @@ class InterfaceService(object):
         outputs.append(InterfaceService.Error(rvalues[0].i32))
         return outputs[0] if len(outputs) == 1 else tuple(outputs)
 
+    def triggerInputEvent(self, eventId):
+        """Trigger an input event.
+
+           Arguments:
+             eventId (str): Input event identifier, supported identfiers are: 'ACQ_START_STOP'."""
+        inputs = [riconnect.Value() for i in range(0, 1)]
+        inputs[0].s = eventId
+        inputTransfers = None
+        with self._lock:
+            rvalues, rtransfers = self._svc.callFunction("triggerInputEvent_26141877", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
+
     def savePasswords(self):
         """"""
         inputs = None
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("savePasswords_22687198", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def save(self):
         """Save service properties."""
         with self._lock:
@@ -2069,7 +2080,7 @@ class InterfaceService(object):
            unrelated to service calls. It was intended to allow services
            to report hardware related problems. But since most services
            provide some kind of business logic, this signal is rarely used.
-           
+
            Returns: ServiceSignal
            Payload: dict"""
         return self._error
