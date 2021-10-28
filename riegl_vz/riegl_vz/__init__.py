@@ -165,7 +165,7 @@ class RieglVzWrapper(Node):
 
         if not self.scan():
             response.success = False
-            response.message = "node is locked"
+            response.message = "operation not available"
             return response
 
         response.success = True
@@ -286,7 +286,7 @@ class RieglVzWrapper(Node):
         return response
 
     def trigStartStop(self):
-        self._rieglVz.trigStartStop()
+        return self._rieglVz.trigStartStop()
 
     def _trigStartStopCallback(self, request, response):
         if self._shutdownReq is True:
@@ -294,7 +294,10 @@ class RieglVzWrapper(Node):
             response.message = "node is shutting down"
             return response
 
-        self.trigStartStop()
+        if not self.trigStartStop():
+            response.success = False
+            response.message = "operation not available"
+            return response
 
         response.success = True
         response.message = "success"

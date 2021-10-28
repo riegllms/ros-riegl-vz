@@ -186,7 +186,7 @@ The parameter '\~scan_register' enables automatic scan position registration aft
 
 Response:  
 success = True -> message: "success"  
-success = False -> message: "node is locked"  
+success = False -> message: "operation not available"  
 
 ![ROS Scan Service](img/scan.png)
 

@@ -105,6 +105,7 @@ class RieglVz():
         self._stopReq = False
         self._shutdownReq = False
         self._ctrlSvc = None
+        self._trigStarted = False
 
         self.scanPublishFilter = node.scanPublishFilter
         self.scanPublishLOD = node.scanPublishLOD
@@ -124,11 +125,25 @@ class RieglVz():
                 self._status.setProgress(obj["progress"])
             self._node._statusUpdater.force_update()
 
+        def onDataAcquisitionStarted(arg0):
+            if self._trigStarted:
+                self._status.setOpstate("scanning")
+                self._logger.debug("Data Acquisition Started!")
+
+        def onDataAcquisitionFinished(arg0):
+            if self._trigStarted:
+                self._status.setOpstate("waiting")
+                self._trigStarted = False
+                self._logger.debug("Data Acquisition Finished!")
+
         while self._ctrlSvc is None:
             try:
                 self._ctrlSvc = ControlService(self._connectionString)
-                self.taskProgress = self._ctrlSvc.taskProgress().connect(onTaskProgress)
+                self._taskProgress = self._ctrlSvc.taskProgress().connect(onTaskProgress)
+                self._acqStartedSigcon = self._ctrlSvc.acquisitionStarted().connect(onDataAcquisitionStarted)
+                self._acqFinishedSigcon = self._ctrlSvc.acquisitionFinished().connect(onDataAcquisitionFinished)
                 self._status.setOpstate("waiting")
+                self._logger.debug("Scanner is available.")
             except:
                 self._logger.debug("Scanner is not available!")
             time.sleep(1.0)
@@ -391,7 +406,7 @@ class RieglVz():
         if self.getStatus().opstate == "unavailable":
             return False
 
-        if self.isBusy():
+        if self.isBusy(block=False):
             return False
 
         self.projectName = projectName
@@ -489,8 +504,26 @@ class RieglVz():
             self.isBusy()
 
     def trigStartStop(self):
+        if self.getStatus().opstate == "unavailable":
+            return False
+
+        if not self._trigStarted:
+            if self.isBusy(block = False):
+                return False
+            self._trigStarted = True
+
         intfSvc = InterfaceService(self._connectionString)
         intfSvc.triggerInputEvent("ACQ_START_STOP")
+
+        if self._trigStarted:
+            startTime = time.time()
+            while not self.isScanning(block=False):
+                time.sleep(0.2)
+                if (time.time() - startTime) > 5:
+                    self._trigStarted = False
+                    return False
+
+        return True
 
     def shutdown(self):
         self.stop()
