@@ -507,6 +507,7 @@ class RieglVz():
         if self.getStatus().opstate == "unavailable":
             return False
 
+        trigStartedPrev = self._trigStarted
         if not self._trigStarted:
             if self.isBusy(block = False):
                 return False
@@ -515,7 +516,7 @@ class RieglVz():
         intfSvc = InterfaceService(self._connectionString)
         intfSvc.triggerInputEvent("ACQ_START_STOP")
 
-        if self._trigStarted:
+        if not trigStartedPrev and self._trigStarted:
             startTime = time.time()
             while not self.isScanning(block=False):
                 time.sleep(0.2)
