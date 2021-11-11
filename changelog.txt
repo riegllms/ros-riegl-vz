@@ -1,4 +1,12 @@
-v1.2: 
+v1.3:
+
+  *  Add startup check for scanner availability.
+  *  Extend set_project service with support for loading of an already existing project.
+  *  Add set_position service.
+
+ -- Andreas Friedl <afriedl@riegl.com>  Thu Nov 11 16:13:00 2021 +0200
+
+v1.2:
 
   * Add description for building and running the ros package in a docker container.
 
@@ -8,11 +16,10 @@ v1.1:
 
   * Fix get_pointcloud service.
 
- -- Andreas Friedl <afriedl@riegl.com>  Mon Jul 5 16:22:06 2021 +0200
+ -- Andreas Friedl <afriedl@riegl.com>  Tue Aug 17 17:05:27 2021 +0200
 
 v1.0:
 
   * Initial Release.
 
  -- Andreas Friedl <afriedl@riegl.com>  Mon Jul 5 16:22:06 2021 +0200
-
