@@ -101,7 +101,7 @@ class RieglVzWrapper(Node):
         self._statusUpdater.setHardwareID('riegl_vz')
         self._statusUpdater.add("status", self.produceDiagnostics)
 
-        self.get_logger().info("RIEGL VZ is ready, waiting for commands... (host = {}).".format(self.hostname))
+        self.get_logger().info("RIEGL VZ node is started... (host = {}).".format(self.hostname))
 
     def produceDiagnostics(self, diag):
         status = self._rieglVz.getStatus()
