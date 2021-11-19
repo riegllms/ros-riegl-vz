@@ -119,9 +119,9 @@ The linux user password for SSH login on the scanner.
 
 The name of the project to be loaded or created.
 
-**~storage_media** (integer, default: 2) :
+**~storage_media** (integer, default: 0) :
 
-The active storage media for scan data recording (1: AUTO, 2: INTERNAL SSD, 3: USB).
+The active storage media for scan data recording (0: INTERNAL SSD, 1: USB).
 
 **~scan_pattern** (double[], default: {30.0,130.0,0.04,0.0,360.0,0.04})
 

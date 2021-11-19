@@ -1,3 +1,10 @@
+v1.4~dev:
+
+  *  Add storage media configuration.
+  *  Fix get pose services after project loading.
+
+ -- Andreas Friedl <afriedl@riegl.com>  Fri Nov 19 14:41:00 2021 +0200
+
 v1.3:
 
   *  Add startup check for scanner availability.

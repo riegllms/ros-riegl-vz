@@ -169,7 +169,7 @@ def main():
     ctrlSvc = ControlService(args.connectionstring)
 
     # prepare project
-    #projSvc.setStorageMedia(args.storage_media)
+    projSvc.setStorageMedia(args.storage_media)
     projSvc.createProject(args.project)
     projSvc.loadProject(args.project)
     projSvc.createScanposition(args.scanposition)

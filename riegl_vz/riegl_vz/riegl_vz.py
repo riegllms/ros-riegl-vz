@@ -175,28 +175,25 @@ class RieglVz():
         projSvc = ProjectService(self._connectionString)
         return projSvc.projectPath()
 
+    def loadProject(self, projectName: str, storageMedia: int):
+        try:
+            projSvc = ProjectService(self._connectionString)
+            projSvc.setStorageMedia(args.storageMedia)
+            projSvc.loadProject(projectName);
+        except:
+            self._logger.error("Loading of project '{}' failed!".format(projectName))
+            return False
+        return True
+
     def _getProjectPath(self, projectName: str, storageMedia: int):
         projSvc = ProjectService(self._connectionString)
         projectPath = projSvc.projectPath(storageMedia, projectName)
         return projectPath
 
-    def checkProjectPath(self, projectName: str, storageMedia: int):
-        self._logger.debug("check project path: projectName={}, storageMedia={}".format(projectName, storageMedia))
-        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-        cmd = ["[ -d", self._getProjectPath(projectName, storageMedia),  "] && echo ok" ]
-        self._logger.debug("CMD = {}".format(" ".join(cmd)))
-        response = ssh.executeCommand(" ".join(cmd))
-        self._logger.debug("RESP = {}".format(" ".join(response)))
-        ssh.disconnect()
-
-        if len(response) > 0 and response[0] == "ok":
-            return True
-        return False
-
     def _getActiveScanposPath(self, scanposName: str):
         return self._getActiveProjectPath() + '/' + scanposName + '.SCNPOS'
 
-    def getNextScanpos(self, projectName: str, storageMedia: int):
+    def _getCurrentScanpos(self, projectName: str, storageMedia: int):
         self._logger.debug("get next scanpos: projectName={}, storageMedia={}".format(projectName, storageMedia))
         ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
         cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), "| sort", "| grep '.SCNPOS'", "| sed 's/.SCNPOS//g'", "| tail -n 1"]
@@ -206,8 +203,11 @@ class RieglVz():
         ssh.disconnect()
 
         if len(response) == 0:
-            return str(1)
-        return str(int(response[0]) + 1)
+            return 0
+        return int(response[0])
+
+    def getNextScanpos(self, projectName: str, storageMedia: int):
+        return str(self._getCurrentScanpos(projectName, storageMedia) + 1)
 
     def _getScanId(self, scanposName: str):
         if int(scanposName) == 0:
@@ -523,16 +523,13 @@ class RieglVz():
         self._position = position
 
     def getAllSopv(self):
-        if self.scanposName is None:
-            return False, None
-
         if self.getStatus().opstate == "unavailable":
             return False, None
 
-        sopvFileName = "all_sopv.csv"
-        remoteFile = self._getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
-        localFile = self.workingDir + "/" + sopvFileName
         try:
+            sopvFileName = "all_sopv.csv"
+            remoteFile = self._getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
+            localFile = self.workingDir + "/" + sopvFileName
             self._downloadFile(remoteFile, localFile)
             ok = True
             sopvs = readAllSopv(localFile, self._logger)
@@ -543,9 +540,6 @@ class RieglVz():
         return ok, sopvs
 
     def getSopv(self):
-        if self.scanposName is None:
-            return False, None
-
         if self.getStatus().opstate == "unavailable":
             return False, None
 
@@ -559,16 +553,13 @@ class RieglVz():
         return ok, sopv
 
     def getVop(self):
-        if self.scanposName is None:
-            return False, None
-
         if self.getStatus().opstate == "unavailable":
             return False, None
 
-        sopvFileName = "VPP.vop"
-        remoteFile = self._getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
-        localFile = self.workingDir + "/" + sopvFileName
         try:
+            sopvFileName = "VPP.vop"
+            remoteFile = self._getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
+            localFile = self.workingDir + "/" + sopvFileName
             self._downloadFile(remoteFile, localFile)
         except Exception as e:
             return False, None
@@ -578,16 +569,13 @@ class RieglVz():
         return True, vop
 
     def getPop(self):
-        if self.scanposName is None:
-            return False, None
-
         if self.getStatus().opstate == "unavailable":
             return False, None
 
-        popFileName = "project.pop"
-        remoteFile = self._getActiveProjectPath() + "/" + popFileName
-        localFile = self.workingDir + "/" + popFileName
         try:
+            popFileName = "project.pop"
+            remoteFile = self._getActiveProjectPath() + "/" + popFileName
+            localFile = self.workingDir + "/" + popFileName
             self._downloadFile(remoteFile, localFile)
         except Exception as e:
             return False, None
