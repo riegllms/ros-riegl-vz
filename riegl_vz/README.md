@@ -115,7 +115,7 @@ The linux user name for SSH login on the scanner.
 
 The linux user password for SSH login on the scanner.
 
-**~project_name** (integer, default: "") :
+**~project_name** (string, default: "") :
 
 The name of the project to be loaded or created.
 
@@ -157,6 +157,27 @@ lod=3 : reduce point cloud by factor 8 (2^3)
 **~scan_register** (bool, default: "True") :
 
 Enable automatic scan position registration in current project after scan data acquisition has finished.
+
+**~reflector_search** (bool, default: "False") :
+
+Enable automatic reflector search with every scan data acquisition.
+
+**~reflector_search_models** (string, default: "") :
+
+Name of reflector search model. Can be specified multiple times, seperated by comma (e.g. "RIEGL flat reflector 50 mm, RIEGL flat reflector 100 mm")
+
+**~reflector_search_limits** (double[], default: {0.0,10000.0}) :
+
+Minimum and maximum range in meter between scan-position and reflector.
+
+**~control_points_cvs_file** (string, default: "") :
+
+Path to CSV with control points in GLCS (Global Coordinate System).
+
+**~control_points_coord_system** (string, default: "") :
+
+The coordinate system for control points (e.g. EPSG::4978).
+
 
 #### 3.1.2 Published Topics
 

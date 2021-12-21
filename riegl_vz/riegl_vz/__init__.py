@@ -58,6 +58,11 @@ class RieglVzWrapper(Node):
         self.declare_parameter('scan_publish_filter', '')
         self.declare_parameter('scan_publish_lod', 0)
         self.declare_parameter('scan_register', True)
+        self.declare_parameter('reflector_search', False)
+        self.declare_parameter('reflector_search_models', '')
+        self.declare_parameter('reflector_search_limits', [0.0, 10000.0])
+        self.declare_parameter('control_points_cvs_file', '')
+        self.declare_parameter('control_points_coord_system', '')
 
         self.hostname = str(self.get_parameter('hostname').value)
         self.workingDir = str(self.get_parameter('working_dir').value)
@@ -94,7 +99,7 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
-        self.setProject("")
+        self.setProject(self.projectName)
         self.get_logger().debug("init projectName = {}".format(self.projectName))
 
         self._statusUpdater = Updater(self)
@@ -110,21 +115,42 @@ class RieglVzWrapper(Node):
         diag.add('progress', str(status.progress))
         return diag
 
-    def setProject(self, projectName):
-        now = datetime.now()
+    def _createProject(self, projectName):
+        self.storageMedia = int(self.get_parameter('storage_media').value)
+        ok = True
         if projectName == "":
+            now = datetime.now()
             self.projectName = now.strftime("%y%m%d_%H%M%S")
         else:
             self.projectName = projectName
-        self._rieglVz.resetPath()
+        if not self._rieglVz.createProject(self.projectName, self.storageMedia):
+            ok = False
+        else:
+            pass
+        return ok
 
-    def loadProject(self, projectName):
+    def _loadProject(self, projectName):
         self.storageMedia = int(self.get_parameter('storage_media').value)
         ok = True
-        if projectName == "" or self._rieglVz.loadProject(self.projectName, self.storageMedia):
+        if projectName == "" or not self._rieglVz.loadProject(self.projectName, self.storageMedia):
             ok = False
         else:
             self.projectName = projectName
+        return ok
+
+    def setProject(self, projectName):
+        ok = True
+        if not self._loadProject(self.projectName):
+            ok = self._createProject(self.projectName)
+
+        if ok:
+            self.cpsCvsFile = str(self.get_parameter('control_points_cvs_file').value)
+            self.get_logger().debug("control points CVS file = {}".format(self.cpsCvsFile))
+            if len(self.cpsCvsFile) > 0:
+                self.cpsCoordSystem = str(self.get_parameter('control_points_coord_system').value)
+                self.get_logger().debug("control points coord system = {}".format(self.cpsCvsCoordSystem))
+                self._rieglVz.setProjectControlPoints(self.cpsCoordSystem, self.cpsCvsFile)
+
         return ok
 
     def _setProjectCallback(self, request, response):
@@ -134,9 +160,12 @@ class RieglVzWrapper(Node):
             return response
 
         self.projectName = str(self.get_parameter('project_name').value)
+        self.get_logger().debug("project name = {}".format(self.projectName))
 
-        if self.projectName == "" or not self.loadProject(self.projectName):
-            self.setProject(self.projectName)
+        if not self.setProject(self.projectName):
+            response.success = False
+            response.message = "set project failed"
+            return response
 
         response.success = True
         response.message = self.projectName
@@ -158,6 +187,17 @@ class RieglVzWrapper(Node):
         self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
         self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
         self.scanRegister = bool(self.get_parameter('scan_register').value)
+        self.reflSearchSettings = None
+        self.reflSearch = bool(self.get_parameter('reflector_search').value)
+        reflSearchModels = str(self.get_parameter('reflector_search_models').value)
+        reflSearchLimits = self.get_parameter('reflector_search_limits').value
+        if self.reflSearch and (len(reflSearchModels) > 0):
+            self.reflSearchSettings = {
+                "searchMode": 'model',
+                "searchModels": [x.strip() for x in reflSearchModels.split(',')],
+                "searchMinRange": reflSearchLimits[0],
+                "searchMaxRange": reflSearchLimits[1]
+            }
 
         self._scanposName = self._rieglVz.getNextScanpos(self.projectName, self.storageMedia)
 
@@ -170,7 +210,7 @@ class RieglVzWrapper(Node):
             scanPublish = self.scanPublish,
             scanPublishLOD = self.scanPublishLOD,
             scanRegister = self.scanRegister,
-            reflSearchSettings = None,
+            reflSearchSettings = self.reflSearchSettings if self.reflSearch else None,
             captureImages = False,
             captureMode = 1,
             imageOverlap = 25)

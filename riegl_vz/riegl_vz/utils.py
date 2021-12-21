@@ -1,6 +1,8 @@
 import signal
 import subprocess
 import time
+import re
+import csv
 
 class SubProcess(object):
     def __init__(
@@ -38,3 +40,27 @@ class SubProcess(object):
             msg = "".join([errorMessage + "\n", outs, errs])
             raise RuntimeError(msg)
         return True
+
+def parseCSV(csvFilepath: str):
+    delimiter = None
+    # auto detect delimiter
+    with open(csvFilepath, "r") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            if delimiter is None:
+                for d in (",", ";", ":"):
+                    values = re.split(d+"\\s*", line)
+                    if len(values) > 3:
+                        delimiter = d
+                        break
+            if delimiter is None:
+                raise RuntimeError("Unable to detect CSV delimiter.")
+            break
+    content = []
+    with open(csvFilepath, newline='') as csvfile:
+        reader = csv.reader(csvfile, delimiter=delimiter)
+        for row in reader:
+            content.append(row)
+    return content

@@ -12,3 +12,8 @@ riegl_vz_node:
     scan_publish_filter: ""
     scan_publish_lod: 0
     scan_register: True
+    reflector_search: False
+    reflector_search_models: ""
+    reflector_search_limits: [0.0,10000.0]
+    control_points_cvs_file: ""
+    control_points_coord_system: ""

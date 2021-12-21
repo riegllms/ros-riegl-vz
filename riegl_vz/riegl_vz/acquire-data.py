@@ -97,9 +97,7 @@ def extractReflectorSearchSettings(filepath):
             rss = ReflectorSearchSettings()
             rss.mode = searchMode
             for model in obj.get("searchModels"):
-                modelName = model.get("name")
-                if modelName:
-                    rss.models.append(modelName)
+                rss.models.append(model)
         elif searchMode == "simple":
             rss = ReflectorSearchSettings()
             rss.mode = searchMode

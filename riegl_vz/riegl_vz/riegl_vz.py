@@ -8,6 +8,9 @@ import numpy as np
 from datetime import datetime
 from os.path import join, dirname, abspath
 
+from .utils import (
+    parseCSV
+)
 from std_msgs.msg import (
     Header
 )
@@ -150,9 +153,6 @@ class RieglVz():
                 self._logger.debug("Scanner is not available!")
             time.sleep(1.0)
 
-    def resetPath(self):
-        self._path = Path()
-
     def _downloadFile(self, remoteFile: str, localFile: str):
         self._logger.debug("Downloading file..")
         self._logger.debug("remote file = {}".format(remoteFile))
@@ -183,6 +183,18 @@ class RieglVz():
         except:
             self._logger.error("Loading of project '{}' failed!".format(projectName))
             return False
+        return True
+
+    def createProject(self, projectName: str, storageMedia: int):
+        try:
+            projSvc = ProjectService(self._connectionString)
+            projSvc.setStorageMedia(storageMedia)
+            projSvc.createProject(projectName)
+            projSvc.loadProject(projectName);
+        except:
+            self._logger.error("Creating project '{}' failed!".format(projectName))
+            return False
+        self._path = Path()
         return True
 
     def _getProjectPath(self, projectName: str, storageMedia: int):
@@ -250,6 +262,24 @@ class RieglVz():
             json.dump(finalPose, f, indent=4)
             f.write("\n")
         self._uploadFile([localFile], scanposPath)
+
+    def setProjectControlPoints(coordSystem: str, csvFile: str):
+        projectPath = self._getActiveProjectPath()
+        remoteSrcCpsFile = csvFile
+        localSrcCpsFile = self.workingDir + "/" + os.path.basename(csvFile)
+        self._downloadFile(remoteSrcCpsFile, localSrcCpsFile)
+        csvData = parseCSV(localSrcCpsFile)[1:]
+        # parse points and write resulting csv file
+        controlPoints = []
+        if csvData:
+            if len(csvData[0]) < 4:
+                raise RuntimeError("Invalid control points definition. File must have at least four columns.")
+            localDstCpsFile = self.workingDir + "/controlpoints.csv"
+            with open(localDstCpsFile, "w") as f:
+                f.write("Name,CRS,Coord1,Coord2,Coord3\n")
+                for item in csvData:
+                    f.write("{},{},{},{},{}\n".format(item[0], coordSystem, item[1], item[2], item[3]))
+            self._uploadFile([localDstCpsFile], projectPath)
 
     def getPointCloud(self, scanposName: str, pointcloud: PointCloud2):
         if self.getStatus().opstate == "unavailable":
@@ -474,7 +504,8 @@ class RieglVz():
           projectName ... the project name
           scanposName ... the name of the new scan position
           storageMedia ... storage media for data recording
-          scanPattern ... the scan pattern"""
+          scanPattern ... the scan pattern
+          reflSearchSettings ... reflector search settings"""
 
         if self.getStatus().opstate == "unavailable":
             return False
