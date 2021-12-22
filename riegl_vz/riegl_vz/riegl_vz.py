@@ -219,6 +219,8 @@ class RieglVz():
         return int(response[0])
 
     def getNextScanpos(self, projectName: str, storageMedia: int):
+        if self.getStatus().opstate == "unavailable":
+            return ""
         return str(self._getCurrentScanpos(projectName, storageMedia) + 1)
 
     def _getScanId(self, scanposName: str):
@@ -264,6 +266,9 @@ class RieglVz():
         self._uploadFile([localFile], scanposPath)
 
     def setProjectControlPoints(coordSystem: str, csvFile: str):
+        if self.getStatus().opstate == "unavailable":
+            return
+
         projectPath = self._getActiveProjectPath()
         remoteSrcCpsFile = csvFile
         localSrcCpsFile = self.workingDir + "/" + os.path.basename(csvFile)

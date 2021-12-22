@@ -99,8 +99,7 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
-        self.setProject(self.projectName)
-        self.get_logger().debug("init projectName = {}".format(self.projectName))
+        self.projectValid = False
 
         self._statusUpdater = Updater(self)
         self._statusUpdater.setHardwareID('riegl_vz')
@@ -115,18 +114,19 @@ class RieglVzWrapper(Node):
         diag.add('progress', str(status.progress))
         return diag
 
-    def _createProject(self, projectName):
-        self.storageMedia = int(self.get_parameter('storage_media').value)
-        ok = True
+    def _setProjectName(self, projectName):
         if projectName == "":
             now = datetime.now()
             self.projectName = now.strftime("%y%m%d_%H%M%S")
         else:
             self.projectName = projectName
+
+    def _createProject(self, projectName):
+        self._setProjectName(projectName)
+        self.storageMedia = int(self.get_parameter('storage_media').value)
+        ok = True
         if not self._rieglVz.createProject(self.projectName, self.storageMedia):
             ok = False
-        else:
-            pass
         return ok
 
     def _loadProject(self, projectName):
@@ -142,6 +142,7 @@ class RieglVzWrapper(Node):
         ok = True
         if not self._loadProject(self.projectName):
             ok = self._createProject(self.projectName)
+        self.projectValid = True
 
         if ok:
             self.cpsCvsFile = str(self.get_parameter('control_points_cvs_file').value)
@@ -198,6 +199,9 @@ class RieglVzWrapper(Node):
                 "searchMinRange": reflSearchLimits[0],
                 "searchMaxRange": reflSearchLimits[1]
             }
+
+        if not self.projectValid:
+            self.setProject(self.projectName)
 
         self._scanposName = self._rieglVz.getNextScanpos(self.projectName, self.storageMedia)
 
