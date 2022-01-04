@@ -218,6 +218,12 @@ class RieglVz():
             return 0
         return int(response[0])
 
+    def getCurrentScanpos(self, projectName: str, storageMedia: int):
+        if self.getStatus().opstate == "unavailable":
+            return ""
+        scanpos = self._getCurrentScanpos(projectName, storageMedia)
+        return str(scanpos) if (scanpos > 0) else ""
+
     def getNextScanpos(self, projectName: str, storageMedia: int):
         if self.getStatus().opstate == "unavailable":
             return ""

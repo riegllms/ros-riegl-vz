@@ -5,6 +5,7 @@ v1.4~dev:
   *  Fix initial set project if scanner is unavailable.
   *  Add reflector scan and search with control points.
   *  Rename service stop() to scan_stop().
+  *  Add scan position to diagnostics data.
 
  -- Andreas Friedl <afriedl@riegl.com>  Tue Jan 4 08:36:00 2022 +0200
 

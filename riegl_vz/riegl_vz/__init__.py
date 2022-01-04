@@ -99,6 +99,7 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
+        self._scanposName = ""
         self.projectValid = False
 
         self._statusUpdater = Updater(self)
@@ -112,6 +113,7 @@ class RieglVzWrapper(Node):
         diag.summary(DiagnosticStatus.OK, "RIEGL VZ is " + status.opstate)
         diag.add('opstate', status.opstate)
         diag.add('progress', str(status.progress))
+        diag.add('scan_position', self._scanposName)
         return diag
 
     def _setProjectName(self, projectName):
@@ -161,12 +163,15 @@ class RieglVzWrapper(Node):
             return response
 
         self.projectName = str(self.get_parameter('project_name').value)
+        self.storageMedia = int(self.get_parameter('storage_media').value)
         self.get_logger().debug("project name = {}".format(self.projectName))
 
         if not self.setProject(self.projectName):
             response.success = False
             response.message = "set project failed"
             return response
+
+        self._scanposName = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
 
         response.success = True
         response.message = self.projectName

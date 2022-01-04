@@ -194,8 +194,9 @@ Topic provides SOPV (Scan Position and Orientation in VOCS) of the currently reg
 Riegl VZ status information, published once per second:
 
 ```
-opstate      : operating state ("unavailable", "waiting", "scanning", "processing")
-progress     : scan progress in percent
+opstate       : operating state ("unavailable", "waiting", "scanning", "processing")
+progress      : scan progress in percent
+scan_position : number of current scan position
 ```
 
 #### 3.1.3 Services
