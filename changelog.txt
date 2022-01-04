@@ -2,8 +2,11 @@ v1.4~dev:
 
   *  Add storage media configuration.
   *  Fix get pose services after project loading.
+  *  Fix initial set project if scanner is unavailable.
+  *  Add reflector scan and search with control points.
+  *  Rename service stop() to scan_stop().
 
- -- Andreas Friedl <afriedl@riegl.com>  Fri Nov 19 14:41:00 2021 +0200
+ -- Andreas Friedl <afriedl@riegl.com>  Tue Jan 4 08:36:00 2022 +0200
 
 v1.3:
 

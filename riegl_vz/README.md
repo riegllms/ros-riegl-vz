@@ -268,7 +268,7 @@ Response:
 success = True -> message: "success", pointcloud: Scan Data  
 success = False -> message: "data not available"  
 
-**stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
+**scan_stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
 Stop laser scan data acquisition and registration background tasks.
 
