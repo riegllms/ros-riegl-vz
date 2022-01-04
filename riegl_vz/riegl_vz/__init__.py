@@ -93,7 +93,7 @@ class RieglVzWrapper(Node):
         self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
         self._getPopService = self.create_service(GetPose, 'get_pop', self._getPopCallback)
         self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
-        self._stopService = self.create_service(Trigger, 'scan_stop', self._stopCallback)
+        self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
         self._trigStartStopService = self.create_service(Trigger, 'trig_start_stop', self._trigStartStopCallback)
         self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
 
