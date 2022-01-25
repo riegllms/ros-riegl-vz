@@ -43,6 +43,9 @@ Add xauth in running docker container:
 
 ```xauth add compaf/unix:0  MIT-MAGIC-COOKIE-1  74e2aeecbb5cb3e827559b0bee7e2375```
 
-Execute rviz in the docker container:
+Execute graphical application in the docker container:
 
 ```rviz2```
+
+```plotjuggler```
+

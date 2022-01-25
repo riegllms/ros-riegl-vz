@@ -1,13 +1,15 @@
 FROM osrf/ros:galactic-desktop
 
 RUN apt-get update \
-	&& apt-get install -y \
-	vim \
-	pip \
-	ros-galactic-diagnostic-updater \
-	xauth
+    && apt-get install -y \
+    vim \
+    pip \
+    ros-galactic-diagnostic-updater \
+    ros-galactic-plotjuggler-ros \
+    xauth
 
 RUN touch /root/.Xauthority
+RUN echo 'ros2 run plotjuggler plotjuggler' > /opt/ros/galactic/bin/plotjuggler && chmod a+x /opt/ros/galactic/bin/plotjuggler
 
 ADD src /opt/src
 RUN cd /opt/src && python3 -m pip install -r requirements.txt
