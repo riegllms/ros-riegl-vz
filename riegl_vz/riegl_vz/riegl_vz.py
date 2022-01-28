@@ -2,15 +2,12 @@ import sys
 import os
 import time
 import json
+from datetime import datetime
 import subprocess
 import threading
 import numpy as np
-from datetime import datetime
-from os.path import join, dirname, abspath
+from os.path import join, dirname, basename, abspath
 
-from .utils import (
-    parseCSV
-)
 from std_msgs.msg import (
     Header
 )
@@ -35,14 +32,17 @@ import riegl.rdb
 from vzi_services.controlservice import ControlService
 from vzi_services.interfaceservice import InterfaceService
 from vzi_services.projectservice import ProjectService
-from vzi_services.dataprocservice import DataprocService
 from vzi_services.scannerservice import ScannerService
 
+from .utils import (
+    parseCSV
+)
 from .pose import (
     readVop,
     readPop,
     readAllSopv
 )
+from .project import Project
 from .ssh import RemoteClient
 from .utils import (
     SubProcess
@@ -96,14 +96,13 @@ class StatusMaintainer(object):
 
 class RieglVz():
     def __init__(self, node):
-        self.hostname = node.hostname
-        self.sshUser = node.sshUser
-        self.sshPwd = node.sshPwd
-        self.workingDir = node.workingDir
+        self._hostname = node.hostname
+        self._sshUser = node.sshUser
+        self._sshPwd = node.sshPwd
+        self._workingDir = node.workingDir
         self._node = node
         self._logger = node.get_logger()
-        self._connectionString = self.hostname + ":20000"
-        self.scanposName = None
+        self._connectionString = self._hostname + ":20000"
         self._status: StatusMaintainer = StatusMaintainer()
         self._path = Path()
         self._position = None
@@ -111,12 +110,15 @@ class RieglVz():
         self._shutdownReq = False
         self._ctrlSvc = None
         self._trigStarted = False
+        self._project: Project = Project(self._node, self._connectionString)
+
+        self.scanposName = None
 
         self.scanPublishFilter = node.scanPublishFilter
         self.scanPublishLOD = node.scanPublishLOD
 
-        if not os.path.exists(self.workingDir):
-            os.mkdir(self.workingDir)
+        if not os.path.exists(self._workingDir):
+            os.mkdir(self._workingDir)
 
         self._statusThread = threading.Thread(target=self._statusThreadFunc, args=())
         self._statusThread.daemon = True
@@ -157,7 +159,7 @@ class RieglVz():
         self._logger.debug("Downloading file..")
         self._logger.debug("remote file = {}".format(remoteFile))
         self._logger.debug("local file  = {}".format(localFile))
-        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
+        ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
         ssh.downloadFile(filepath=remoteFile, localpath=localFile)
         ssh.disconnect()
         self._logger.debug("File download finished")
@@ -166,86 +168,29 @@ class RieglVz():
         self._logger.debug("Uploading file..")
         self._logger.debug("local file = {}".format(localFile))
         self._logger.debug("remote dir = {}".format(remoteDir))
-        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
+        ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
         ssh.uploadFile(localpath=localFile, remotepath=remoteDir)
         ssh.disconnect()
         self._logger.debug("File upload finished")
 
-    def _getActiveProjectPath(self):
-        projSvc = ProjectService(self._connectionString)
-        return projSvc.projectPath()
-
     def loadProject(self, projectName: str, storageMedia: int):
-        try:
-            projSvc = ProjectService(self._connectionString)
-            projSvc.setStorageMedia(args.storageMedia)
-            projSvc.loadProject(projectName);
-        except:
-            self._logger.error("Loading of project '{}' failed!".format(projectName))
-            return False
-        return True
+        return self._project.loadProject(projectName, storageMedia)
 
     def createProject(self, projectName: str, storageMedia: int):
-        try:
-            projSvc = ProjectService(self._connectionString)
-            projSvc.setStorageMedia(storageMedia)
-            projSvc.createProject(projectName)
-            projSvc.loadProject(projectName);
-        except:
-            self._logger.error("Creating project '{}' failed!".format(projectName))
-            return False
-        self._path = Path()
-        return True
-
-    def _getProjectPath(self, projectName: str, storageMedia: int):
-        projSvc = ProjectService(self._connectionString)
-        projectPath = projSvc.projectPath(storageMedia, projectName)
-        return projectPath
-
-    def _getActiveScanposPath(self, scanposName: str):
-        return self._getActiveProjectPath() + '/' + scanposName + '.SCNPOS'
-
-    def _getCurrentScanpos(self, projectName: str, storageMedia: int):
-        self._logger.debug("get next scanpos: projectName={}, storageMedia={}".format(projectName, storageMedia))
-        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-        cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), " | sort -n", " | grep '.SCNPOS'", " | sed 's/.SCNPOS//g'", " | tail -n 1"]
-        self._logger.debug("CMD = {}".format(" ".join(cmd)))
-        response = ssh.executeCommand(" ".join(cmd))
-        self._logger.debug("RESP = {}".format(" ".join(response)))
-        ssh.disconnect()
-
-        if len(response) == 0:
-            return 0
-        return int(response[0])
+        if self._project.createProject(projectName, storageMedia):
+            self._path = Path();
+            return True
+        return False
 
     def getCurrentScanpos(self, projectName: str, storageMedia: int):
         if self.getStatus().opstate == "unavailable":
             return ""
-        scanpos = self._getCurrentScanpos(projectName, storageMedia)
-        return str(scanpos) if (scanpos > 0) else ""
+        return self._project.getCurrentScanpos(projectName, storageMedia);
 
     def getNextScanpos(self, projectName: str, storageMedia: int):
         if self.getStatus().opstate == "unavailable":
             return ""
-        return str(self._getCurrentScanpos(projectName, storageMedia) + 1)
-
-    def _getScanId(self, scanposName: str):
-        if int(scanposName) == 0:
-            procSvc = DataprocService(self._connectionString)
-            return procSvc.actualFile(0)
-
-        ssh = RemoteClient(host=self.hostname, user=self.sshUser, password=self.sshPwd)
-        scanposPath = self._getActiveScanposPath(scanposName) + '/scans'
-        cmd = ["ls -t", scanposPath + "/*.rxp"]
-        self._logger.debug("CMD = {}".format(" ".join(cmd)))
-        response = ssh.executeCommand(" ".join(cmd))
-        self._logger.debug("RESP = {}".format(" ".join(response)))
-        ssh.disconnect()
-
-        if len(response) == 0:
-            return "null"
-
-        return (scanposPath + "/" + os.path.basename(response[0]).split(".")[0] + ".rxp").replace("/media/", "")
+        return self._project.getNextScanpos(projectName, storageMedia)
 
     def _getTimeStampFromScanId(self, scanId: str):
         scanFileName: str = os.path.basename(scanId)
@@ -254,9 +199,9 @@ class RieglVz():
         return int(dateTime.strftime("%s"))
 
     def _setPositionEstimate(self, position):
-        scanposPath = self._getActiveScanposPath(self.scanposName)
+        scanposPath = self._project.getActiveScanposPath(self.scanposName)
         remoteFile = scanposPath + "/final.pose"
-        localFile = self.workingDir + "/final.pose"
+        localFile = self._workingDir + "/final.pose"
         self._downloadFile(remoteFile, localFile)
         with open(localFile, "r") as f:
             finalPose = json.load(f)
@@ -275,9 +220,9 @@ class RieglVz():
         if self.getStatus().opstate == "unavailable":
             return
 
-        projectPath = self._getActiveProjectPath()
+        projectPath = self._project.getActiveProjectPath()
         remoteSrcCpsFile = csvFile
-        localSrcCpsFile = self.workingDir + "/" + os.path.basename(csvFile)
+        localSrcCpsFile = self._workingDir + "/" + os.path.basename(csvFile)
         self._downloadFile(remoteSrcCpsFile, localSrcCpsFile)
         csvData = parseCSV(localSrcCpsFile)[1:]
         # parse points and write resulting csv file
@@ -285,7 +230,7 @@ class RieglVz():
         if csvData:
             if len(csvData[0]) < 4:
                 raise RuntimeError("Invalid control points definition. File must have at least four columns.")
-            localDstCpsFile = self.workingDir + "/controlpoints.csv"
+            localDstCpsFile = self._workingDir + "/controlpoints.csv"
             with open(localDstCpsFile, "w") as f:
                 f.write("Name,CRS,Coord1,Coord2,Coord3\n")
                 for item in csvData:
@@ -296,14 +241,14 @@ class RieglVz():
         if self.getStatus().opstate == "unavailable":
             return False, pointcloud
 
-        scanId = self._getScanId(scanposName)
+        scanId = self._project.getScanId(scanposName)
         self._logger.debug("scan id = {}".format(scanId))
 
         if scanId == "null":
             return False, pointcloud
 
         remoteFile = "/media/" + scanId.replace(".rxp", ".rdbx")
-        localFile = self.workingDir + "/scan.rdbx"
+        localFile = self._workingDir + "/scan.rdbx"
         self._downloadFile(remoteFile, localFile)
 
         self._logger.debug("Generate point cloud..")
@@ -384,7 +329,7 @@ class RieglVz():
             "--scanposition", self.scanposName,
             "--storage-media", str(self.storageMedia)]
         if self.reflSearchSettings:
-            rssFilePath = join(self.workingDir, "reflsearchsettings.json")
+            rssFilePath = join(self._workingDir, "reflsearchsettings.json")
             with open(rssFilePath, "w") as f:
                 json.dump(self.reflSearchSettings, f)
             cmd.append("--reflsearch")
@@ -570,8 +515,8 @@ class RieglVz():
 
         try:
             sopvFileName = "all_sopv.csv"
-            remoteFile = self._getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
-            localFile = self.workingDir + "/" + sopvFileName
+            remoteFile = self._project.getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
+            localFile = self._workingDir + "/" + sopvFileName
             self._downloadFile(remoteFile, localFile)
             ok = True
             sopvs = readAllSopv(localFile, self._logger)
@@ -600,8 +545,8 @@ class RieglVz():
 
         try:
             sopvFileName = "VPP.vop"
-            remoteFile = self._getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
-            localFile = self.workingDir + "/" + sopvFileName
+            remoteFile = self._project.getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
+            localFile = self._workingDir + "/" + sopvFileName
             self._downloadFile(remoteFile, localFile)
         except Exception as e:
             return False, None
@@ -616,8 +561,8 @@ class RieglVz():
 
         try:
             popFileName = "project.pop"
-            remoteFile = self._getActiveProjectPath() + "/" + popFileName
-            localFile = self.workingDir + "/" + popFileName
+            remoteFile = self._project.getActiveProjectPath() + "/" + popFileName
+            localFile = self._workingDir + "/" + popFileName
             self._downloadFile(remoteFile, localFile)
         except Exception as e:
             return False, None
