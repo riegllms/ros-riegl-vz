@@ -15,6 +15,10 @@ and clone repository into subdirectory 'src'.
 
 ```sudo apt-get install ros-galactic-diagnostic-updater```
 
+**Install tf2 packages:**
+
+```sudo apt-get install ros-galactic-tf2-tools ros-galactic-tf-transformations```
+
 **Install python requirements:**
 
 Switch to 'src' subdirectory and install required python modules:

@@ -4,6 +4,8 @@ RUN apt-get update \
     && apt-get install -y \
     vim \
     pip \
+    ros-galactic-tf2-tools \
+    ros-galactic-tf-transformations \
     ros-galactic-diagnostic-updater \
     ros-galactic-plotjuggler-ros \
     xauth
