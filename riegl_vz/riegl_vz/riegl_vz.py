@@ -16,7 +16,7 @@ from sensor_msgs.msg import (
     PointField
 )
 from geometry_msgs.msg import (
-    PoseWithCovariance
+    PoseWithCovariance,
 )
 from nav_msgs.msg import (
     Path,
@@ -40,9 +40,10 @@ from .utils import (
 from .pose import (
     readVop,
     readPop,
-    readAllSopv
+    readAllSopv,
+    getTransformFromPose
 )
-from .project import Project
+from .project import RieglVzProject
 from .ssh import RemoteClient
 from .utils import (
     SubProcess
@@ -110,7 +111,8 @@ class RieglVz():
         self._shutdownReq = False
         self._ctrlSvc = None
         self._trigStarted = False
-        self._project: Project = Project(self._node, self._connectionString)
+        self._popTransformBc = False
+        self._project: RieglVzProject = RieglVzProject(self._node)
 
         self.scanposName = None
 
@@ -173,12 +175,36 @@ class RieglVz():
         ssh.disconnect()
         self._logger.debug("File upload finished")
 
+    def _broadcastTfTransforms(self):
+        ok = True
+        stamp = self._node.get_clock().now()
+        if not self._popTransformBc:
+            ok, pop = self.getPop()
+            if ok:
+                self._node.transformBroadcaster.sendTransform(getTransformFromPose(stamp, "riegl_vz_prcs", pop))
+                self._popTransformBc = True
+        ok, vop = self.getVop()
+        if ok:
+            self._node.transformBroadcaster.sendTransform(getTransformFromPose(stamp, "riegl_vz_vocs", vop))
+            ok, sopv = self.getSopv()
+            if ok:
+                self._node.transformBroadcaster.sendTransform(getTransformFromPose(stamp, "riegl_vz_socs", sopv.pose))
+            else:
+                return False, None
+        else:
+            return False, None
+        return True, sopv
+
     def loadProject(self, projectName: str, storageMedia: int):
-        return self._project.loadProject(projectName, storageMedia)
+        ok = self._project.loadProject(projectName, storageMedia)
+        if ok and self.scanRegister:
+            self._broadcastTfTransforms()
+        return ok;
 
     def createProject(self, projectName: str, storageMedia: int):
         if self._project.createProject(projectName, storageMedia):
             self._path = Path();
+            self._popTransformBc = False
             return True
         return False
 
@@ -421,7 +447,7 @@ class RieglVz():
             self._logger.info("Registration finished")
 
             self._logger.info("Downloading and publishing pose..")
-            ok, sopv = self.getSopv()
+            ok, sopv = _broadcastTfTransforms()
             if ok:
                 # publish pose
                 self._node.posePublisher.publish(sopv.pose)
@@ -429,7 +455,7 @@ class RieglVz():
                 self._path.header = sopv.pose.header
                 self._path.poses.append(sopv.pose)
                 self._node.pathPublisher.publish(self._path)
-                #publish odometry
+                # publish odometry
                 odom = Odometry(
                     header = Header(frame_id = "riegl_vz_vocs"),
                     child_frame_id = "riegl_vz_socs",

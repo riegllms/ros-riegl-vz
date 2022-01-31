@@ -9,10 +9,11 @@ from vzi_services.projectservice import ProjectService
 from vzi_services.dataprocservice import DataprocService
 from .ssh import RemoteClient
 
-class Project():
-    def __init__(self, node, connectionString):
+class RieglVzProject():
+    def __init__(self, node):
         self._node = node
-        self._connectionString = connectionString
+        self._hostname = node.hostname
+        self._connectionString = self._hostname + ":20000"
         self._hostname = node.hostname
         self._sshUser = node.sshUser
         self._sshPwd = node.sshPwd

@@ -283,7 +283,13 @@ Stop data acquisition and power down the laser scanner device.
 Response:  
 success = True -> message: "success"  
 
-#### 3.1.4 Extensions
+#### 3.1.4 TF2 Transformation
+
+The node will broadcast TF2 transformations if an existing project is loaded and after each scan position registration:
+
+![TF2 Transformation](img/tf2_transform.png)
+
+#### 3.1.5 Extensions
 
 Not available in first implementation but for further extension:
 

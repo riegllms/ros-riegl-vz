@@ -10,7 +10,8 @@ from geometry_msgs.msg import (
     Point,
     Quaternion,
     Pose,
-    PoseStamped
+    PoseStamped,
+    TransformStamped
 )
 from riegl_vz_interfaces.msg import (
     ScanPose
@@ -150,3 +151,15 @@ def readAllSopv(sopvFilepath, logger = None):
                 continue
             sopvs.append(extractSopv(line.split(","), logger))
     return sopvs
+
+def getTransformFromPose(stamp, child_frame_id, pose):
+    """Return tf2 TransformStamped message from pose."""
+    t = TransformStamped()
+    t.header = pose.header
+    t.header.stamp = stamp.to_msg()
+    t.child_frame_id = child_frame_id
+    t.transform.translation.x = pose.pose.position.x
+    t.transform.translation.y = pose.pose.position.y
+    t.transform.translation.z = pose.pose.position.z
+    t.transform.rotation = pose.pose.orientation
+    return t
