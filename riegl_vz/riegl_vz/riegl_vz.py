@@ -175,30 +175,30 @@ class RieglVz():
         ssh.disconnect()
         self._logger.debug("File upload finished")
 
-    def _broadcastTfTransforms(self):
+    def _broadcastTfTransforms(self, ts: datetime.time):
         ok = True
-        stamp = self._node.get_clock().now()
         if not self._popTransformBc:
             ok, pop = self.getPop()
             if ok:
-                self._node.transformBroadcaster.sendTransform(getTransformFromPose(stamp, "riegl_vz_prcs", pop))
+                self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, "riegl_vz_prcs", pop))
                 self._popTransformBc = True
         ok, vop = self.getVop()
         if ok:
-            self._node.transformBroadcaster.sendTransform(getTransformFromPose(stamp, "riegl_vz_vocs", vop))
+            self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, "riegl_vz_vocs", vop))
             ok, sopv = self.getSopv()
             if ok:
-                self._node.transformBroadcaster.sendTransform(getTransformFromPose(stamp, "riegl_vz_socs", sopv.pose))
+                self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, "riegl_vz_socs", sopv.pose))
             else:
                 return False, None
         else:
             return False, None
         return True, sopv
 
-    def loadProject(self, projectName: str, storageMedia: int):
+    def loadProject(self, projectName: str, storageMedia: int, scanRegister: bool):
         ok = self._project.loadProject(projectName, storageMedia)
-        if ok and self.scanRegister:
-            self._broadcastTfTransforms()
+        if ok and scanRegister:
+            ts = self._node.get_clock().now()
+            self._broadcastTfTransforms(ts)
         return ok;
 
     def createProject(self, projectName: str, storageMedia: int):
@@ -263,7 +263,7 @@ class RieglVz():
                     f.write("{},{},{},{},{}\n".format(item[0], coordSystem, item[1], item[2], item[3]))
             self._uploadFile([localDstCpsFile], projectPath)
 
-    def getPointCloud(self, scanposName: str, pointcloud: PointCloud2):
+    def getPointCloud(self, scanposName: str, pointcloud: PointCloud2, ts: datetime.time = None):
         if self.getStatus().opstate == "unavailable":
             return False, pointcloud
 
@@ -279,7 +279,10 @@ class RieglVz():
 
         self._logger.debug("Generate point cloud..")
         with riegl.rdb.rdb_open(localFile) as rdb:
-            ts = builtin_msgs.Time(sec = self._getTimeStampFromScanId(scanId), nanosec = 0)
+            if ts:
+                stamp = ts.to_msg()
+            else:
+                stamp = builtin_msgs.Time(sec = self._getTimeStampFromScanId(scanId), nanosec = 0)
             filter = ""
             rosDtype = PointField.FLOAT32
             dtype = np.float32
@@ -307,7 +310,7 @@ class RieglVz():
                 name = n, offset = i*itemsize, datatype = rosDtype, count = 1)
                 for i, n in enumerate('xyzr')]
 
-            header = std_msgs.Header(frame_id = "riegl_vz_socs", stamp = ts)
+            header = std_msgs.Header(frame_id = "riegl_vz_socs", stamp = stamp)
 
             pointcloud = PointCloud2(
                 header = header,
@@ -329,6 +332,9 @@ class RieglVz():
     def _scanThreadFunc(self):
         self._status.setOpstate("scanning")
         self._status.setProgress(0)
+
+        ts = self._node.get_clock().now()
+        self._logger.info("Latch timestamp: {0}".format(ts))
 
         self._logger.info("Starting data acquisition..")
         self._logger.info("project name = {}".format(self.projectName))
@@ -423,7 +429,7 @@ class RieglVz():
         if self.scanPublish:
             self._logger.info("Downloading and publishing point cloud..")
             pointcloud: PointCloud2 = PointCloud2()
-            ok, pointcloud = self.getPointCloud(self.scanposName, pointcloud)
+            ok, pointcloud = self.getPointCloud(self.scanposName, pointcloud, ts)
             if ok:
                 self._node.pointCloudPublisher.publish(pointcloud)
             self._logger.info("Point cloud published")
@@ -447,8 +453,10 @@ class RieglVz():
             self._logger.info("Registration finished")
 
             self._logger.info("Downloading and publishing pose..")
-            ok, sopv = _broadcastTfTransforms()
+            ok, sopv = self._broadcastTfTransforms(ts)
             if ok:
+                # update sopv timestamp
+                sopv.pose.header.stamp = ts.to_msg()
                 # publish pose
                 self._node.posePublisher.publish(sopv.pose)
                 # publish path
@@ -457,7 +465,7 @@ class RieglVz():
                 self._node.pathPublisher.publish(self._path)
                 # publish odometry
                 odom = Odometry(
-                    header = Header(frame_id = "riegl_vz_vocs"),
+                    header = Header(stamp = ts.to_msg(), frame_id = "riegl_vz_vocs"),
                     child_frame_id = "riegl_vz_socs",
                     pose = PoseWithCovariance(pose = sopv.pose.pose)
                 )

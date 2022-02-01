@@ -138,8 +138,9 @@ class RieglVzWrapper(Node):
 
     def _loadProject(self, projectName):
         self.storageMedia = int(self.get_parameter('storage_media').value)
+        self.scanRegister = bool(self.get_parameter('scan_register').value)
         ok = True
-        if projectName == "" or not self._rieglVz.loadProject(self.projectName, self.storageMedia):
+        if projectName == "" or not self._rieglVz.loadProject(self.projectName, self.storageMedia, self.scanRegister):
             ok = False
         else:
             self.projectName = projectName

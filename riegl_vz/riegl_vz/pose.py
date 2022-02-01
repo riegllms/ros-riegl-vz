@@ -152,11 +152,11 @@ def readAllSopv(sopvFilepath, logger = None):
             sopvs.append(extractSopv(line.split(","), logger))
     return sopvs
 
-def getTransformFromPose(stamp, child_frame_id, pose):
+def getTransformFromPose(ts, child_frame_id, pose):
     """Return tf2 TransformStamped message from pose."""
     t = TransformStamped()
     t.header = pose.header
-    t.header.stamp = stamp.to_msg()
+    t.header.stamp = ts.to_msg()
     t.child_frame_id = child_frame_id
     t.transform.translation.x = pose.pose.position.x
     t.transform.translation.y = pose.pose.position.y

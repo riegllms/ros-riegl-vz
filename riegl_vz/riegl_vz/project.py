@@ -41,11 +41,15 @@ class RieglVzProject():
         return True
 
     def getActiveScanposPath(self, scanposName: str):
-        return self._getActiveProjectPath() + '/' + scanposName + '.SCNPOS'
+        path = self.getActiveProjectPath() + '/' + scanposName + '.SCNPOS'
+        #self._logger.info("getActiveScanposPath = {}".format(path))
+        return path
 
     def getActiveProjectPath(self):
         projSvc = ProjectService(self._connectionString)
-        return projSvc.projectPath()
+        path = projSvc.projectPath()
+        #self._logger.info("getActiveProjectPath = {}".format(path))
+        return path
 
     def _getProjectPath(self, projectName: str, storageMedia: int):
         projSvc = ProjectService(self._connectionString)
