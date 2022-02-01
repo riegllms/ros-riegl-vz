@@ -34,9 +34,6 @@ from vzi_services.interfaceservice import InterfaceService
 from vzi_services.projectservice import ProjectService
 from vzi_services.scannerservice import ScannerService
 
-from .utils import (
-    parseCSV
-)
 from .pose import (
     readVop,
     readPop,
@@ -44,9 +41,11 @@ from .pose import (
     getTransformFromPose
 )
 from .project import RieglVzProject
+from .status import RieglVzStatus
 from .ssh import RemoteClient
 from .utils import (
-    SubProcess
+    SubProcess,
+    parseCSV
 )
 
 appDir = dirname(abspath(__file__))
@@ -61,58 +60,22 @@ class ScanPattern(object):
         self.frameIncrement = 0.04
         self.measProgram = 3
 
-class Status(object):
-    def __init__(self):
-        self.opstate = "unavailable"
-        self.progress = 0
-
-class StatusMaintainer(object):
-    def __init__(self):
-        self._status: Status = Status()
-        self._threadLock = threading.Lock()
-
-    def _lock(self):
-        self._threadLock.acquire()
-
-    def _unlock(self):
-        self._threadLock.release()
-
-    def setOpstate(self, opstate):
-        self._lock()
-        self._status.opstate = opstate
-        self._unlock()
-
-    def setProgress(self, progress):
-        self._lock()
-        #if self._status.opstate == "scanning":
-        self._status.progress = progress
-        self._unlock()
-
-    def getStatus(self):
-        status: Status
-        self._lock()
-        status = self._status
-        self._unlock()
-        return status
-
 class RieglVz():
     def __init__(self, node):
+        self._node = node
+        self._logger = node.get_logger()
         self._hostname = node.hostname
         self._sshUser = node.sshUser
         self._sshPwd = node.sshPwd
         self._workingDir = node.workingDir
-        self._node = node
-        self._logger = node.get_logger()
         self._connectionString = self._hostname + ":20000"
-        self._status: StatusMaintainer = StatusMaintainer()
         self._path = Path()
         self._position = None
         self._stopReq = False
         self._shutdownReq = False
-        self._ctrlSvc = None
-        self._trigStarted = False
         self._popTransformBc = False
         self._project: RieglVzProject = RieglVzProject(self._node)
+        self._status: RieglVzStatus = RieglVzStatus(self._node)
 
         self.scanposName = None
 
@@ -121,41 +84,6 @@ class RieglVz():
 
         if not os.path.exists(self._workingDir):
             os.mkdir(self._workingDir)
-
-        self._statusThread = threading.Thread(target=self._statusThreadFunc, args=())
-        self._statusThread.daemon = True
-        self._statusThread.start()
-
-    def _statusThreadFunc(self):
-        def onTaskProgress(arg0):
-            obj = json.loads(arg0)
-            self._logger.debug("scan progress: {0} % ({1}, {2})".format(obj["progress"], obj["id"], obj["progresstext"]))
-            if obj["id"] == 1:
-                self._status.setProgress(obj["progress"])
-            self._node._statusUpdater.force_update()
-
-        def onDataAcquisitionStarted(arg0):
-            if self._trigStarted:
-                self._status.setOpstate("scanning")
-                self._logger.debug("Data Acquisition Started!")
-
-        def onDataAcquisitionFinished(arg0):
-            if self._trigStarted:
-                self._status.setOpstate("waiting")
-                self._trigStarted = False
-                self._logger.debug("Data Acquisition Finished!")
-
-        while self._ctrlSvc is None:
-            try:
-                self._ctrlSvc = ControlService(self._connectionString)
-                self._taskProgress = self._ctrlSvc.taskProgress().connect(onTaskProgress)
-                self._acqStartedSigcon = self._ctrlSvc.acquisitionStarted().connect(onDataAcquisitionStarted)
-                self._acqFinishedSigcon = self._ctrlSvc.acquisitionFinished().connect(onDataAcquisitionFinished)
-                self._status.setOpstate("waiting")
-                self._logger.debug("Scanner is available.")
-            except:
-                self._logger.debug("Scanner is not available!")
-            time.sleep(1.0)
 
     def _downloadFile(self, remoteFile: str, localFile: str):
         self._logger.debug("Downloading file..")
@@ -194,7 +122,16 @@ class RieglVz():
             return False, None
         return True, sopv
 
+    def getScannerStatus(self, storageMedia):
+        return self._status.getScannerStatus(storageMedia)
+
+    def getGnssStatus(self):
+        return self._status.getGnssStatus()
+
     def loadProject(self, projectName: str, storageMedia: int, scanRegister: bool):
+        if self.getScannerStatus().opstate == "unavailable":
+            return False
+
         ok = self._project.loadProject(projectName, storageMedia)
         if ok and scanRegister:
             ts = self._node.get_clock().now()
@@ -202,6 +139,9 @@ class RieglVz():
         return ok;
 
     def createProject(self, projectName: str, storageMedia: int):
+        if self.getScannerStatus().opstate == "unavailable":
+            return False
+
         if self._project.createProject(projectName, storageMedia):
             self._path = Path();
             self._popTransformBc = False
@@ -209,12 +149,12 @@ class RieglVz():
         return False
 
     def getCurrentScanpos(self, projectName: str, storageMedia: int):
-        if self.getStatus().opstate == "unavailable":
+        if self.getScannerStatus().opstate == "unavailable":
             return ""
         return self._project.getCurrentScanpos(projectName, storageMedia);
 
     def getNextScanpos(self, projectName: str, storageMedia: int):
-        if self.getStatus().opstate == "unavailable":
+        if self.getScannerStatus().opstate == "unavailable":
             return ""
         return self._project.getNextScanpos(projectName, storageMedia)
 
@@ -243,7 +183,7 @@ class RieglVz():
         self._uploadFile([localFile], scanposPath)
 
     def setProjectControlPoints(coordSystem: str, csvFile: str):
-        if self.getStatus().opstate == "unavailable":
+        if self.getScannerStatus().opstate == "unavailable":
             return
 
         projectPath = self._project.getActiveProjectPath()
@@ -264,7 +204,7 @@ class RieglVz():
             self._uploadFile([localDstCpsFile], projectPath)
 
     def getPointCloud(self, scanposName: str, pointcloud: PointCloud2, ts: datetime.time = None):
-        if self.getStatus().opstate == "unavailable":
+        if self.getScannerStatus().opstate == "unavailable":
             return False, pointcloud
 
         scanId = self._project.getScanId(scanposName)
@@ -279,10 +219,10 @@ class RieglVz():
 
         self._logger.debug("Generate point cloud..")
         with riegl.rdb.rdb_open(localFile) as rdb:
-            if ts:
-                stamp = ts.to_msg()
-            else:
+            if ts is None:
                 stamp = builtin_msgs.Time(sec = self._getTimeStampFromScanId(scanId), nanosec = 0)
+            else:
+                stamp = ts.to_msg()
             filter = ""
             rosDtype = PointField.FLOAT32
             dtype = np.float32
@@ -330,8 +270,8 @@ class RieglVz():
         return True, pointcloud
 
     def _scanThreadFunc(self):
-        self._status.setOpstate("scanning")
-        self._status.setProgress(0)
+        self._status.status.setOpstate("scanning")
+        self._status.status.setProgress(0)
 
         ts = self._node.get_clock().now()
         self._logger.info("Latch timestamp: {0}".format(ts))
@@ -388,12 +328,12 @@ class RieglVz():
         subproc.waitFor(errorMessage="Data acquisition failed.", block=True)
         if self._stopReq:
             self._stopReq = False
-            self._status.setOpstate("waiting")
+            self._status.status.setOpstate("waiting")
             self._logger.info("Scan stopped")
             return
         self._logger.info("Data acquisition finished")
 
-        self._status.setOpstate("processing")
+        self._status.status.setOpstate("processing")
 
         if self._position is not None:
             if self.scanposName == '1':
@@ -421,7 +361,7 @@ class RieglVz():
         subproc.waitFor("RXP to RDBX conversion failed.")
         if self._stopReq:
             self._stopReq = False
-            self._status.setOpstate("waiting")
+            self._status.status.setOpstate("waiting")
             self._logger.info("Scan stopped")
             return
         self._logger.info("RXP to RDBX conversion finished")
@@ -447,7 +387,7 @@ class RieglVz():
             subproc.waitFor(errorMessage="Registration failed.", block=True)
             if self._stopReq:
                 self._stopReq = False
-                self._status.setOpstate("waiting")
+                self._status.status.setOpstate("waiting")
                 self._logger.info("Scan stopped")
                 return
             self._logger.info("Registration finished")
@@ -472,7 +412,7 @@ class RieglVz():
                 self._node.odomPublisher.publish(odom)
             self._logger.info("Pose published")
 
-        self._status.setOpstate("waiting")
+        self._status.status.setOpstate("waiting")
 
     def scan(
         self,
@@ -497,7 +437,7 @@ class RieglVz():
           scanPattern ... the scan pattern
           reflSearchSettings ... reflector search settings"""
 
-        if self.getStatus().opstate == "unavailable":
+        if self.getScannerStatus().opstate == "unavailable":
             return False
 
         if self.isBusy(block=False):
@@ -527,24 +467,21 @@ class RieglVz():
 
     def isScanning(self, block = True):
         if block:
-            while self.getStatus().opstate == "scanning":
+            while self.getScannerStatus().opstate == "scanning":
                 time.sleep(0.2)
-        return True if self.getStatus().opstate == "scanning" else False
+        return True if self.getScannerStatus().opstate == "scanning" else False
 
     def isBusy(self, block = True):
         if block:
-            while self.getStatus().opstate != "waiting":
+            while self.getScannerStatus().opstate != "waiting":
                 time.sleep(0.2)
-        return False if self.getStatus().opstate == "waiting" else True
-
-    def getStatus(self):
-        return self._status.getStatus()
+        return False if self.getScannerStatus().opstate == "waiting" else True
 
     def setPosition(self, position):
         self._position = position
 
     def getAllSopv(self):
-        if self.getStatus().opstate == "unavailable":
+        if self.getScannerStatus().opstate == "unavailable":
             return False, None
 
         try:
@@ -561,7 +498,7 @@ class RieglVz():
         return ok, sopvs
 
     def getSopv(self):
-        if self.getStatus().opstate == "unavailable":
+        if self.getScannerStatus().opstate == "unavailable":
             return False, None
 
         ok, sopvs = self.getAllSopv()
@@ -574,7 +511,7 @@ class RieglVz():
         return ok, sopv
 
     def getVop(self):
-        if self.getStatus().opstate == "unavailable":
+        if self.getScannerStatus().opstate == "unavailable":
             return False, None
 
         try:
@@ -590,7 +527,7 @@ class RieglVz():
         return True, vop
 
     def getPop(self):
-        if self.getStatus().opstate == "unavailable":
+        if self.getScannerStatus().opstate == "unavailable":
             return False, None
 
         try:
@@ -608,36 +545,37 @@ class RieglVz():
     def stop(self):
         self._stopReq = True
 
-        if self.getStatus().opstate != "unavailable":
+        if self.getScannerStatus().opstate != "unavailable":
             ctrlSvc = ControlService(self._connectionString)
             ctrlSvc.stop()
             self.isBusy()
 
     def trigStartStop(self):
-        if self.getStatus().opstate == "unavailable":
+        if self.getScannerStatus().opstate == "unavailable":
             return False
 
-        trigStartedPrev = self._trigStarted
-        if not self._trigStarted:
+        trigStartedPrev = self._status.trigStarted
+        if not self._status.trigStarted:
             if self.isBusy(block = False):
                 return False
-            self._trigStarted = True
+            self._status.trigStarted = True
 
         intfSvc = InterfaceService(self._connectionString)
         intfSvc.triggerInputEvent("ACQ_START_STOP")
 
-        if not trigStartedPrev and self._trigStarted:
+        if not trigStartedPrev and self._status.trigStarted:
             startTime = time.time()
             while not self.isScanning(block=False):
                 time.sleep(0.2)
                 if (time.time() - startTime) > 5:
-                    self._trigStarted = False
+                    self._status.trigStarted = False
                     return False
 
         return True
 
     def shutdown(self):
+        self._status.shutdown()
         self.stop()
-        if self.getStatus().opstate != "unavailable":
+        if self.getScannerStatus().opstate != "unavailable":
             scnSvc = ScannerService(self._connectionString)
             scnSvc.shutdown()

@@ -4,9 +4,11 @@ v1.4~dev:
   *  Fix get pose services after project loading.
   *  Fix initial set project if scanner is unavailable.
   *  Add reflector scan and search with control points.
-  *  Add scan position to diagnostics data.
+  *  Add scan position and memory usage to scanner diagnostics data.
+  *  Add GNSS diagnostics data.
+  *  Add tf2 transform broadcasts.
 
- -- Andreas Friedl <afriedl@riegl.com>  Tue Jan 4 08:36:00 2022 +0200
+ -- Andreas Friedl <afriedl@riegl.com>  Tue Feb 1 17:07:00 2022 +0200
 
 v1.3:
 

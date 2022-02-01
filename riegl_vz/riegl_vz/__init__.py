@@ -72,11 +72,13 @@ class RieglVzWrapper(Node):
         self.sshUser = str(self.get_parameter('ssh_user').value)
         self.sshPwd = str(self.get_parameter('ssh_password').value)
         self.projectName = str(self.get_parameter('project_name').value)
+        self.storageMedia = int(self.get_parameter('storage_media').value)
         self.get_logger().debug("hostname = {}".format(self.hostname))
         self.get_logger().debug("workingDir = {}".format(self.workingDir))
         self.get_logger().debug("sshUser = {}".format(self.sshUser))
         self.get_logger().debug("sshPwd = {}".format(self.sshPwd))
         self.get_logger().debug("projectName = {}".format(self.projectName))
+        self.get_logger().debug("storageMedia = {}".format(self.storageMedia))
 
         self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
         self.get_logger().debug("scanPublishFilter = {}".format(self.scanPublishFilter))
@@ -109,16 +111,35 @@ class RieglVzWrapper(Node):
 
         self._statusUpdater = Updater(self)
         self._statusUpdater.setHardwareID('riegl_vz')
-        self._statusUpdater.add("status", self.produceDiagnostics)
+        self._statusUpdater.add("scanner", self.produceScannerDiagnostics)
+        self._statusUpdater.add("gnss", self.produceGnssDiagnostics)
 
         self.get_logger().info("RIEGL VZ node is started... (host = {}).".format(self.hostname))
 
-    def produceDiagnostics(self, diag):
-        status = self._rieglVz.getStatus()
-        diag.summary(DiagnosticStatus.OK, "RIEGL VZ is " + status.opstate)
+    def produceScannerDiagnostics(self, diag):
+        status = self._rieglVz.getScannerStatus(self.storageMedia)
+        err = DiagnosticStatus.OK
+        if status.err:
+            err = DiagnosticStatus.ERROR
+        diag.summary(err, "RIEGL VZ laser scanner is " + status.opstate)
         diag.add('opstate', status.opstate)
         diag.add('progress', str(status.progress))
+        diag.add('mem_total_kb', str(status.memTotalKB))
+        diag.add('mem_usage', str(status.memUsage))
         diag.add('scan_position', self._scanposName)
+        return diag
+
+    def produceGnssDiagnostics(self, diag):
+        status = self._rieglVz.getGnssStatus()
+        fixStr: str = "no"
+        if status.fix:
+            fixStr = "a"
+        err = DiagnosticStatus.OK
+        if status.err:
+            err = DiagnosticStatus.ERROR
+        diag.summary(err, "RIEGL VZ GNSS has {} fix".format(fixStr))
+        diag.add('fix', str(status.fix))
+        diag.add('num_sat', str(status.numSat))
         return diag
 
     def _setProjectName(self, projectName):
@@ -150,9 +171,9 @@ class RieglVzWrapper(Node):
         ok = True
         if not self._loadProject(self.projectName):
             ok = self._createProject(self.projectName)
-        self.projectValid = True
 
         if ok:
+            self.projectValid = True
             self.cpsCvsFile = str(self.get_parameter('control_points_cvs_file').value)
             self.get_logger().debug("control points CVS file = {}".format(self.cpsCvsFile))
             if len(self.cpsCvsFile) > 0:

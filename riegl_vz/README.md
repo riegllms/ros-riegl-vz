@@ -121,7 +121,7 @@ The name of the project to be loaded or created.
 
 **~storage_media** (integer, default: 0) :
 
-The active storage media for scan data recording (0: INTERNAL SSD, 1: USB).
+The active storage media for scan data recording (0: INTERNAL SSD, 1: USB, 2: SD CARD).
 
 **~scan_pattern** (double[], default: {30.0,130.0,0.04,0.0,360.0,0.04})
 
@@ -194,9 +194,15 @@ Topic provides SOPV (Scan Position and Orientation in VOCS) of the currently reg
 Riegl VZ status information, published once per second:
 
 ```
-opstate       : operating state ("unavailable", "waiting", "scanning", "processing")
-progress      : scan progress in percent
-scan_position : number of current scan position
+scanner:
+  opstate       : operating state ("unavailable", "waiting", "scanning", "processing")
+  progress      : scan progress in percent
+  scan_position : number of current scan position
+  mem_total_kb  : total storage media memory space in KByte
+  mem_usage     : storage media memory usage
+gnss:
+  fix           : GNSS fix
+  num_sat       : number of available satellites
 ```
 
 #### 3.1.3 Services
@@ -295,11 +301,11 @@ Not available in first implementation but for further extension:
 
 * Providing covariance of pose (see [sensor_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg))
 
-* More diagnostic status information, e.g. memory usage, scanner errors
+* More diagnostic status information, e.g. memory usage, scanner errors, GNSS status
 
 * Additional parameters:
 
-**~capture_images** (bool,  default: False) : Enable capturing of camera images.
+**~capture_images** (bool, default: False) : Enable capturing of camera images.
 
 * Additional services:
 
