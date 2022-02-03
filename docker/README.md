@@ -47,5 +47,7 @@ Execute graphical application in the docker container:
 
 ```rviz2```
 
-```plotjuggler```
+or  
+
+```foxglove-studio```
 
