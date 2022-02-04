@@ -532,6 +532,15 @@ class RieglVz():
 
         return True
 
+    def getScanPatterns(self):
+        patterns: str = []
+        instIdentLower = self._status.status.scannerStatus.instIdent.lower()
+        remotePath = "/usr/share/gui/" + instIdentLower + "/patterns"
+        files = self._ssh.listFiles(remotePath, "*.pat")
+        for file in files:
+            patterns.append(os.path.basename(files).replace(".pat", ""))
+        return True, patterns
+
     def shutdown(self):
         self._status.shutdown()
         self.stop()

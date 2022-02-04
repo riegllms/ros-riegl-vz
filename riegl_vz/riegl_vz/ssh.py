@@ -120,9 +120,11 @@ class RieglVzSSH:
         self._logger.debug("RESP = {}".format(" ".join(response)))
         return response
 
-    def listFiles(self, remotePath, grepFilter, fullPath = None):
-        fullPathOpt = ""
-        if fullPath is None:
-            fullPathOpt = "-d "
-        cmd = "ls -1 " + fullPathOpt + " " + remotePath, "/* " + grepFilter
-        return self.executeCommand(cmd)
+    def listFiles(self, remotePath, filter):
+        if (len(filter) == 0):
+            filter = "*"
+        cmd = "ls -1dq " + remotePath + "/" + filter
+        files = self.executeCommand(cmd)
+        if len(files) == 0 or (len(files) == 1 and files[0].find("No such file or directory")):
+            files = []
+        return files

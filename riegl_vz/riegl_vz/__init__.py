@@ -27,7 +27,8 @@ from riegl_vz_interfaces.srv import (
     GetPointCloud,
     GetScanPoses,
     GetPose,
-    SetPosition
+    SetPosition,
+    GetScanPatterns
 )
 import rclpy
 from rclpy.node import Node
@@ -102,6 +103,7 @@ class RieglVzWrapper(Node):
         self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
         self._trigStartStopService = self.create_service(Trigger, 'trig_start_stop', self._trigStartStopCallback)
+        self._getScanPatterns = self.create_service(GetScanPatterns, 'get_scan_patterns', self._getScanPatternsCallback)
         self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
 
         self._rieglVz = RieglVz(self)
@@ -401,6 +403,22 @@ class RieglVzWrapper(Node):
 
         if not self.trigStartStop():
             return self._setExecErrorResponse(response)
+
+        return self._setSuccessResponse(response)
+
+    def getScanPatterns(self):
+        return self._rieglVz.getScanPatterns()
+
+    def _getScanPatternsCallback(self, request, response):
+        if not self._checkExecConditions(response):
+            return response
+
+        ok, patterns = self.getScanPatterns()
+        if not ok:
+            return self._setExecErrorResponse(response)
+
+        for pattern in patterns:
+            response.patterns.append(pattern)
 
         return self._setSuccessResponse(response)
 
