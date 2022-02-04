@@ -54,6 +54,7 @@ class ServiceSignal(object):
 class InstrumentInfo(dict):
     def __init__(self, *args, **kwargs):
         self['identifier'] = None
+        self['serialNumber'] = None
         self['modelNumber'] = None
         self['modifier'] = None
         super().__init__(*args, **kwargs)
@@ -63,6 +64,12 @@ class InstrumentInfo(dict):
     @identifier.setter
     def identifier(self, value):
         self['identifier'] = value
+    @property
+    def serialNumber(self):
+        return self['serialNumber']
+    @serialNumber.setter
+    def serialNumber(self, value):
+        self['serialNumber'] = value
     @property
     def modelNumber(self):
         return self['modelNumber']
@@ -321,6 +328,7 @@ class ScannerService(object):
         with self._lock:
             r = InstrumentInfo()
             r.identifier = self._svc.getProperty("INST_IDENT").s
+            r.serialNumber = self._svc.getProperty("SN").s
             r.modelNumber = self._svc.getProperty("INST_MODEL_NUM").s
             r.modifier = self._svc.getProperty("INST_MODIF").s
             return r

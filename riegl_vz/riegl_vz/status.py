@@ -2,6 +2,7 @@ import time
 import json
 import threading
 
+from vzi_services.scannerservice import ScannerService
 from vzi_services.controlservice import ControlService
 from vzi_services.interfaceservice import InterfaceService
 from vzi_services.gnssbaseservice import GnssBaseService
@@ -9,6 +10,8 @@ from vzi_services.gnssbaseservice import GnssBaseService
 class ScannerStatus(object):
     def __init__(self):
         self.err = False
+        self.instIdent = ""
+        self.serialNumber = ""
         self.opstate = "unavailable"
         self.activeTask = ""
         self.progress = 0
@@ -64,6 +67,7 @@ class RieglVzStatus():
         self._hostname = node.hostname
         self._connectionString = self._hostname + ":20000"
         self._ctrlSvc = None
+        self._scanSvc = None
         self._intfSvc = None
         self._gnssSvc = None
         self._shutdownReq = False
@@ -103,15 +107,25 @@ class RieglVzStatus():
                 self._acqStartedSigcon = self._ctrlSvc.acquisitionStarted().connect(onDataAcquisitionStarted)
                 self._acqFinishedSigcon = self._ctrlSvc.acquisitionFinished().connect(onDataAcquisitionFinished)
                 self.status.setOpstate("waiting")
-                self._logger.debug("Scanner is available.")
             except:
-                self._logger.debug("Scanner is not available!")
+                pass
             time.sleep(1.0)
 
         if not self._shutdownReq:
             try:
+                self._scanSvc = ScannerService(self._connectionString)
+                ok, instInfoErr, instIdent, serialNumber = self._getInstInfo()
+                if ok:
+                    self.status.scannerStatus.instIdent = instIdent
+                    self.status.scannerStatus.serialNumber = serialNumber
+                    self._logger.info("{} {} is available now!".format(instIdent, serialNumber))
+            except:
+                self.status.scannerStatus.err = True
+                self._logger.error("ScannerService is not available!")
+            try:
                 self._intfSvc = InterfaceService(self._connectionString)
             except:
+                self.status.scannerStatus.err = True
                 self._logger.error("InterfaceService is not available!")
             try:
                 self._gnssSvc = GnssBaseService(self._connectionString)
@@ -121,12 +135,25 @@ class RieglVzStatus():
 
         self._shutdownReq = False
 
+    def _getInstInfo(self):
+        ok = False
+        err = False
+        instIdent = ""
+        serialNumber = ""
+        if self._scanSvc:
+            ok = True
+            instIdent = self._scanSvc.instrumentInformation().identifier
+            serialNumber = self._scanSvc.instrumentInformation().serialNumber
+        return ok, err, instIdent, serialNumber
+
     def _getScannerMemUsage(self, storageMedia):
+        ok = False
         err = False
         memTotalGB = 0
         memFreeGB = 0
         memUsage = 0
         if self._intfSvc:
+            ok = True
             intf = 0
             if storageMedia == 0:
                 intf = self._intfSvc.STORAGEIF_SSD
@@ -143,13 +170,15 @@ class RieglVzStatus():
                 memUsage = usedSpace / totalSpace * 100.0
             else:
                 err = True
-        return err, memTotalGB, memFreeGB, memUsage
+        return ok, err, memTotalGB, memFreeGB, memUsage
 
     def getScannerStatus(self, storageMedia):
-        self.status.scannerStatus.err, memTotalGB, memFreeGB, memUsage = self._getScannerMemUsage(storageMedia)
-        self.status.scannerStatus.memTotalGB = memTotalGB
-        self.status.scannerStatus.memFreeGB = memFreeGB
-        self.status.scannerStatus.memUsage = memUsage
+        ok, memUsageErr, memTotalGB, memFreeGB, memUsage = self._getScannerMemUsage(storageMedia)
+        if ok:
+            self.status.scannerStatus.memTotalGB = memTotalGB
+            self.status.scannerStatus.memFreeGB = memFreeGB
+            self.status.scannerStatus.memUsage = memUsage
+            self.status.scannerStatus.err = memUsageErr
         return self.status.getScannerStatus()
 
     def getScannerOpstate(self):

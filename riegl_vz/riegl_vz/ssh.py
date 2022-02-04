@@ -119,3 +119,10 @@ class RieglVzSSH:
         ssh.disconnect()
         self._logger.debug("RESP = {}".format(" ".join(response)))
         return response
+
+    def listFiles(self, remotePath, grepFilter, fullPath = None):
+        fullPathOpt = ""
+        if fullPath is None:
+            fullPathOpt = "-d "
+        cmd = "ls -1 " + fullPathOpt + " " + remotePath, "/* " + grepFilter
+        return self.executeCommand(cmd)
