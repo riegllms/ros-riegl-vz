@@ -85,3 +85,37 @@ class RemoteClient:
             stdin, stdout, stderr = self.connection.exec_command(cmd)
             stdout.channel.recv_exit_status()
             response = stdout.readlines()
+
+class RieglVzSSH:
+    def __init__(self, node):
+        self._node = node
+        self._hostname = node.hostname
+        self._sshUser = node.sshUser
+        self._sshPwd = node.sshPwd
+        self._logger = node.get_logger()
+
+    def downloadFile(self, remoteFile: str, localFile: str):
+        self._logger.debug("Downloading file..")
+        self._logger.debug("remote file = {}".format(remoteFile))
+        self._logger.debug("local file  = {}".format(localFile))
+        ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
+        ssh.downloadFile(filepath=remoteFile, localpath=localFile)
+        ssh.disconnect()
+        self._logger.debug("File download finished")
+
+    def uploadFile(self, localFile: str, remoteDir: str):
+        self._logger.debug("Uploading file..")
+        self._logger.debug("local file = {}".format(localFile))
+        self._logger.debug("remote dir = {}".format(remoteDir))
+        ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
+        ssh.uploadFile(localpath=localFile, remotepath=remoteDir)
+        ssh.disconnect()
+        self._logger.debug("File upload finished")
+
+    def executeCommand(self, cmd):
+        self._logger.debug("CMD = {}".format(cmd))
+        ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
+        response = ssh.executeCommand(cmd)
+        ssh.disconnect()
+        self._logger.debug("RESP = {}".format(" ".join(response)))
+        return response

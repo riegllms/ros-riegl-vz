@@ -123,6 +123,7 @@ class RieglVzWrapper(Node):
             err = DiagnosticStatus.ERROR
         diag.summary(err, "RIEGL VZ laser scanner is " + status.opstate)
         diag.add('opstate', status.opstate)
+        diag.add('active_task', status.activeTask)
         diag.add('progress', str(status.progress))
         diag.add('mem_total_gb', str(status.memTotalGB))
         diag.add('mem_free_gb', str(status.memFreeGB))

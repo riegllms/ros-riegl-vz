@@ -10,6 +10,7 @@ class ScannerStatus(object):
     def __init__(self):
         self.err = False
         self.opstate = "unavailable"
+        self.activeTask = ""
         self.progress = 0
         self.memTotalGB = 0
         self.memFreeGB = 0
@@ -33,11 +34,16 @@ class StatusMaintainer(object):
     def _unlock(self):
         self._threadLock.release()
 
-    def setOpstate(self, opstate):
+    def setOpstate(self, opstate, task = ""):
         self._lock()
         self.scannerStatus.opstate = opstate
+        self.scannerStatus.activeTask = task
         self._unlock()
 
+    def setActiveTask(self, task):
+        self._lock()
+        self.scannerStatus.activeTask = task
+        self._unlock()
 
     def setProgress(self, progress):
         self._lock()

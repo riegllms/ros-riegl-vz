@@ -7,17 +7,16 @@ from rclpy.node import Node
 
 from vzi_services.projectservice import ProjectService
 from vzi_services.dataprocservice import DataprocService
-from .ssh import RemoteClient
+from .ssh import RieglVzSSH
 
 class RieglVzProject():
     def __init__(self, node):
         self._node = node
         self._hostname = node.hostname
         self._connectionString = self._hostname + ":20000"
-        self._hostname = node.hostname
-        self._sshUser = node.sshUser
-        self._sshPwd = node.sshPwd
         self._logger = node.get_logger()
+
+        self._ssh: RieglVzSSH = RieglVzSSH(self._node)
 
     def loadProject(self, projectName: str, storageMedia: int):
         try:
@@ -58,12 +57,8 @@ class RieglVzProject():
 
     def _getCurrentScanpos(self, projectName: str, storageMedia: int):
         self._logger.debug("get next scanpos: projectName={}, storageMedia={}".format(projectName, storageMedia))
-        ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
         cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), " | sort -n", " | grep '.SCNPOS'", " | sed 's/.SCNPOS//g'", " | tail -n 1"]
-        self._logger.debug("CMD = {}".format(" ".join(cmd)))
-        response = ssh.executeCommand(" ".join(cmd))
-        self._logger.debug("RESP = {}".format(" ".join(response)))
-        ssh.disconnect()
+        response = self._ssh.executeCommand(" ".join(cmd))
 
         if len(response) == 0:
             return 0
@@ -88,13 +83,9 @@ class RieglVzProject():
             procSvc = DataprocService(self._connectionString)
             return procSvc.actualFile(0)
 
-        ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
         scanposPath = self.getActiveScanposPath(scanposName) + '/scans'
         cmd = ["ls -t", scanposPath + "/*.rxp"]
-        self._logger.debug("CMD = {}".format(" ".join(cmd)))
-        response = ssh.executeCommand(" ".join(cmd))
-        self._logger.debug("RESP = {}".format(" ".join(response)))
-        ssh.disconnect()
+        response = self._ssh.executeCommand(" ".join(cmd))
 
         if len(response) == 0:
             return "null"

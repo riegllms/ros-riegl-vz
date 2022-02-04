@@ -195,7 +195,8 @@ Riegl VZ status information, published once per second:
 
 ```
 scanner:
-  opstate       : operating state ("unavailable", "waiting", "scanning", "converting", "downloading", "processing")
+  opstate       : operating state ("unavailable", "waiting", "scanning", "processing")
+  active_task   : active task description
   progress      : scan progress in percent
   scan_position : number of current scan position
   mem_total_gb  : total storage media memory space in GByte

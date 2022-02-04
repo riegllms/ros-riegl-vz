@@ -42,7 +42,7 @@ from .pose import (
 )
 from .project import RieglVzProject
 from .status import RieglVzStatus
-from .ssh import RemoteClient
+from .ssh import RieglVzSSH
 from .utils import (
     SubProcess,
     parseCSV
@@ -65,8 +65,6 @@ class RieglVz():
         self._node = node
         self._logger = node.get_logger()
         self._hostname = node.hostname
-        self._sshUser = node.sshUser
-        self._sshPwd = node.sshPwd
         self._workingDir = node.workingDir
         self._connectionString = self._hostname + ":20000"
         self._path = Path()
@@ -76,6 +74,7 @@ class RieglVz():
         self._popTransformBc = False
         self._project: RieglVzProject = RieglVzProject(self._node)
         self._status: RieglVzStatus = RieglVzStatus(self._node)
+        self._ssh: RieglVzSSH = RieglVzSSH(self._node)
 
         self.scanposName = None
 
@@ -84,24 +83,6 @@ class RieglVz():
 
         if not os.path.exists(self._workingDir):
             os.mkdir(self._workingDir)
-
-    def _downloadFile(self, remoteFile: str, localFile: str):
-        self._logger.debug("Downloading file..")
-        self._logger.debug("remote file = {}".format(remoteFile))
-        self._logger.debug("local file  = {}".format(localFile))
-        ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
-        ssh.downloadFile(filepath=remoteFile, localpath=localFile)
-        ssh.disconnect()
-        self._logger.debug("File download finished")
-
-    def _uploadFile(self, localFile: str, remoteDir: str):
-        self._logger.debug("Uploading file..")
-        self._logger.debug("local file = {}".format(localFile))
-        self._logger.debug("remote dir = {}".format(remoteDir))
-        ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
-        ssh.uploadFile(localpath=localFile, remotepath=remoteDir)
-        ssh.disconnect()
-        self._logger.debug("File upload finished")
 
     def _broadcastTfTransforms(self, ts: datetime.time):
         ok = True
@@ -161,7 +142,7 @@ class RieglVz():
         scanposPath = self._project.getActiveScanposPath(self.scanposName)
         remoteFile = scanposPath + "/final.pose"
         localFile = self._workingDir + "/final.pose"
-        self._downloadFile(remoteFile, localFile)
+        self._ssh.downloadFile(remoteFile, localFile)
         with open(localFile, "r") as f:
             finalPose = json.load(f)
         finalPose["positionEstimate"] = {
@@ -173,13 +154,13 @@ class RieglVz():
         with open(localFile, "w") as f:
             json.dump(finalPose, f, indent=4)
             f.write("\n")
-        self._uploadFile([localFile], scanposPath)
+        self._ssh.uploadFile([localFile], scanposPath)
 
     def setProjectControlPoints(coordSystem: str, csvFile: str):
         projectPath = self._project.getActiveProjectPath()
         remoteSrcCpsFile = csvFile
         localSrcCpsFile = self._workingDir + "/" + os.path.basename(csvFile)
-        self._downloadFile(remoteSrcCpsFile, localSrcCpsFile)
+        self._ssh.downloadFile(remoteSrcCpsFile, localSrcCpsFile)
         csvData = parseCSV(localSrcCpsFile)[1:]
         # parse points and write resulting csv file
         controlPoints = []
@@ -191,7 +172,7 @@ class RieglVz():
                 f.write("Name,CRS,Coord1,Coord2,Coord3\n")
                 for item in csvData:
                     f.write("{},{},{},{},{}\n".format(item[0], coordSystem, item[1], item[2], item[3]))
-            self._uploadFile([localDstCpsFile], projectPath)
+            self._ssh.uploadFile([localDstCpsFile], projectPath)
 
     def getPointCloud(self, scanposName: str, pointcloud: PointCloud2, ts: datetime.time = None):
         scanId = self._project.getScanId(scanposName)
@@ -202,9 +183,11 @@ class RieglVz():
 
         remoteFile = "/media/" + scanId.replace(".rxp", ".rdbx")
         localFile = self._workingDir + "/scan.rdbx"
-        self._downloadFile(remoteFile, localFile)
+        self._status.status.setActiveTask("download rdbx file")
+        self._ssh.downloadFile(remoteFile, localFile)
 
         self._logger.debug("Generate point cloud..")
+        self._status.status.setActiveTask("generate point cloud data")
         with riegl.rdb.rdb_open(localFile) as rdb:
             if ts is None:
                 stamp = builtin_msgs.Time(sec = self._getTimeStampFromScanId(scanId), nanosec = 0)
@@ -252,12 +235,13 @@ class RieglVz():
             )
             #for point in rdb.points():
             #    self._logger.debug("{0}".format(point.riegl_xyz))
+        self._status.status.setActiveTask("")
         self._logger.debug("Point cloud generated")
 
         return True, pointcloud
 
     def _scanThreadFunc(self):
-        self._status.status.setOpstate("scanning")
+        self._status.status.setOpstate("scanning", "scan data acquisition")
         self._status.status.setProgress(0)
 
         ts = self._node.get_clock().now()
@@ -320,9 +304,10 @@ class RieglVz():
             return
         self._logger.info("Data acquisition finished")
 
-        self._status.status.setOpstate("converting")
+        self._status.status.setOpstate("processing")
 
         if self._position is not None:
+            self._status.status.setActiveTask("set position estimate")
             if self.scanposName == '1':
                 self._logger.info("Set project position.")
                 projSvc = ProjectService(self._connectionString)
@@ -336,6 +321,7 @@ class RieglVz():
             self._position = None
 
         self._logger.info("Converting RXP to RDBX..")
+        self._status.status.setActiveTask("convert rxp to rdbx")
         scriptPath = join(appDir, "create-rdbx.py")
         cmd = [
             "python3", scriptPath,
@@ -353,20 +339,19 @@ class RieglVz():
             return
         self._logger.info("RXP to RDBX conversion finished")
 
-        self._status.status.setOpstate("downloading")
 
         if self.scanPublish:
             self._logger.info("Downloading and publishing point cloud..")
             pointcloud: PointCloud2 = PointCloud2()
             ok, pointcloud = self.getPointCloud(self.scanposName, pointcloud, ts)
             if ok:
+                self._status.status.setActiveTask("publish point cloud data")
                 self._node.pointCloudPublisher.publish(pointcloud)
             self._logger.info("Point cloud published")
 
-        self._status.status.setOpstate("processing")
-
         if self.scanRegister:
             self._logger.info("Starting registration..")
+            self._status.status.setActiveTask("scan position registration")
             scriptPath = os.path.join(appDir, "register-scan.py")
             cmd = [
                 "python3", scriptPath,
@@ -384,6 +369,7 @@ class RieglVz():
             self._logger.info("Registration finished")
 
             self._logger.info("Downloading and publishing pose..")
+            self._status.status.setActiveTask("publish registered scan position")
             ok, sopv = self._broadcastTfTransforms(ts)
             if ok:
                 # update sopv timestamp
@@ -473,7 +459,7 @@ class RieglVz():
             sopvFileName = "all_sopv.csv"
             remoteFile = self._project.getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
             localFile = self._workingDir + "/" + sopvFileName
-            self._downloadFile(remoteFile, localFile)
+            self._ssh.downloadFile(remoteFile, localFile)
             ok = True
             sopvs = readAllSopv(localFile, self._logger)
         except Exception as e:
@@ -497,7 +483,7 @@ class RieglVz():
             sopvFileName = "VPP.vop"
             remoteFile = self._project.getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
             localFile = self._workingDir + "/" + sopvFileName
-            self._downloadFile(remoteFile, localFile)
+            self._ssh.downloadFile(remoteFile, localFile)
         except Exception as e:
             return False, None
 
@@ -510,7 +496,7 @@ class RieglVz():
             popFileName = "project.pop"
             remoteFile = self._project.getActiveProjectPath() + "/" + popFileName
             localFile = self._workingDir + "/" + popFileName
-            self._downloadFile(remoteFile, localFile)
+            self._ssh.downloadFile(remoteFile, localFile)
         except Exception as e:
             return False, None
 
