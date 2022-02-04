@@ -142,6 +142,29 @@ class RieglVzWrapper(Node):
         diag.add('num_sat', str(status.numSat))
         return diag
 
+    def _checkExecConditions(self, response):
+        if not self._rieglVz.isScannerAvailable():
+            response.success = False
+            response.message = "scanner is not available"
+            return False, response
+
+        if self._shutdownReq is True:
+            response.success = False
+            response.message = "node is shutting down"
+            return False, response
+
+        return True, response
+
+    def _setSuccessResponse(self, response):
+        response.success = True
+        response.message = "success"
+        return response
+
+    def _setExecErrorResponse(self, response):
+        response.success = False
+        response.message = "command execution error"
+        return response
+
     def _setProjectName(self, projectName):
         if projectName == "":
             now = datetime.now()
@@ -184,9 +207,7 @@ class RieglVzWrapper(Node):
         return ok
 
     def _setProjectCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
+        if not self._checkExecConditions(response):
             return response
 
         self.projectName = str(self.get_parameter('project_name').value)
@@ -194,16 +215,12 @@ class RieglVzWrapper(Node):
         self.get_logger().debug("project name = {}".format(self.projectName))
 
         if not self.setProject(self.projectName):
-            response.success = False
-            response.message = "set project failed"
-            return response
+            return self._setExecErrorResponse(response)
 
         self._scanposName = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
 
-        response.success = True
-        response.message = self.projectName
+        return self._setSuccessResponse(response)
 
-        return response
 
     def scan(self):
         self.storageMedia = int(self.get_parameter('storage_media').value)
@@ -252,80 +269,55 @@ class RieglVzWrapper(Node):
             imageOverlap = 25)
 
     def _scanCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
+        if not self._checkExecConditions(response):
             return response
 
         if not self.scan():
-            response.success = False
-            response.message = "operation not available"
-            return response
-
-        response.success = True
-        response.message = "success"
+            return self._setExecErrorResponse(response)
 
         self._statusUpdater.force_update()
 
-        return response
+        return self._setSuccessResponse(response)
 
     def getPointCloud(self, scanpos, pointcloud):
         ok, pointcloud = self._rieglVz.getPointCloud(scanpos, pointcloud)
         return ok, pointcloud
 
     def _getPointCloudCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
+        if not self._checkExecConditions(response):
             return response
 
         ok, response.pointcloud = self.getPointCloud(request.seq, response.pointcloud)
         if not ok:
-            response.success = False
-            response.message = "data not available"
-            return response
+            return self._setExecErrorResponse(response)
 
-        response.success = True
-        response.message = "success"
-
-        return response
+        return self._setSuccessResponse(response)
 
     def setPosition(self, position):
         return self._rieglVz.setPosition(position)
 
     def _setPositionCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
+        if not self._checkExecConditions(response):
             return response
 
         self.setPosition(request.position)
 
-        response.success = True
-        response.message = "success"
-
-        return response
+        return self._setSuccessResponse(response)
 
     def getSopv(self):
         return self._rieglVz.getSopv()
 
     def _getSopvCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
+        if not self._checkExecConditions(response):
             return response
 
         ok, sopv = self.getSopv()
         if not ok:
-            response.success = False
-            response.message = "data not available"
-            return response
+            return self._setExecErrorResponse(response)
 
         response.pose = sopv.pose
-        response.success = True
-        response.message = "success"
 
-        return response
+        return self._setSuccessResponse(response)
 
     def getAllSopv(self):
         return self._rieglVz.getAllSopv()
@@ -337,26 +329,22 @@ class RieglVzWrapper(Node):
         return self._rieglVz.getPop()
 
     def _getScanPosesCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
+        if not self._checkExecConditions(response):
             return response
 
         response.project = self.projectName
 
         ok, sopvs = self.getAllSopv()
         if not ok:
-            response.success = False
-            response.message = "data not available"
-            return response
+            return self._setExecErrorResponse(response)
+
         for sopv in sopvs:
             response.scanposes.append(sopv)
 
         ok, vop = self.getVop()
         if not ok:
-            response.success = False
-            response.message = "data not available"
-            return response
+            return self._setExecErrorResponse(response)
+
         response.vop = vop
 
         ok, pop = self.getPop()
@@ -365,81 +353,54 @@ class RieglVzWrapper(Node):
         else:
             response.pop = PoseStamped()
 
-        response.success = True
-        response.message = "success"
-
-        return response
+        return self._setSuccessResponse(response)
 
     def _getVopCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
+        if not self._checkExecConditions(response):
             return response
 
         ok, vop = self.getVop()
         if not ok:
-            response.success = False
-            response.message = "data not available"
-            return response
+            return self._setExecErrorResponse(response)
 
         response.pose = vop
-        response.success = True
-        response.message = "success"
 
-        return response
+        return self._setSuccessResponse(response)
 
     def _getPopCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
+        if not self._checkExecConditions(response):
             return response
 
         ok, pop = self.getPop()
         if not ok:
-            response.success = False
-            response.message = "data not available"
-            return response
+            return self._setExecErrorResponse(response)
 
         response.pose = pop
-        response.success = True
-        response.message = "success"
 
-        return response
+        return self._setSuccessResponse(response)
 
     def stop(self):
         self._rieglVz.stop()
 
     def _stopCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
+        if not self._checkExecConditions(response):
             return response
 
         self.stop()
 
-        response.success = True
-        response.message = "success"
-
-        return response
+        return self._setSuccessResponse(response)
 
     def trigStartStop(self):
         return self._rieglVz.trigStartStop()
 
     def _trigStartStopCallback(self, request, response):
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
+        if not self._checkExecConditions(response):
             return response
 
         if not self.trigStartStop():
-            response.success = False
-            response.message = "operation not available"
-            return response
+            return self._setExecErrorResponse(response)
 
-        response.success = True
-        response.message = "success"
-
-        return response
+        return self._setSuccessResponse(response)
 
     def shutdown(self):
         self._shutdownReq = True
@@ -449,10 +410,7 @@ class RieglVzWrapper(Node):
     def _shutdownCallback(self, request, response):
         self.shutdown()
 
-        response.success = True
-        response.message = "success"
-
-        return response
+        return self._setSuccessResponse(response)
 
 def stop_node():
     if _rieglVzWrapper is not None:
