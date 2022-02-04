@@ -233,7 +233,7 @@ The parameter '\~scan_register' enables automatic scan position registration aft
 
 Response:  
 success = True -> message: "success"  
-success = False -> message: "scanner not available" | "node is shutting down" | "command execution error"  
+success = False -> message: "scanner not available" | "command execution error"
 
 ![ROS Scan Service](img/scan.png)
 
@@ -243,7 +243,7 @@ Request a single SOPV of the previously registered scan position in actual proje
 
 Response:  
 success = True -> message: "success", pose: Last SOPV Pose  
-success = False -> message: "scanner not available" | "node is shutting down" | "command execution error"
+success = False -> message: "scanner not available" | "command execution error"
 
 **get_vop** (riegl_vz_interfaces/GetPose) :
 
@@ -251,7 +251,7 @@ Get current VOP, which is a single position and orientation of the VOXEL coordin
 
 Response:  
 success = True -> message: "success", pose: VOP Pose  
-success = False -> message: "scanner not available" | "node is shutting down" | "command execution error"
+success = False -> message: "scanner not available" | "command execution error"
 
 **get_pop** (riegl_vz_interfaces/GetPose) :
 
@@ -259,15 +259,15 @@ Get current POP, which is a single position and orientation of the project coord
 
 Response:  
 success = True -> message: "success", pose: POP Pose  
-success = False -> message: "scanner not available" | "node is shutting down" | "command execution error"
+success = False -> message: "scanner not available" | "command execution error"
 
 **get_scan_poses** (riegl_vz_interfaces/GetScanPoses) :
 
 Request all SOPVs of previously registered scan positions in actual project.
 
 Response:  
-success = True -> message: "success", project: Project Name, scanposes: All Scan Poses, vop: VOP Pose, pop: POP Pose
-success = False -> message: "scanner not available" | "node is shutting down" | "command execution error"
+success = True -> message: "success", project: Project Name, scanposes: All Scan Poses, vop: VOP Pose, pop: POP Pose  
+success = False -> message: "scanner not available" | "command execution error"
 
 **get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
 
@@ -275,23 +275,24 @@ Get point cloud of a previously acquired scan position in actual project.
 
 Response:  
 success = True -> message: "success", pointcloud: Scan Data  
-success = False -> message: "data not available"
-success = False -> message: "scanner not available" | "node is shutting down" | "command execution error"
+success = False -> message: "scanner not available" | "command execution error"
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
 Stop laser scan data acquisition and registration background tasks.
 
 Response:  
-success = True -> message: "success"
-success = False -> message: "scanner not available" | "node is shutting down"
+success = True -> message: "success"  
+success = False -> message: "scanner not available" | "command execution error"
 
 **shutdown** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
 Stop data acquisition and power down the laser scanner device.
 
 Response:  
-success = True -> message: "success"
+success = True -> message: "success"  
+success = False -> message: "command execution error"
+
 
 #### 3.1.4 TF2 Transformation
 

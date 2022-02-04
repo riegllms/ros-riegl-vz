@@ -146,28 +146,30 @@ class RieglVzWrapper(Node):
         diag.add('num_sat', str(status.numSat))
         return diag
 
-    def _checkExecConditions(self, response):
-        if not self._rieglVz.isScannerAvailable():
-            response.success = False
-            response.message = "scanner is not available"
-            return False, response
+    def _setResponseStatus(self, response, success, message):
+        response.success = success
+        response.message = message
+        return success, response
 
-        if self._shutdownReq is True:
-            response.success = False
-            response.message = "node is shutting down"
-            return False, response
+    def _setResponseSuccess(self, response):
+        return self._setResponseStatus(response, True, "success")
 
-        return True, response
+    def _setResponseExecError(self, response):
+        self._logger.error("Service request command execution error!")
+        return self._setResponseStatus(response, False, "command execution error")
 
-    def _setSuccessResponse(self, response):
-        response.success = True
-        response.message = "success"
-        return response
+    def _setResponseException(self, response):
+        self._logger.error("Service request command exception!")
+        return self._setResponseStatus(response, False, "command execution error")
 
-    def _setExecErrorResponse(self, response):
-        response.success = False
-        response.message = "command execution error"
-        return response
+    def _checkExecConditions(self):
+        success = True
+        message = "success"
+        if not self._rieglVz.isScannerAvailable() or self._shutdownReq:
+            success = False
+            message = "scanner is not available"
+            self._logger.info("Scanner is not available.")
+        return success, message
 
     def _setProjectName(self, projectName):
         if projectName == "":
@@ -211,19 +213,23 @@ class RieglVzWrapper(Node):
         return ok
 
     def _setProjectCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        self.projectName = str(self.get_parameter('project_name').value)
-        self.storageMedia = int(self.get_parameter('storage_media').value)
-        self.get_logger().debug("project name = {}".format(self.projectName))
+            self.projectName = str(self.get_parameter('project_name').value)
+            self.storageMedia = int(self.get_parameter('storage_media').value)
+            self.get_logger().debug("project name = {}".format(self.projectName))
 
-        if not self.setProject(self.projectName):
-            return self._setExecErrorResponse(response)
+            if not self.setProject(self.projectName):
+                self._setResponseExecError(response)
+                return response
 
-        self._scanposName = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
+            self._scanposName = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
 
     def scan(self):
@@ -273,55 +279,70 @@ class RieglVzWrapper(Node):
             imageOverlap = 25)
 
     def _scanCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        if not self.scan():
-            return self._setExecErrorResponse(response)
+            if not self.scan():
+                self._setResponseException(response)
+                return response
 
-        self._statusUpdater.force_update()
+                self._statusUpdater.force_update
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
     def getPointCloud(self, scanpos, pointcloud):
         ok, pointcloud = self._rieglVz.getPointCloud(scanpos, pointcloud)
         return ok, pointcloud
 
     def _getPointCloudCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        ok, response.pointcloud = self.getPointCloud(request.seq, response.pointcloud)
-        if not ok:
-            return self._setExecErrorResponse(response)
+            ok, response.pointcloud = self.getPointCloud(request.seq, response.pointcloud)
+            if not ok:
+                self._setResponseExecError(response)
+                return response
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
     def setPosition(self, position):
         return self._rieglVz.setPosition(position)
 
     def _setPositionCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        self.setPosition(request.position)
+            self.setPosition(request.position)
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
     def getSopv(self):
         return self._rieglVz.getSopv()
 
     def _getSopvCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        ok, sopv = self.getSopv()
-        if not ok:
-            return self._setExecErrorResponse(response)
+            ok, sopv = self.getSopv()
+            if not ok:
+                self._setResponseExecError(response)
+                return response
 
-        response.pose = sopv.pose
+            response.pose = sopv.pose
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
     def getAllSopv(self):
         return self._rieglVz.getAllSopv()
@@ -333,94 +354,118 @@ class RieglVzWrapper(Node):
         return self._rieglVz.getPop()
 
     def _getScanPosesCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        response.project = self.projectName
+            response.project = self.projectName
 
-        ok, sopvs = self.getAllSopv()
-        if not ok:
-            return self._setExecErrorResponse(response)
+            ok, sopvs = self.getAllSopv()
+            if not ok:
+                self._setResponseExecError(response)
+                return response
 
-        for sopv in sopvs:
-            response.scanposes.append(sopv)
+            for sopv in sopvs:
+                response.scanposes.append(sopv)
 
-        ok, vop = self.getVop()
-        if not ok:
-            return self._setExecErrorResponse(response)
+            ok, vop = self.getVop()
+            if not ok:
+                self._setResponseExecError(response)
+                return response
 
-        response.vop = vop
+            response.vop = vop
 
-        ok, pop = self.getPop()
-        if ok:
-            response.pop = pop
-        else:
-            response.pop = PoseStamped()
+            ok, pop = self.getPop()
+            if ok:
+                response.pop = pop
+            else:
+                response.pop = PoseStamped()
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
     def _getVopCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        ok, vop = self.getVop()
-        if not ok:
-            return self._setExecErrorResponse(response)
+            ok, vop = self.getVop()
+            if not ok:
+                self._setResponseExecError(response)
+                return response
 
-        response.pose = vop
+            response.pose = vop
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
     def _getPopCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        ok, pop = self.getPop()
-        if not ok:
-            return self._setExecErrorResponse(response)
+            ok, pop = self.getPop()
+            if not ok:
+                self._setResponseExecError(response)
+                return response
 
-        response.pose = pop
+            response.pose = pop
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
     def stop(self):
         self._rieglVz.stop()
 
     def _stopCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        self.stop()
+            self.stop()
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
     def trigStartStop(self):
         return self._rieglVz.trigStartStop()
 
     def _trigStartStopCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        if not self.trigStartStop():
-            return self._setExecErrorResponse(response)
+            if not self.trigStartStop():
+                self._setResponseExecError(response)
+                return response
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
     def getScanPatterns(self):
         return self._rieglVz.getScanPatterns()
 
     def _getScanPatternsCallback(self, request, response):
-        if not self._checkExecConditions(response):
-            return response
+        try:
+            if not self._setResponseStatus(response, self._checkExecConditions()):
+                return response
 
-        ok, patterns = self.getScanPatterns()
-        if not ok:
-            return self._setExecErrorResponse(response)
+            ok, patterns = self.getScanPatterns()
+            if not ok:
+                self._setResponseExecError(response)
+                return response
 
-        for pattern in patterns:
-            response.patterns.append(pattern)
+            for pattern in patterns:
+                response.patterns.append(pattern)
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
     def shutdown(self):
         self._shutdownReq = True
@@ -428,9 +473,13 @@ class RieglVzWrapper(Node):
         self._rieglVz.shutdown()
 
     def _shutdownCallback(self, request, response):
-        self.shutdown()
+        try:
+            self.shutdown()
+            self._setResponseSuccess(response)
+        except:
+            self._setResponseException(response)
 
-        return self._setSuccessResponse(response)
+        return response
 
 def stop_node():
     if _rieglVzWrapper is not None:
