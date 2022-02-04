@@ -129,7 +129,7 @@ class RieglVz():
         return self._status.getGnssStatus()
 
     def loadProject(self, projectName: str, storageMedia: int, scanRegister: bool):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return False
 
         ok = self._project.loadProject(projectName, storageMedia)
@@ -139,7 +139,7 @@ class RieglVz():
         return ok;
 
     def createProject(self, projectName: str, storageMedia: int):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return False
 
         if self._project.createProject(projectName, storageMedia):
@@ -149,12 +149,12 @@ class RieglVz():
         return False
 
     def getCurrentScanpos(self, projectName: str, storageMedia: int):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return ""
         return self._project.getCurrentScanpos(projectName, storageMedia);
 
     def getNextScanpos(self, projectName: str, storageMedia: int):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return ""
         return self._project.getNextScanpos(projectName, storageMedia)
 
@@ -183,7 +183,7 @@ class RieglVz():
         self._uploadFile([localFile], scanposPath)
 
     def setProjectControlPoints(coordSystem: str, csvFile: str):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return
 
         projectPath = self._project.getActiveProjectPath()
@@ -204,7 +204,7 @@ class RieglVz():
             self._uploadFile([localDstCpsFile], projectPath)
 
     def getPointCloud(self, scanposName: str, pointcloud: PointCloud2, ts: datetime.time = None):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return False, pointcloud
 
         scanId = self._project.getScanId(scanposName)
@@ -437,7 +437,7 @@ class RieglVz():
           scanPattern ... the scan pattern
           reflSearchSettings ... reflector search settings"""
 
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return False
 
         if self.isBusy(block=False):
@@ -467,21 +467,21 @@ class RieglVz():
 
     def isScanning(self, block = True):
         if block:
-            while self.getScannerStatus().opstate == "scanning":
+            while self._status.getScannerOpstate() == "scanning":
                 time.sleep(0.2)
-        return True if self.getScannerStatus().opstate == "scanning" else False
+        return True if self._status.getScannerOpstate() == "scanning" else False
 
     def isBusy(self, block = True):
         if block:
-            while self.getScannerStatus().opstate != "waiting":
+            while self._status.getScannerOpstate() != "waiting":
                 time.sleep(0.2)
-        return False if self.getScannerStatus().opstate == "waiting" else True
+        return False if self._status.getScannerOpstate() == "waiting" else True
 
     def setPosition(self, position):
         self._position = position
 
     def getAllSopv(self):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return False, None
 
         try:
@@ -498,7 +498,7 @@ class RieglVz():
         return ok, sopvs
 
     def getSopv(self):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return False, None
 
         ok, sopvs = self.getAllSopv()
@@ -511,7 +511,7 @@ class RieglVz():
         return ok, sopv
 
     def getVop(self):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return False, None
 
         try:
@@ -527,7 +527,7 @@ class RieglVz():
         return True, vop
 
     def getPop(self):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return False, None
 
         try:
@@ -545,13 +545,13 @@ class RieglVz():
     def stop(self):
         self._stopReq = True
 
-        if self.getScannerStatus().opstate != "unavailable":
+        if self._status.isScannerAvailable():
             ctrlSvc = ControlService(self._connectionString)
             ctrlSvc.stop()
             self.isBusy()
 
     def trigStartStop(self):
-        if self.getScannerStatus().opstate == "unavailable":
+        if not self._status.isScannerAvailable():
             return False
 
         trigStartedPrev = self._status.trigStarted
@@ -576,6 +576,6 @@ class RieglVz():
     def shutdown(self):
         self._status.shutdown()
         self.stop()
-        if self.getScannerStatus().opstate != "unavailable":
+        if self._status.isScannerAvailable():
             scnSvc = ScannerService(self._connectionString)
             scnSvc.shutdown()

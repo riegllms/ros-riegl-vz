@@ -142,6 +142,12 @@ class RieglVzStatus():
         self.status.scannerStatus.memUsage = memUsage
         return self.status.getScannerStatus()
 
+    def getScannerOpstate(self):
+        return self.status.getScannerStatus().opstate
+
+    def isScannerAvailable(self):
+        return (self.getScannerOpstate() != "unavailable")
+
     def getGnssStatus(self):
         if self._gnssSvc:
             j = json.loads(self._gnssSvc.estimateInfo())
