@@ -195,11 +195,12 @@ Riegl VZ status information, published once per second:
 
 ```
 scanner:
-  opstate       : operating state ("unavailable", "waiting", "scanning", "processing")
+  opstate       : operating state ("unavailable", "waiting", "scanning", "converting", "downloading", "processing")
   progress      : scan progress in percent
   scan_position : number of current scan position
-  mem_total_kb  : total storage media memory space in KByte
-  mem_usage     : storage media memory usage
+  mem_total_gb  : total storage media memory space in GByte
+  mem_free_gb   : free storage media memory space in GByte
+  mem_usage     : storage media memory usage in percent of total space
 gnss:
   fix           : GNSS fix
   num_sat       : number of available satellites

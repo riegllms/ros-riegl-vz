@@ -11,7 +11,8 @@ class ScannerStatus(object):
         self.err = False
         self.opstate = "unavailable"
         self.progress = 0
-        self.memTotalKB = 0
+        self.memTotalGB = 0
+        self.memFreeGB = 0
         self.memUsage = 0
 
 class GnssStatus(object):
@@ -116,8 +117,9 @@ class RieglVzStatus():
 
     def _getScannerMemUsage(self, storageMedia):
         err = False
-        memTotalKB = 0
-        memUsage = 0.0
+        memTotalGB = 0
+        memFreeGB = 0
+        memUsage = 0
         if self._intfSvc:
             intf = 0
             if storageMedia == 0:
@@ -130,15 +132,17 @@ class RieglVzStatus():
             if len(storageIfs) > 0:
                 totalSpace = storageIfs[0]["mounts"][0]["storage_space"]["total_space"]
                 usedSpace = storageIfs[0]["mounts"][0]["storage_space"]["used_space"]
-                memTotalKB = totalSpace
+                memTotalGB = totalSpace / 1024.0 / 1024.0
+                memFreeGB = (totalSpace - usedSpace) / 1024.0 / 1024.0
                 memUsage = usedSpace / totalSpace * 100.0
             else:
                 err = True
-        return err, memTotalKB, memUsage
+        return err, memTotalGB, memFreeGB, memUsage
 
     def getScannerStatus(self, storageMedia):
-        self.status.scannerStatus.err, memTotalKB, memUsage = self._getScannerMemUsage(storageMedia)
-        self.status.scannerStatus.memTotalKB = memTotalKB
+        self.status.scannerStatus.err, memTotalGB, memFreeGB, memUsage = self._getScannerMemUsage(storageMedia)
+        self.status.scannerStatus.memTotalGB = memTotalGB
+        self.status.scannerStatus.memFreeGB = memFreeGB
         self.status.scannerStatus.memUsage = memUsage
         return self.status.getScannerStatus()
 

@@ -67,7 +67,14 @@ class RieglVzProject():
 
         if len(response) == 0:
             return 0
-        return int(response[0])
+
+        scanpos = 0
+        try:
+            scanpos = int(response[0])
+        except:
+            scanpos = 0
+
+        return scanpos
 
     def getCurrentScanpos(self, projectName: str, storageMedia: int):
         scanpos = self._getCurrentScanpos(projectName, storageMedia)

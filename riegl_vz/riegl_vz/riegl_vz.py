@@ -320,7 +320,7 @@ class RieglVz():
             return
         self._logger.info("Data acquisition finished")
 
-        self._status.status.setOpstate("processing")
+        self._status.status.setOpstate("converting")
 
         if self._position is not None:
             if self.scanposName == '1':
@@ -353,6 +353,8 @@ class RieglVz():
             return
         self._logger.info("RXP to RDBX conversion finished")
 
+        self._status.status.setOpstate("downloading")
+
         if self.scanPublish:
             self._logger.info("Downloading and publishing point cloud..")
             pointcloud: PointCloud2 = PointCloud2()
@@ -360,6 +362,8 @@ class RieglVz():
             if ok:
                 self._node.pointCloudPublisher.publish(pointcloud)
             self._logger.info("Point cloud published")
+
+        self._status.status.setOpstate("processing")
 
         if self.scanRegister:
             self._logger.info("Starting registration..")

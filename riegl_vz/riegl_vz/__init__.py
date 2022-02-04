@@ -106,7 +106,7 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
-        self._scanposName = ""
+        self._scanposName = "0"
         self.projectValid = False
 
         self._statusUpdater = Updater(self)
@@ -124,7 +124,8 @@ class RieglVzWrapper(Node):
         diag.summary(err, "RIEGL VZ laser scanner is " + status.opstate)
         diag.add('opstate', status.opstate)
         diag.add('progress', str(status.progress))
-        diag.add('mem_total_kb', str(status.memTotalKB))
+        diag.add('mem_total_gb', str(status.memTotalGB))
+        diag.add('mem_free_gb', str(status.memFreeGB))
         diag.add('mem_usage', str(status.memUsage))
         diag.add('scan_position', self._scanposName)
         return diag

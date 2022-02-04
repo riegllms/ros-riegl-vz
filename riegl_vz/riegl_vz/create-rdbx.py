@@ -80,6 +80,8 @@ def createArgumentParser():
         help='project name')
     parser.add_argument('--scanposition',
         help='scanposition name')
+    parser.add_argument('--scan',
+        help='scan name')
     return parser
 
 def main():
@@ -99,8 +101,12 @@ def main():
     procSvc = DataprocService(args.connectionstring)
     ctrlSvc = ControlService(args.connectionstring)
 
-    scanId = procSvc.actualFile(0)
-    scan: str = os.path.basename(scanId).replace(".rxp", "")
+    scan = ''
+    if args.scan:
+        scan = args.scan
+    else:
+        scanId = procSvc.actualFile(0)
+        scan: str = os.path.basename(scanId).replace(".rxp", "")[0:13] 
     storMedia = mediaString(projSvc)
     if not createRdbx(
         sigHandler, ctrlSvc,
