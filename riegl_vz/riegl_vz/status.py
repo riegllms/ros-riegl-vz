@@ -1,5 +1,6 @@
 import time
 import json
+import math
 import threading
 
 from vzi_services.scannerservice import ScannerService
@@ -15,6 +16,10 @@ class ScannerStatus(object):
         self.opstate = "unavailable"
         self.activeTask = ""
         self.progress = 0
+
+class MemoryStatus(object):
+    def __init__(self):
+        self.err = False
         self.memTotalGB = 0
         self.memFreeGB = 0
         self.memUsage = 0
@@ -22,12 +27,16 @@ class ScannerStatus(object):
 class GnssStatus(object):
     def __init__(self):
         self.err = False
-        self.fix = False
-        self.numSat = 0
+        self.fix = True
+        self.numSat = 3
+        self.longitude = 15.656631
+        self.latitude = 48.6625
+        self.altitude = math.nan
 
 class StatusMaintainer(object):
     def __init__(self):
         self.scannerStatus: ScannerStatus = ScannerStatus()
+        self.memoryStatus: MemoryStatus = MemoryStatus()
         self.gnssStatus: GnssStatus = GnssStatus()
         self._threadLock = threading.Lock()
 
@@ -125,7 +134,7 @@ class RieglVzStatus():
             try:
                 self._intfSvc = InterfaceService(self._connectionString)
             except:
-                self.status.scannerStatus.err = True
+                self.status.memoryStatus.err = True
                 self._logger.error("InterfaceService is not available!")
             try:
                 self._gnssSvc = GnssBaseService(self._connectionString)
@@ -146,7 +155,16 @@ class RieglVzStatus():
             serialNumber = self._scanSvc.instrumentInformation().serialNumber
         return ok, err, instIdent, serialNumber
 
-    def _getScannerMemUsage(self, storageMedia):
+    def getScannerStatus(self):
+        return self.status.getScannerStatus()
+
+    def getScannerOpstate(self):
+        return self.status.getScannerStatus().opstate
+
+    def isScannerAvailable(self):
+        return (self.getScannerOpstate() != "unavailable")
+
+    def _getMemoryUsage(self, storageMedia):
         ok = False
         err = False
         memTotalGB = 0
@@ -172,26 +190,23 @@ class RieglVzStatus():
                 err = True
         return ok, err, memTotalGB, memFreeGB, memUsage
 
-    def getScannerStatus(self, storageMedia):
-        ok, memUsageErr, memTotalGB, memFreeGB, memUsage = self._getScannerMemUsage(storageMedia)
+    def getMemoryStatus(self, storageMedia):
+        ok, memUsageErr, memTotalGB, memFreeGB, memUsage = self._getMemoryUsage(storageMedia)
         if ok:
-            self.status.scannerStatus.memTotalGB = memTotalGB
-            self.status.scannerStatus.memFreeGB = memFreeGB
-            self.status.scannerStatus.memUsage = memUsage
-            self.status.scannerStatus.err = memUsageErr
-        return self.status.getScannerStatus()
-
-    def getScannerOpstate(self):
-        return self.status.getScannerStatus().opstate
-
-    def isScannerAvailable(self):
-        return (self.getScannerOpstate() != "unavailable")
+            self.status.memoryStatus.memTotalGB = memTotalGB
+            self.status.memoryStatus.memFreeGB = memFreeGB
+            self.status.memoryStatus.memUsage = memUsage
+            self.status.memoryStatus.err = memUsageErr
+        return self.status.memoryStatus
 
     def getGnssStatus(self):
         if self._gnssSvc:
             j = json.loads(self._gnssSvc.estimateInfo())
             self.status.gnssStatus.fix = j["fix"]
             self.status.gnssStatus.numSat = j["num_sat"]
+            self.status.gnssStatus.longitude = j["longitude"]
+            self.status.gnssStatus.latitude = j["latitude"]
+            self.status.gnssStatus.altitude = j["height"]
         return self.status.gnssStatus
 
     def shutdown(self):

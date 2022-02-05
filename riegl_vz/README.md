@@ -189,6 +189,14 @@ Point cloud with scan data from the laser scanner. Included are xyz cartesian co
 
 Topic provides SOPV (Scan Position and Orientation in VOCS) of the currently registered scan position.
 
+**gnss/fix** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
+
+Actual GNSS fix with position in WGS 84 coordinates, published once per second.
+
+**gnss/fix/scan** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
+
+GNSS fix with position in WGS 84 coordinates, published shortly before scan data acquisition.
+
 **diagnostics** ([diagnostic_msgs/DiagnosticArray.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticArray.msg)):
 
 Riegl VZ status information, published once per second:
@@ -199,12 +207,10 @@ scanner:
   active_task   : active task description
   progress      : scan progress in percent
   scan_position : number of current scan position
+memory:
   mem_total_gb  : total storage media memory space in GByte
   mem_free_gb   : free storage media memory space in GByte
   mem_usage     : storage media memory usage in percent of total space
-gnss:
-  fix           : GNSS fix
-  num_sat       : number of available satellites
 ```
 
 #### 3.1.3 Services
@@ -306,7 +312,7 @@ Not available in first implementation but for further extension:
 
 * Providing covariance of pose (see [sensor_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg))
 
-* More diagnostic status information, e.g. memory usage, scanner errors, GNSS status
+* More diagnostic status information, e.g. scanner errors, ...
 
 * Additional parameters:
 
@@ -314,8 +320,8 @@ Not available in first implementation but for further extension:
 
 * Additional services:
 
-**get_voxel** (riegl_vz_interfaces/GetPointcloud) : Get voxel data of a previous scan data acquisition.
-
 **get_image** (riegl_vz_interfaces/GetImage) : Get camera image for scan position.
+
+**get_voxel** (riegl_vz_interfaces/GetPointcloud) : Get voxel data of a previous scan data acquisition.
 
 **get_projectmap** (riegl_vz_interfaces/GetImage) : Get the project map overview image.

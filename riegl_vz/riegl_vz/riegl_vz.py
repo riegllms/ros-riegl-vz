@@ -13,7 +13,9 @@ from std_msgs.msg import (
 )
 from sensor_msgs.msg import (
     PointCloud2,
-    PointField
+    PointField,
+    NavSatStatus,
+    NavSatFix
 )
 from geometry_msgs.msg import (
     PoseWithCovariance,
@@ -103,11 +105,14 @@ class RieglVz():
             return False, None
         return True, sopv
 
-    def getScannerStatus(self, storageMedia):
-        return self._status.getScannerStatus(storageMedia)
+    def getScannerStatus(self):
+        return self._status.getScannerStatus()
 
     def isScannerAvailable(self):
         return self._status.isScannerAvailable()
+
+    def getMemoryStatus(self, storageMedia):
+        return self._status.getMemoryStatus(storageMedia)
 
     def getGnssStatus(self):
         return self._status.getGnssStatus()
@@ -155,6 +160,40 @@ class RieglVz():
             json.dump(finalPose, f, indent=4)
             f.write("\n")
         self._ssh.uploadFile([localFile], scanposPath)
+
+    def _getGnssFixMessage(self):
+        status = self._status.getGnssStatus()
+
+        msg = NavSatFix()
+        msg.header = Header()
+        msg.header.stamp = self._node.get_clock().now().to_msg()
+        msg.header.frame_id = "riegl_vz_gnss"
+
+        if status.fix:
+            msg.status.status = NavSatStatus.STATUS_FIX
+        else:
+            msg.status.status = NavSatStatus.STATUS_NO_FIX
+        msg.status.service = NavSatStatus.SERVICE_GPS
+
+        # Position in degrees.
+        msg.latitude = status.latitude
+        msg.longitude = status.longitude
+
+        # Altitude in metres.
+        msg.altitude = status.altitude
+
+        msg.position_covariance[0] = 0
+        msg.position_covariance[4] = 0
+        msg.position_covariance[8] = 0
+        msg.position_covariance_type = NavSatFix.COVARIANCE_TYPE_DIAGONAL_KNOWN
+
+        return msg
+
+    def publishGnssFix(self):
+        self._node.gnssFixPublisher.publish(self._getGnssFixMessage())
+
+    def publishScanGnssFix(self):
+        self._node.scanGnssFixPublisher.publish(self._getGnssFixMessage())
 
     def setProjectControlPoints(coordSystem: str, csvFile: str):
         projectPath = self._project.getActiveProjectPath()
@@ -243,6 +282,9 @@ class RieglVz():
     def _scanThreadFunc(self):
         self._status.status.setOpstate("scanning", "scan data acquisition")
         self._status.status.setProgress(0)
+
+        self._logger.info("Publish scan position GNSS fix..")
+        self.publishScanGnssFix()
 
         ts = self._node.get_clock().now()
         self._logger.info("Latch timestamp: {0}".format(ts))

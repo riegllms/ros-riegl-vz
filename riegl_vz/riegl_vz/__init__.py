@@ -8,6 +8,7 @@ from std_srvs.srv import (
 )
 from sensor_msgs.msg import (
     PointCloud2,
+    NavSatFix
 )
 from geometry_msgs.msg import (
     PoseStamped,
@@ -90,6 +91,8 @@ class RieglVzWrapper(Node):
         self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
         self.odomPublisher = self.create_publisher(Odometry, 'odom', 10)
+        self.gnssFixPublisher = self.create_publisher(NavSatFix, 'gnss/fix', 10)
+        self.scanGnssFixPublisher = self.create_publisher(NavSatFix, 'gnss/fix/scan', 10)
 
         self.transformBroadcaster = TransformBroadcaster(self)
 
@@ -113,38 +116,52 @@ class RieglVzWrapper(Node):
 
         self._statusUpdater = Updater(self)
         self._statusUpdater.setHardwareID('riegl_vz')
-        self._statusUpdater.add("scanner", self.produceScannerDiagnostics)
-        self._statusUpdater.add("gnss", self.produceGnssDiagnostics)
+        self._statusUpdater.add("scanner", self._produceScannerDiagnostics)
+        self._statusUpdater.add("memory", self._produceMemoryDiagnostics)
+
+        self._gnssFixTimer = self.create_timer(1.0, self._publishGnssFix)
 
         self.get_logger().info("RIEGL VZ node is started... (host = {}).".format(self.hostname))
 
-    def produceScannerDiagnostics(self, diag):
-        status = self._rieglVz.getScannerStatus(self.storageMedia)
+    def _produceScannerDiagnostics(self, diag):
+        status = self._rieglVz.getScannerStatus()
+
         err = DiagnosticStatus.OK
         if status.err:
             err = DiagnosticStatus.ERROR
+
         diag.summary(err, "RIEGL VZ laser scanner is " + status.opstate)
         diag.add('opstate', status.opstate)
         diag.add('active_task', status.activeTask)
         diag.add('progress', str(status.progress))
-        diag.add('mem_total_gb', str(status.memTotalGB))
-        diag.add('mem_free_gb', str(status.memFreeGB))
-        diag.add('mem_usage', str(status.memUsage))
         diag.add('scan_position', self._scanposName)
+
         return diag
 
-    def produceGnssDiagnostics(self, diag):
-        status = self._rieglVz.getGnssStatus()
-        fixStr: str = "no"
-        if status.fix:
-            fixStr = "a"
+    def _produceMemoryDiagnostics(self, diag):
+        status = self._rieglVz.getMemoryStatus(self.storageMedia)
+
+        memStatus = "ok"
+        if status.memUsage >= 90.0:
+            memStatus = "almost full"
+            err = DiagnosticStatus.WARN
+        if status.memUsage >= 99.0:
+            memStatus = "full"
+            err = DiagnosticStatus.ERROR
+
         err = DiagnosticStatus.OK
         if status.err:
             err = DiagnosticStatus.ERROR
-        diag.summary(err, "RIEGL VZ GNSS has {} fix".format(fixStr))
-        diag.add('fix', str(status.fix))
-        diag.add('num_sat', str(status.numSat))
+
+        diag.summary(err, "RIEGL VZ storage media is " + memStatus)
+        diag.add('mem_total_gb', str(status.memTotalGB))
+        diag.add('mem_free_gb', str(status.memFreeGB))
+        diag.add('mem_usage', str(status.memUsage))
+
         return diag
+
+    def _publishGnssFix(self):
+            self._rieglVz.publishGnssFix()
 
     def _setResponseStatus(self, response, success, message):
         response.success = success
@@ -152,15 +169,15 @@ class RieglVzWrapper(Node):
         return success, response
 
     def _setResponseSuccess(self, response):
-        return self._setResponseStatus(response, True, "success")
+        return self._setResponseStatus(response, True, "success")[1]
 
     def _setResponseExecError(self, response):
         self._logger.error("Service request command execution error!")
-        return self._setResponseStatus(response, False, "command execution error")
+        return self._setResponseStatus(response, False, "command execution error")[1]
 
     def _setResponseException(self, response):
         self._logger.error("Service request command exception!")
-        return self._setResponseStatus(response, False, "command execution error")
+        return self._setResponseStatus(response, False, "command execution error")[1]
 
     def _checkExecConditions(self):
         success = True
@@ -214,7 +231,7 @@ class RieglVzWrapper(Node):
 
     def _setProjectCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             self.projectName = str(self.get_parameter('project_name').value)
@@ -280,7 +297,7 @@ class RieglVzWrapper(Node):
 
     def _scanCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             if not self.scan():
@@ -299,7 +316,7 @@ class RieglVzWrapper(Node):
 
     def _getPointCloudCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             ok, response.pointcloud = self.getPointCloud(request.seq, response.pointcloud)
@@ -316,7 +333,7 @@ class RieglVzWrapper(Node):
 
     def _setPositionCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             self.setPosition(request.position)
@@ -330,7 +347,7 @@ class RieglVzWrapper(Node):
 
     def _getSopvCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             ok, sopv = self.getSopv()
@@ -355,7 +372,7 @@ class RieglVzWrapper(Node):
 
     def _getScanPosesCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             response.project = self.projectName
@@ -387,7 +404,7 @@ class RieglVzWrapper(Node):
 
     def _getVopCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             ok, vop = self.getVop()
@@ -403,7 +420,7 @@ class RieglVzWrapper(Node):
 
     def _getPopCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             ok, pop = self.getPop()
@@ -422,7 +439,7 @@ class RieglVzWrapper(Node):
 
     def _stopCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             self.stop()
@@ -436,7 +453,7 @@ class RieglVzWrapper(Node):
 
     def _trigStartStopCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             if not self.trigStartStop():
@@ -452,7 +469,7 @@ class RieglVzWrapper(Node):
 
     def _getScanPatternsCallback(self, request, response):
         try:
-            if not self._setResponseStatus(response, self._checkExecConditions()):
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             ok, patterns = self.getScanPatterns()
