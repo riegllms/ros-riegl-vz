@@ -170,7 +170,7 @@ Name of reflector search model. Can be specified multiple times, seperated by co
 
 Minimum and maximum range in meter between scan-position and reflector.
 
-**~control_points_cvs_file** (string, default: "") :
+**~control_points_csv_file** (string, default: "") :
 
 Path to CSV with control points in GLCS (Global Coordinate System).
 

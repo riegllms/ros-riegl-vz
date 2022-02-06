@@ -66,7 +66,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('reflector_search', False)
         self.declare_parameter('reflector_search_models', '')
         self.declare_parameter('reflector_search_limits', [0.0, 10000.0])
-        self.declare_parameter('control_points_cvs_file', '')
+        self.declare_parameter('control_points_csv_file', '')
         self.declare_parameter('control_points_coord_system', '')
 
         self.hostname = str(self.get_parameter('hostname').value)
@@ -220,12 +220,12 @@ class RieglVzWrapper(Node):
 
         if ok:
             self.projectValid = True
-            self.cpsCvsFile = str(self.get_parameter('control_points_cvs_file').value)
-            self.get_logger().debug("control points CVS file = {}".format(self.cpsCvsFile))
-            if len(self.cpsCvsFile) > 0:
+            self.cpsCsvFile = str(self.get_parameter('control_points_csv_file').value)
+            self.get_logger().debug("control points CSV file = {}".format(self.cpsCsvFile))
+            if len(self.cpsCsvFile) > 0:
                 self.cpsCoordSystem = str(self.get_parameter('control_points_coord_system').value)
-                self.get_logger().debug("control points coord system = {}".format(self.cpsCvsCoordSystem))
-                self._rieglVz.setProjectControlPoints(self.cpsCoordSystem, self.cpsCvsFile)
+                self.get_logger().debug("control points coord system = {}".format(self.cpsCsvCoordSystem))
+                self._rieglVz.setProjectControlPoints(self.cpsCoordSystem, self.cpsCsvFile)
 
         return ok
 

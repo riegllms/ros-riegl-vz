@@ -15,5 +15,5 @@ riegl_vz_node:
     reflector_search: False
     reflector_search_models: ""
     reflector_search_limits: [0.0,10000.0]
-    control_points_cvs_file: ""
+    control_points_csv_file: ""
     control_points_coord_system: ""
