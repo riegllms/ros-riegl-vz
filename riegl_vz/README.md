@@ -71,7 +71,7 @@ string message                # informational, e.g. for error messages
 ```   
 The 'frame_id' in the scanposes[n].header is 'riegl_vz_vocs'.  
 The 'frame_id' in the vop.header is 'riegl_vz_prcs'.  
-The 'frame_id' in the pop.header is the name of the global coordinate system (e.g. EPSG::4978)
+The 'frame_id' in the pop.header is 'riegl_vz_glcs', which is e.g. EPSG::4978
 
 **riegl_vz_interfaces/GetPose**:
 ```
@@ -91,7 +91,7 @@ bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PointStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PointStamped.msg)
-The 'frame_id' in the position.header is the name of the global coordinate system (e.g. EPSG::4978)
+The 'frame_id' in the position.header is 'riegl_vz_glcs', which is e.g. EPSG::4978
 
 ## 3. Nodes
 

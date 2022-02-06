@@ -96,7 +96,7 @@ def readPop(popPath):
 
     pop = PoseStamped()
     pop.header = Header(
-        frame_id = glcs,
+        frame_id = "riegl_vz_glcs",
         stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
         )
     pop.pose = Pose(
