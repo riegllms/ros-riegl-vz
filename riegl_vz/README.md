@@ -211,6 +211,9 @@ memory:
   mem_total_gb  : total storage media memory space in GByte
   mem_free_gb   : free storage media memory space in GByte
   mem_usage     : storage media memory usage in percent of total space
+gnss:
+  fix           : GNSS fix
+  num_sat       : number of available satellites
 ```
 
 #### 3.1.3 Services

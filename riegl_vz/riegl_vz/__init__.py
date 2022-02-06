@@ -118,6 +118,7 @@ class RieglVzWrapper(Node):
         self._statusUpdater.setHardwareID('riegl_vz')
         self._statusUpdater.add("scanner", self._produceScannerDiagnostics)
         self._statusUpdater.add("memory", self._produceMemoryDiagnostics)
+        self._statusUpdater.add("gnss", self._produceGnssDiagnostics)
 
         self._gnssFixTimer = self.create_timer(1.0, self._publishGnssFix)
 
@@ -127,6 +128,8 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getScannerStatus()
 
         err = DiagnosticStatus.OK
+        if status.opstate == "unavailable":
+            err = DiagnosticStatus.WARN
         if status.err:
             err = DiagnosticStatus.ERROR
 
@@ -141,6 +144,7 @@ class RieglVzWrapper(Node):
     def _produceMemoryDiagnostics(self, diag):
         status = self._rieglVz.getMemoryStatus(self.storageMedia)
 
+        err = DiagnosticStatus.OK
         memStatus = "ok"
         if status.memUsage >= 90.0:
             memStatus = "almost full"
@@ -148,8 +152,6 @@ class RieglVzWrapper(Node):
         if status.memUsage >= 99.0:
             memStatus = "full"
             err = DiagnosticStatus.ERROR
-
-        err = DiagnosticStatus.OK
         if status.err:
             err = DiagnosticStatus.ERROR
 
@@ -158,6 +160,23 @@ class RieglVzWrapper(Node):
         diag.add('mem_free_gb', str(status.memFreeGB))
         diag.add('mem_usage', str(status.memUsage))
 
+        return diag
+
+    def _produceGnssDiagnostics(self, diag):
+        status = self._rieglVz.getGnssStatus()
+
+        err = DiagnosticStatus.OK
+        fixStr: str = "no"
+        if status.fix:
+            fixStr = "a"
+        else:
+            err = DiagnosticStatus.WARN
+        if status.err:
+            err = DiagnosticStatus.ERROR
+
+        diag.summary(err, "RIEGL VZ GNSS has {} fix".format(fixStr))
+        diag.add('fix', str(status.fix))
+        diag.add('num_sat', str(status.numSat))
         return diag
 
     def _publishGnssFix(self):
