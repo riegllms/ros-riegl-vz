@@ -69,10 +69,16 @@ Set 'fixed-frame' in 'Global Options' to 'riegl_vz_socs'. Activate 'PointCloud2'
 
 ![rviz2](riegl_vz/img/rviz2.png)
 
-**Monitor diagnostics with rqt:**
+**Monitor 'riegl_vz' node with foxglove-studio:**
 
-Start 'rqt' tool, activate 'Topic Monitor' plugin and select '/diagnostics' topic for monitoring:
+Install foxglove-studio from https://foxglove.dev.
 
-```rqt```
+Start 'foxglove-studio':
 
-![rqt](riegl_vz/img/rqt.png)
+```foxglove-studio```
+
+Import layout from foxglove-studio/RIEGL VZ Default.json.
+
+And open a data source, e.g. open live connection.
+
+![rqt](riegl_vz/img/foxglove.png)

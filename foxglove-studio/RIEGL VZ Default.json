@@ -1,0 +1,86 @@
+{
+  "configById": {
+    "map!1j5ckep": {
+      "disabledTopics": [
+        "/gps/fix",
+        "/gnss/scan"
+      ],
+      "zoomLevel": 15
+    },
+    "DiagnosticStatusPanel!2h3p27o": {
+      "topicToRender": "/diagnostics",
+      "collapsedSections": [],
+      "selectedHardwareId": "riegl_vz"
+    },
+    "SourceInfo!2utesws": {},
+    "StateTransitions!3wmyb26": {
+      "paths": [
+        {
+          "value": "/diagnostics.status[:]{hardware_id==\"riegl_vz\"}{name==\"riegl_vz_node: scanner\"}.values[:]{key==\"opstate\"}.value",
+          "timestampMethod": "receiveTime"
+        }
+      ]
+    },
+    "Plot!17y0l8m": {
+      "paths": [
+        {
+          "value": "/diagnostics.status[:]{hardware_id==\"riegl_vz\"}{name==\"riegl_vz_node: scanner\"}.values[:]{key==\"progress\"}.value",
+          "enabled": true,
+          "timestampMethod": "receiveTime"
+        }
+      ],
+      "minYValue": "",
+      "maxYValue": "",
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "showSidebar": false,
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarWidth": 240
+    },
+    "RosOut!15jcci8": {
+      "searchTerms": [],
+      "minLogLevel": 2
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {
+    "187505e0-a83c-4eec-8442-f7d788bbbd1a": {
+      "sourceCode": "import { Input, Messages } from \"ros\";\n\ntype Output = {};\ntype GlobalVariables = { id: number };\n\nexport const inputs = [];\nexport const output = \"/studio_node/\";\n\n// Populate 'Input' with a parameter to properly type your inputs, e.g. 'Input<\"/your_input_topic\">'\nconst publisher = (message: Input<>, globalVars: GlobalVariables): Output => {\n  return {};\n};\n\nexport default publisher;",
+      "name": "/studio_node/187505e0"
+    }
+  },
+  "linkedGlobalVariables": [],
+  "playbackConfig": {
+    "speed": 1,
+    "messageOrder": "receiveTime"
+  },
+  "layout": {
+    "direction": "row",
+    "first": "map!1j5ckep",
+    "second": {
+      "first": {
+        "direction": "row",
+        "first": {
+          "first": "DiagnosticStatusPanel!2h3p27o",
+          "second": "SourceInfo!2utesws",
+          "direction": "column",
+          "splitPercentage": 40.025094102885824
+        },
+        "second": {
+          "first": "StateTransitions!3wmyb26",
+          "second": "Plot!17y0l8m",
+          "direction": "column",
+          "splitPercentage": 22.53711201079622
+        },
+        "splitPercentage": 52.83926852743021
+      },
+      "second": "RosOut!15jcci8",
+      "direction": "column",
+      "splitPercentage": 78.44488188976378
+    },
+    "splitPercentage": 34.3236409608091
+  }
+}
