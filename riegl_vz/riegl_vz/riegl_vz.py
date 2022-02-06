@@ -283,9 +283,6 @@ class RieglVz():
         self._status.status.setOpstate("scanning", "scan data acquisition")
         self._status.status.setProgress(0)
 
-        self._logger.info("Publish scan position GNSS fix..")
-        self.publishScanGnssFix()
-
         ts = self._node.get_clock().now()
         self._logger.info("Latch timestamp: {0}".format(ts))
 
@@ -346,6 +343,9 @@ class RieglVz():
             return
         self._logger.info("Data acquisition finished")
 
+        self._logger.info("Publish scan position GNSS fix..")
+        self.publishScanGnssFix()
+        
         self._status.status.setOpstate("processing")
 
         if self._position is not None:
