@@ -7,6 +7,7 @@ from vzi_services.scannerservice import ScannerService
 from vzi_services.controlservice import ControlService
 from vzi_services.interfaceservice import InterfaceService
 from vzi_services.gnssbaseservice import GnssBaseService
+from vzi_services.riconnectswitch import RiconnectSwitch
 
 class ScannerStatus(object):
     def __init__(self):
@@ -33,11 +34,18 @@ class GnssStatus(object):
         self.latitude = 48.6625
         self.altitude = math.nan
 
+class ErrorStatus(object):
+    def __init__(self):
+        self.err = False
+        self.numErrors = 0
+        self.numWarnings = 0
+
 class StatusMaintainer(object):
     def __init__(self):
-        self.scannerStatus: ScannerStatus = ScannerStatus()
-        self.memoryStatus: MemoryStatus = MemoryStatus()
-        self.gnssStatus: GnssStatus = GnssStatus()
+        self._scannerStatus: ScannerStatus = ScannerStatus()
+        self._memoryStatus: MemoryStatus = MemoryStatus()
+        self._gnssStatus: GnssStatus = GnssStatus()
+        self._errorStatus: ErrorStatus = ErrorStatus()
         self._threadLock = threading.Lock()
 
     def _lock(self):
@@ -48,24 +56,56 @@ class StatusMaintainer(object):
 
     def setOpstate(self, opstate, task = ""):
         self._lock()
-        self.scannerStatus.opstate = opstate
-        self.scannerStatus.activeTask = task
+        self._scannerStatus.opstate = opstate
+        self._scannerStatus.activeTask = task
         self._unlock()
 
     def setActiveTask(self, task):
         self._lock()
-        self.scannerStatus.activeTask = task
+        self._scannerStatus.activeTask = task
         self._unlock()
 
     def setProgress(self, progress):
         self._lock()
-        self.scannerStatus.progress = progress
+        self._scannerStatus.progress = progress
         self._unlock()
 
     def getScannerStatus(self):
-        status: ScannerStatus
         self._lock()
-        status = self.scannerStatus
+        status = self._scannerStatus
+        self._unlock()
+        return status
+
+    def setMemoryStatus(self, status):
+        self._lock()
+        self._memoryStatus = status
+        self._unlock()
+
+    def getMemoryStatus(self):
+        self._lock()
+        status = self._memoryStatus
+        self._unlock()
+        return status
+
+    def setGnssStatus(self, status):
+        self._lock()
+        self._gnssStatus = status
+        self._unlock()
+
+    def getGnssStatus(self):
+        self._lock()
+        status = self._gnssStatus
+        self._unlock()
+        return status
+
+    def setErrorStatus(self, status):
+        self._lock()
+        self._errorStatus = status
+        self._unlock()
+
+    def getErrorStatus(self):
+        self._lock()
+        status = self._errorStatus
         self._unlock()
         return status
 
@@ -75,20 +115,22 @@ class RieglVzStatus():
         self._logger = node.get_logger()
         self._hostname = node.hostname
         self._connectionString = self._hostname + ":20000"
+        self._node.storageMedia = 0
         self._ctrlSvc = None
         self._scanSvc = None
         self._intfSvc = None
         self._gnssSvc = None
+        self._riconSw = None
         self._shutdownReq = False
 
-        self._statusThread = threading.Thread(target=self._statusThreadFunc, args=())
-        self._statusThread.daemon = True
-        self._statusThread.start()
+        self._detectThread = threading.Thread(target=self._detectFunction, args=())
+        self._detectThread.daemon = True
+        self._detectThread.start()
 
         self.status: StatusMaintainer = StatusMaintainer()
         self.trigStarted = False
 
-    def _statusThreadFunc(self):
+    def _detectFunction(self):
         def onTaskProgress(arg0):
             obj = json.loads(arg0)
             self._logger.debug("scan progress: {0} % ({1}, {2})".format(obj["progress"], obj["id"], obj["progresstext"]))
@@ -125,24 +167,34 @@ class RieglVzStatus():
                 self._scanSvc = ScannerService(self._connectionString)
                 ok, instInfoErr, instIdent, serialNumber = self._getInstInfo()
                 if ok:
-                    self.status.scannerStatus.instIdent = instIdent
-                    self.status.scannerStatus.serialNumber = serialNumber
+                    self.status._scannerStatus.instIdent = instIdent
+                    self.status._scannerStatus.serialNumber = serialNumber
                     self._logger.info("{} {} is available now!".format(instIdent, serialNumber))
             except:
-                self.status.scannerStatus.err = True
+                self.status._scannerStatus.err = True
                 self._logger.error("ScannerService is not available!")
             try:
                 self._intfSvc = InterfaceService(self._connectionString)
             except:
-                self.status.memoryStatus.err = True
+                self.status._memoryStatus.err = True
                 self._logger.error("InterfaceService is not available!")
             try:
                 self._gnssSvc = GnssBaseService(self._connectionString)
             except:
-                self.status.gnssStatus.err = True
+                self.status._gnssStatus.err = True
                 self._logger.error("GnssBaseService is not available!")
+            try:
+                self._riconSw = RiconnectSwitch(self._connectionString)
+            except:
+                self.status._errorStatus.err = True
+                self._logger.error("RiconnectSwitch is not available!")
 
         self._shutdownReq = False
+
+        self._memoryStatusCallback()
+        self._node.create_timer(10.0, self._memoryStatusCallback)
+        self._gnssStatusCallback()
+        self._node.create_timer(1.0, self._gnssStatusCallback)
 
     def _getInstInfo(self):
         ok = False
@@ -156,72 +208,82 @@ class RieglVzStatus():
         return ok, err, instIdent, serialNumber
 
     def getScannerStatus(self):
-        status = ScannerStatus()
-        try:
-            status = self.status.getScannerStatus()
-        except:
-            status.opstate = "unavailable"
-            status.err = True
-        return status
+        return self.status.getScannerStatus()
 
     def getScannerOpstate(self):
         return self.status.getScannerStatus().opstate
 
     def isScannerAvailable(self):
         return (self.getScannerOpstate() != "unavailable")
-
-    def _getMemoryUsage(self, storageMedia):
-        ok = False
-        err = False
-        memTotalGB = 0
-        memFreeGB = 0
-        memUsage = 0
-        if self._intfSvc:
-            ok = True
-            intf = 0
-            if storageMedia == 0:
-                intf = self._intfSvc.STORAGEIF_SSD
-            elif storageMedia == 1:
-                intf = self._intfSvc.STORAGEIF_USB
-            elif storageMedia == 2:
-                intf = self._intfSvc.STORAGEIF_SDCARD
-            storageIfs = self._intfSvc.getStorageInterfaces(intf)
-            if len(storageIfs) > 0:
-                totalSpace = storageIfs[0]["mounts"][0]["storage_space"]["total_space"]
-                usedSpace = storageIfs[0]["mounts"][0]["storage_space"]["used_space"]
-                memTotalGB = totalSpace / 1024.0 / 1024.0
-                memFreeGB = (totalSpace - usedSpace) / 1024.0 / 1024.0
-                memUsage = usedSpace / totalSpace * 100.0
-            else:
-                err = True
-        return ok, err, memTotalGB, memFreeGB, memUsage
-
-    def getMemoryStatus(self, storageMedia):
+        
+    def _memoryStatusCallback(self):
+        memoryStatus = MemoryStatus()
         try:
-            ok, memUsageErr, memTotalGB, memFreeGB, memUsage = self._getMemoryUsage(storageMedia)
-            if ok:
-                self.status.memoryStatus.memTotalGB = memTotalGB
-                self.status.memoryStatus.memFreeGB = memFreeGB
-                self.status.memoryStatus.memUsage = memUsage
-                self.status.memoryStatus.err = memUsageErr
+            if self._intfSvc:
+                intf = 0
+                if self._node.storageMedia == 0:
+                    intf = self._intfSvc.STORAGEIF_SSD
+                elif self._node.storageMedia == 1:
+                    intf = self._intfSvc.STORAGEIF_USB
+                elif self._node.storageMedia == 2:
+                    intf = self._intfSvc.STORAGEIF_SDCARD
+                storageIfs = self._intfSvc.getStorageInterfaces(intf)
+                if len(storageIfs) > 0:
+                    totalSpace = storageIfs[0]["mounts"][0]["storage_space"]["total_space"]
+                    usedSpace = storageIfs[0]["mounts"][0]["storage_space"]["used_space"]
+                    memoryStatus.memTotalGB = totalSpace / 1024.0 / 1024.0
+                    memoryStatus.memFreeGB = (totalSpace - usedSpace) / 1024.0 / 1024.0
+                    memoryStatus.memUsage = usedSpace / totalSpace * 100.0
+                else:
+                    memoryStatus.err = True
+            else:
+                memoryStatus.err = True
         except:
-            self.status = MemoryStatus()
-            self.status.err = True
-        return self.status.memoryStatus
+            memoryStatus.err = True
+        self.status.setMemoryStatus(memoryStatus)
 
-    def getGnssStatus(self):
+    def getMemoryStatus(self):
+        return self.status.getMemoryStatus()
+
+    def _gnssStatusCallback(self):
+        gnssStatus = GnssStatus()
         try:
             if self._gnssSvc:
                 j = json.loads(self._gnssSvc.estimateInfo())
-                self.status.gnssStatus.fix = j["fix"]
-                self.status.gnssStatus.numSat = j["num_sat"]
-                self.status.gnssStatus.longitude = j["longitude"]
-                self.status.gnssStatus.latitude = j["latitude"]
-                self.status.gnssStatus.altitude = j["height"]
+                #self._logger.debug("gnss: {}".format(j))
+                if "fix" in j:
+                    gnssStatus.fix = j["fix"]
+                if "num_sat" in j:
+                    gnssStatus.numSat = j["num_sat"]
+                if "longitude" in j:
+                    gnssStatus.longitude = j["longitude"]
+                if "latitude" in j:
+                    gnssStatus.latitude = j["latitude"]
+                if "height" in j:
+                    gnssStatus.altitude = j["height"]
         except:
-            self.status = GnssStatus()
-            self.status.err = True
-        return self.status.gnssStatus
+            gnssStatus.err = True
+        self.status.setGnssStatus(gnssStatus)
+
+    def getGnssStatus(self):
+        return self.status.getGnssStatus()
+
+    def _errorStatusCallback(self):
+        errorStatus = ErrorStatus()
+        try:
+            if self._riconSw:
+                sysErrors = self._riconSw.readSysErrors()
+                for sysError in sysErrors:
+                    if sysError.severity == 0:
+                        errorStatus.numWarnings += 1
+                    else:
+                        errorStatus.numErrors += 1
+        except:
+            errorStatus.err = True
+        self.status.setErrorStatus(errorStatus)
+
+    def getErrorStatus(self):
+        return self.status.getErrorStatus()
 
     def shutdown(self):
         self._shutdownReq = True

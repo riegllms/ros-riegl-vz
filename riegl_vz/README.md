@@ -189,11 +189,11 @@ Point cloud with scan data from the laser scanner. Included are xyz cartesian co
 
 Topic provides SOPV (Scan Position and Orientation in VOCS) of the currently registered scan position.
 
-**gnss/fix** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
+**gnss** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
 
 Actual GNSS fix with position in WGS 84 coordinates, published once per second.
 
-**gnss/fix/scan** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
+**gnss/scan** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
 
 GNSS fix with position in WGS 84 coordinates, published shortly before scan data acquisition.
 
@@ -202,18 +202,20 @@ GNSS fix with position in WGS 84 coordinates, published shortly before scan data
 Riegl VZ status information, published once per second:
 
 ```
+errors:
+  num_warn      : number or pending system warnings
+  num_err       : number of pending system
+gnss:
+  fix           : GNSS fix
+  num_sat       : number of available
+memory:
+  mem_free_gb   : free storage media memory space in GByte
+  mem_usage     : storage media memory usage in percent of total space
 scanner:
   opstate       : operating state ("unavailable", "waiting", "scanning", "processing")
   active_task   : active task description
   progress      : scan progress in percent
   scan_position : number of current scan position
-memory:
-  mem_total_gb  : total storage media memory space in GByte
-  mem_free_gb   : free storage media memory space in GByte
-  mem_usage     : storage media memory usage in percent of total space
-gnss:
-  fix           : GNSS fix
-  num_sat       : number of available satellites
 ```
 
 #### 3.1.3 Services
@@ -242,7 +244,7 @@ The parameter '\~scan_register' enables automatic scan position registration aft
 
 Response:  
 success = True -> message: "success"  
-success = False -> message: "scanner not available" | "command execution error"
+success = False -> message: "device not available" | "device is busy" | "command execution error"
 
 ![ROS Scan Service](img/scan.png)
 
@@ -252,7 +254,7 @@ Request a single SOPV of the previously registered scan position in actual proje
 
 Response:  
 success = True -> message: "success", pose: Last SOPV Pose  
-success = False -> message: "scanner not available" | "command execution error"
+success = False -> message: "device not available" | "command execution error"
 
 **get_vop** (riegl_vz_interfaces/GetPose) :
 
@@ -260,7 +262,7 @@ Get current VOP, which is a single position and orientation of the VOXEL coordin
 
 Response:  
 success = True -> message: "success", pose: VOP Pose  
-success = False -> message: "scanner not available" | "command execution error"
+success = False -> message: "device not available" | "command execution error"
 
 **get_pop** (riegl_vz_interfaces/GetPose) :
 
@@ -268,7 +270,7 @@ Get current POP, which is a single position and orientation of the project coord
 
 Response:  
 success = True -> message: "success", pose: POP Pose  
-success = False -> message: "scanner not available" | "command execution error"
+success = False -> message: "device not available" | "command execution error"
 
 **get_scan_poses** (riegl_vz_interfaces/GetScanPoses) :
 
@@ -276,7 +278,7 @@ Request all SOPVs of previously registered scan positions in actual project.
 
 Response:  
 success = True -> message: "success", project: Project Name, scanposes: All Scan Poses, vop: VOP Pose, pop: POP Pose  
-success = False -> message: "scanner not available" | "command execution error"
+success = False -> message: "device not available" | "command execution error"
 
 **get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
 
@@ -284,7 +286,7 @@ Get point cloud of a previously acquired scan position in actual project.
 
 Response:  
 success = True -> message: "success", pointcloud: Scan Data  
-success = False -> message: "scanner not available" | "command execution error"
+success = False -> message: "device not available" | "command execution error"
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
@@ -292,7 +294,7 @@ Stop laser scan data acquisition and registration background tasks.
 
 Response:  
 success = True -> message: "success"  
-success = False -> message: "scanner not available" | "command execution error"
+success = False -> message: "device not available" | "command execution error"
 
 **shutdown** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
@@ -314,8 +316,6 @@ The node will broadcast TF2 transformation messages if an existing project is lo
 Not available in first implementation but for further extension:
 
 * Providing covariance of pose (see [sensor_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg))
-
-* More diagnostic status information, e.g. scanner errors, ...
 
 * Additional parameters:
 

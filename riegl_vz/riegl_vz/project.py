@@ -39,6 +39,16 @@ class RieglVzProject():
             return False
         return True
 
+    def getProjectName(self):
+        projectName = None
+        try:
+            projSvc = ProjectService(self._connectionString)
+            projectName = projSvc.projectName()
+        except:
+            self._logger.error("Get project name failed!")
+            return False, None
+        return True, projectName
+
     def getActiveScanposPath(self, scanposName: str):
         path = self.getActiveProjectPath() + '/' + scanposName + '.SCNPOS'
         #self._logger.info("getActiveScanposPath = {}".format(path))

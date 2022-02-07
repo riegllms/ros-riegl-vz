@@ -73,7 +73,6 @@ class RieglVz():
         self._position = None
         self._stopReq = False
         self._shutdownReq = False
-        self._popTransformBc = False
         self._project: RieglVzProject = RieglVzProject(self._node)
         self._status: RieglVzStatus = RieglVzStatus(self._node)
         self._ssh: RieglVzSSH = RieglVzSSH(self._node)
@@ -87,12 +86,9 @@ class RieglVz():
             os.mkdir(self._workingDir)
 
     def _broadcastTfTransforms(self, ts: datetime.time):
-        ok = True
-        if not self._popTransformBc:
-            ok, pop = self.getPop()
-            if ok:
-                self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, "riegl_vz_prcs", pop))
-                self._popTransformBc = True
+        ok, pop = self.getPop()
+        if ok:
+            self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, "riegl_vz_prcs", pop))
         ok, vop = self.getVop()
         if ok:
             self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, "riegl_vz_vocs", vop))
@@ -111,11 +107,17 @@ class RieglVz():
     def isScannerAvailable(self):
         return self._status.isScannerAvailable()
 
-    def getMemoryStatus(self, storageMedia):
-        return self._status.getMemoryStatus(storageMedia)
+    def getScannerOpstate(self):
+        return self.getScannerStatus().opstate
+
+    def getMemoryStatus(self):
+        return self._status.getMemoryStatus()
 
     def getGnssStatus(self):
         return self._status.getGnssStatus()
+
+    def getErrorStatus(self):
+        return self._status.getErrorStatus()
 
     def loadProject(self, projectName: str, storageMedia: int, scanRegister: bool):
         ok = self._project.loadProject(projectName, storageMedia)
@@ -127,7 +129,6 @@ class RieglVz():
     def createProject(self, projectName: str, storageMedia: int):
         if self._project.createProject(projectName, storageMedia):
             self._path = Path();
-            self._popTransformBc = False
             return True
         return False
 
@@ -137,11 +138,11 @@ class RieglVz():
     def getNextScanpos(self, projectName: str, storageMedia: int):
         return self._project.getNextScanpos(projectName, storageMedia)
 
-    def _getTimeStampFromScanId(self, scanId: str):
-        scanFileName: str = os.path.basename(scanId)
-        dateTime = datetime.strptime(scanFileName, '%y%m%d_%H%M%S.rxp')
-        #self._logger.debug("dateTime = {}".format(dateTime))
-        return int(dateTime.strftime("%s"))
+    #def _getTimeStampFromScanId(self, scanId: str):
+    #    scanFileName: str = os.path.basename(scanId)
+    #    dateTime = datetime.strptime(scanFileName, '%y%m%d_%H%M%S.rxp')
+    #    #self._logger.debug("dateTime = {}".format(dateTime))
+    #    return int(dateTime.strftime("%s"))
 
     def _setPositionEstimate(self, position):
         scanposPath = self._project.getActiveScanposPath(self.scanposName)
@@ -176,11 +177,11 @@ class RieglVz():
         msg.status.service = NavSatStatus.SERVICE_GPS
 
         # Position in degrees.
-        msg.latitude = status.latitude
-        msg.longitude = status.longitude
+        msg.latitude = float(status.latitude)
+        msg.longitude = float(status.longitude)
 
         # Altitude in metres.
-        msg.altitude = status.altitude
+        msg.altitude = float(status.altitude)
 
         msg.position_covariance[0] = 0
         msg.position_covariance[4] = 0
@@ -213,25 +214,26 @@ class RieglVz():
                     f.write("{},{},{},{},{}\n".format(item[0], coordSystem, item[1], item[2], item[3]))
             self._ssh.uploadFile([localDstCpsFile], projectPath)
 
-    def getPointCloud(self, scanposName: str, pointcloud: PointCloud2, ts: datetime.time = None):
+    def getPointCloud(self, scanposName: str, pointcloud: PointCloud2, ts: bool = True):
+        self._logger.debug("Downloading rdbx file..")
+        self._status.status.setActiveTask("download rdbx file")
         scanId = self._project.getScanId(scanposName)
         self._logger.debug("scan id = {}".format(scanId))
-
         if scanId == "null":
+            self._logger.error("Scan id is null!")
             return False, pointcloud
 
-        remoteFile = "/media/" + scanId.replace(".rxp", ".rdbx")
+        scanposPath = self._project.getActiveScanposPath(scanposName)
+        self._logger.debug("scanpos path = {}".format(scanposPath))
+        scan = os.path.basename(scanId).replace(".rxp", "")[0:13]
+        self._logger.debug("scan = {}".format(scan))
+        remoteFile = scanposPath + "/scans/" + scan + ".rdbx"
         localFile = self._workingDir + "/scan.rdbx"
-        self._status.status.setActiveTask("download rdbx file")
         self._ssh.downloadFile(remoteFile, localFile)
 
         self._logger.debug("Generate point cloud..")
         self._status.status.setActiveTask("generate point cloud data")
         with riegl.rdb.rdb_open(localFile) as rdb:
-            if ts is None:
-                stamp = builtin_msgs.Time(sec = self._getTimeStampFromScanId(scanId), nanosec = 0)
-            else:
-                stamp = ts.to_msg()
             filter = ""
             rosDtype = PointField.FLOAT32
             dtype = np.float32
@@ -259,6 +261,11 @@ class RieglVz():
                 name = n, offset = i*itemsize, datatype = rosDtype, count = 1)
                 for i, n in enumerate('xyzr')]
 
+            if ts:
+                stamp = self._node.get_clock().now().to_msg()
+            else:
+                stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
+
             header = std_msgs.Header(frame_id = "riegl_vz_socs", stamp = stamp)
 
             pointcloud = PointCloud2(
@@ -275,16 +282,13 @@ class RieglVz():
             #for point in rdb.points():
             #    self._logger.debug("{0}".format(point.riegl_xyz))
         self._status.status.setActiveTask("")
-        self._logger.debug("Point cloud generated")
+        self._logger.debug("Point cloud generated.")
 
         return True, pointcloud
 
     def _scanThreadFunc(self):
         self._status.status.setOpstate("scanning", "scan data acquisition")
         self._status.status.setProgress(0)
-
-        ts = self._node.get_clock().now()
-        self._logger.info("Latch timestamp: {0}".format(ts))
 
         self._logger.info("Starting data acquisition..")
         self._logger.info("project name = {}".format(self.projectName))
@@ -302,6 +306,8 @@ class RieglVz():
         self._logger.info("scan publish filter = '{}'".format(self.scanPublishFilter))
         self._logger.info("scan publish LOD = {}".format(self.scanPublishLOD))
         self._logger.info("scan register = {}".format(self.scanRegister))
+        if self.reflSearchSettings:
+            self._logger.info("reflector search = {}".format(self.reflSearchSettings))
 
         scriptPath = join(appDir, "acquire-data.py")
         cmd = [
@@ -348,20 +354,6 @@ class RieglVz():
 
         self._status.status.setOpstate("processing")
 
-        if self._position is not None:
-            self._status.status.setActiveTask("set position estimate")
-            if self.scanposName == '1':
-                self._logger.info("Set project position.")
-                projSvc = ProjectService(self._connectionString)
-                projSvc.setProjectLocation(self._position.header.frame_id, self._position.point.x, self._position.point.y, self._position.point.z)
-            self._logger.info("Set scan position estimate..")
-            try:
-                self._setPositionEstimate(self._position)
-                self._logger.info("Set position estimate finished")
-            except:
-                self._logger.error("Set position estimate failed!")
-            self._position = None
-
         self._logger.info("Converting RXP to RDBX..")
         self._status.status.setActiveTask("convert rxp to rdbx")
         scriptPath = join(appDir, "create-rdbx.py")
@@ -381,15 +373,19 @@ class RieglVz():
             return
         self._logger.info("RXP to RDBX conversion finished")
 
-
-        if self.scanPublish:
-            self._logger.info("Downloading and publishing point cloud..")
-            pointcloud: PointCloud2 = PointCloud2()
-            ok, pointcloud = self.getPointCloud(self.scanposName, pointcloud, ts)
-            if ok:
-                self._status.status.setActiveTask("publish point cloud data")
-                self._node.pointCloudPublisher.publish(pointcloud)
-            self._logger.info("Point cloud published")
+        if self._position is not None:
+            self._status.status.setActiveTask("set position estimate")
+            if self.scanposName == '1':
+                self._logger.info("Set project position.")
+                projSvc = ProjectService(self._connectionString)
+                projSvc.setProjectLocation(self._position.header.frame_id, self._position.point.x, self._position.point.y, self._position.point.z)
+            self._logger.info("Set scan position estimate..")
+            try:
+                self._setPositionEstimate(self._position)
+                self._logger.info("Set position estimate finished")
+            except:
+                self._logger.error("Set position estimate failed!")
+            self._position = None
 
         if self.scanRegister:
             self._logger.info("Starting registration..")
@@ -412,6 +408,7 @@ class RieglVz():
 
             self._logger.info("Downloading and publishing pose..")
             self._status.status.setActiveTask("publish registered scan position")
+            ts = self._node.get_clock().now()
             ok, sopv = self._broadcastTfTransforms(ts)
             if ok:
                 # update sopv timestamp
@@ -430,6 +427,16 @@ class RieglVz():
                 )
                 self._node.odomPublisher.publish(odom)
             self._logger.info("Pose published")
+
+        if self.scanPublish:
+            self._logger.info("Downloading and publishing point cloud..")
+            pointcloud: PointCloud2 = PointCloud2()
+            ts = self._node.get_clock().now()
+            ok, pointcloud = self.getPointCloud(self.scanposName, pointcloud)
+            if ok:
+                self._status.status.setActiveTask("publish point cloud data")
+                self._node.pointCloudPublisher.publish(pointcloud)
+            self._logger.info("Point cloud published")
 
         self._status.status.setOpstate("waiting")
 
@@ -483,15 +490,15 @@ class RieglVz():
 
     def isScanning(self, block = True):
         if block:
-            while self._status.getScannerOpstate() == "scanning":
+            while self.getScannerOpstate() == "scanning":
                 time.sleep(0.2)
-        return True if self._status.getScannerOpstate() == "scanning" else False
+        return True if self.getScannerOpstate() == "scanning" else False
 
     def isBusy(self, block = True):
         if block:
-            while self._status.getScannerOpstate() != "waiting":
+            while self.getScannerOpstate() != "waiting":
                 time.sleep(0.2)
-        return False if self._status.getScannerOpstate() == "waiting" else True
+        return False if self.getScannerOpstate() == "waiting" else True
 
     def setPosition(self, position):
         self._position = position

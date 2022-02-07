@@ -4,14 +4,14 @@ riegl_vz_node:
     ssh_user: "user"
     ssh_password: "user"
     working_dir: "/tmp/ros_riegl_vz"
-    project_name: ""
+    project_name: "test"
     storage_media: 0
     meas_program: 3
-    scan_pattern_file: ""
+    scan_pattern_name: "Panorama_80"
     scan_pattern: [30.0,130.0,0.1,0.0,360.0,0.5]
     scan_publish: True
     scan_publish_filter: ""
-    scan_publish_lod: 0
+    scan_publish_lod: 8
     scan_register: True
     reflector_search: False
     reflector_search_models: "RIEGL flat reflector 50 mm"

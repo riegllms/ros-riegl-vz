@@ -121,6 +121,7 @@ class RieglVzWrapper(Node):
         self._statusUpdater.add("scanner", self._produceScannerDiagnostics)
         self._statusUpdater.add("memory", self._produceMemoryDiagnostics)
         self._statusUpdater.add("gnss", self._produceGnssDiagnostics)
+        self._statusUpdater.add("errors", self._produceErrorDiagnostics)
 
         self._gnssFixTimer = self.create_timer(1.0, self._publishGnssFix)
 
@@ -130,13 +131,14 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getScannerStatus()
 
         err = DiagnosticStatus.OK
-        prefix = "RIEGL VZ laser scanner "
-        message = prefix + "is " + status.opstate
+        message = "ok"
         if status.opstate == "unavailable":
+            message = status.opstate
             err = DiagnosticStatus.WARN
-        if status.err:
+            message = "unavailable"
+        elif status.err:
             err = DiagnosticStatus.ERROR
-            message = "RIEGL VZ communication error"
+            message = "com error"
 
         diag.summary(err, message)
         diag.add('opstate', status.opstate)
@@ -147,26 +149,25 @@ class RieglVzWrapper(Node):
         return diag
 
     def _produceMemoryDiagnostics(self, diag):
-        status = self._rieglVz.getMemoryStatus(self.storageMedia)
+        status = self._rieglVz.getMemoryStatus()
 
         err = DiagnosticStatus.OK
-        prefix = "RIEGL VZ storage "
-        message = prefix + "is ok"
+        message = "ok"
         if not self._rieglVz.isScannerAvailable():
             err = DiagnosticStatus.WARN
-            message = prefix + "is unavailable"
+            message = "unavailable"
+        elif status.err:
+            err = DiagnosticStatus.ERROR
+            message = "com error"
         elif status.memUsage >= 90.0:
             err = DiagnosticStatus.WARN
-            message = prefix + "is almost full"
+            message = "memory almost full"
         elif status.memUsage >= 99.0:
             err = DiagnosticStatus.ERROR
-            message = prefix + "media is full"
-        if status.err:
-            err = DiagnosticStatus.ERROR
-            message = "RIEGL VZ communication error"
+            message = "memory full"
 
         diag.summary(err, message)
-        diag.add('mem_total_gb', str(status.memTotalGB))
+        #diag.add('mem_total_gb', str(status.memTotalGB))
         diag.add('mem_free_gb', str(status.memFreeGB))
         diag.add('mem_usage', str(status.memUsage))
 
@@ -176,21 +177,40 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getGnssStatus()
 
         err = DiagnosticStatus.OK
-        prefix = "RIEGL VZ GNSS "
-        message = prefix + "has a fix"
+        message = "ok"
         if not self._rieglVz.isScannerAvailable():
             err = DiagnosticStatus.WARN
-            message = prefix + "is unavailable"
-        if not status.fix:
-            err = DiagnosticStatus.WARN
-            message = prefix + "has no fix"
-        if status.err:
+            message = "unavailable"
+        elif status.err:
             err = DiagnosticStatus.ERROR
-            "RIEGL VZ communication error"
+            message = "com error"
 
         diag.summary(err, message)
         diag.add('fix', str(status.fix))
         diag.add('num_sat', str(status.numSat))
+        return diag
+
+    def _produceErrorDiagnostics(self, diag):
+        status = self._rieglVz.getErrorStatus()
+
+        err = DiagnosticStatus.OK
+        message = "ok"
+        if not self._rieglVz.isScannerAvailable():
+            err = DiagnosticStatus.WARN
+            message = "unavailable"
+        elif status.err:
+            err = DiagnosticStatus.ERROR
+            message = "com error"
+        elif status.numErrors > 0:
+            err = DiagnosticStatus.ERROR
+            message = "system error"
+        elif status.numWarnings > 0:
+            err = DiagnosticStatus.WARN
+            message = "system warning"
+
+        diag.summary(err, message)
+        diag.add('num_warn', str(status.numWarnings))
+        diag.add('num_err', str(status.numErrors))
         return diag
 
     def _publishGnssFix(self):
@@ -217,8 +237,8 @@ class RieglVzWrapper(Node):
         message = "success"
         if not self._rieglVz.isScannerAvailable() or self._shutdownReq:
             success = False
-            message = "scanner is not available"
-            self._logger.info("Scanner is not available.")
+            message = "device not available"
+            self._logger.info("Device is not available.")
         return success, message
 
     def _setProjectName(self, projectName):
@@ -231,6 +251,7 @@ class RieglVzWrapper(Node):
     def _createProject(self, projectName):
         self._setProjectName(projectName)
         self.storageMedia = int(self.get_parameter('storage_media').value)
+        self.get_logger().debug("storage media = {}".format(self.storageMedia))
         ok = True
         if not self._rieglVz.createProject(self.projectName, self.storageMedia):
             ok = False
@@ -238,7 +259,9 @@ class RieglVzWrapper(Node):
 
     def _loadProject(self, projectName):
         self.storageMedia = int(self.get_parameter('storage_media').value)
+        self.get_logger().debug("storage media = {}".format(self.storageMedia))
         self.scanRegister = bool(self.get_parameter('scan_register').value)
+        self.get_logger().debug("scan register = {}".format(self.scanRegister))
         ok = True
         if projectName == "" or not self._rieglVz.loadProject(self.projectName, self.storageMedia, self.scanRegister):
             ok = False
@@ -268,8 +291,9 @@ class RieglVzWrapper(Node):
                 return response
 
             self.projectName = str(self.get_parameter('project_name').value)
-            self.storageMedia = int(self.get_parameter('storage_media').value)
             self.get_logger().debug("project name = {}".format(self.projectName))
+            self.storageMedia = int(self.get_parameter('storage_media').value)
+            self.get_logger().debug("storage media = {}".format(self.storageMedia))
 
             if not self.setProject(self.projectName):
                 self._setResponseExecError(response)
@@ -286,6 +310,7 @@ class RieglVzWrapper(Node):
         self.storageMedia = int(self.get_parameter('storage_media').value)
         scanPatternName = self.get_parameter('scan_pattern_name').value
         if scanPatternName != "":
+            self.get_logger().debug("scan pattern name = {}".format(scanPatternName))
             ok, self.scanPattern = self._rieglVz.getScanPattern(scanPatternName)
             if not ok:
                 scanPatternName = ""
@@ -339,6 +364,11 @@ class RieglVzWrapper(Node):
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
+            if self._rieglVz.getScannerOpstate() != "waiting":
+                self_.setResponseStatus(response, False, "device is busy")
+                self._logger.warning("Device is busy at the moument.")
+                return response
+
             if not self.scan():
                 self._setResponseException(response)
                 return response
@@ -350,7 +380,7 @@ class RieglVzWrapper(Node):
         return response
 
     def getPointCloud(self, scanpos, pointcloud):
-        ok, pointcloud = self._rieglVz.getPointCloud(scanpos, pointcloud)
+        ok, pointcloud = self._rieglVz.getPointCloud(scanpos, pointcloud, False)
         return ok, pointcloud
 
     def _getPointCloudCallback(self, request, response):

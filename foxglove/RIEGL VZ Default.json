@@ -1,0 +1,171 @@
+{
+  "configById": {
+    "3D Panel!319jjzr": {
+      "checkedKeys": [
+        "name:Topics",
+        "t:/tf",
+        "t:/foxglove/grid",
+        "ns:/tf:riegl_vz_socs",
+        "t:/riegl_vz/pointcloud"
+      ],
+      "expandedKeys": [
+        "name:root",
+        "t:/foxglove/grid",
+        "t:/robot_description",
+        "t:/tf",
+        "name:Topics",
+        "t:/riegl_vz/path",
+        "t:/riegl_vz/pointcloud",
+        "t:/riegl_vz/pose"
+      ],
+      "followMode": "follow",
+      "cameraState": {
+        "distance": 21.590126737217872,
+        "perspective": true,
+        "phi": 1.3677416505515168,
+        "targetOffset": [
+          -0.2083404449619884,
+          6.680032023277854,
+          0
+        ],
+        "thetaOffset": 0.00042447610865322706,
+        "fovy": 0.7853981633974483,
+        "near": 0.01,
+        "far": 5000
+      },
+      "modifiedNamespaceTopics": [
+        "/tf"
+      ],
+      "pinTopics": false,
+      "settingsByKey": {
+        "t:/riegl_vz/pointcloud": {
+          "colorMode": {
+            "mode": "flat",
+            "flatColor": {
+              "r": 0.9803921568627451,
+              "g": 0.9686274509803922,
+              "b": 0.9686274509803922,
+              "a": 1
+            }
+          }
+        }
+      },
+      "autoSyncCameraState": false,
+      "autoTextBackgroundColor": true,
+      "diffModeEnabled": true,
+      "useThemeBackgroundColor": true,
+      "customBackgroundColor": "#000000",
+      "topicDisplayMode": "SHOW_ALL",
+      "flattenMarkers": false,
+      "followTf": "riegl_vz_socs"
+    },
+    "map!1j5ckep": {
+      "disabledTopics": [
+        "/gps/fix",
+        "/gnss/scan",
+        "/riegl_vz/gnss/fix/scan",
+        "/riegl_vz/gnss/fix"
+      ],
+      "zoomLevel": 17
+    },
+    "DiagnosticStatusPanel!2h3p27o": {
+      "topicToRender": "/diagnostics",
+      "collapsedSections": [],
+      "selectedHardwareId": "riegl_vz"
+    },
+    "StateTransitions!3wmyb26": {
+      "paths": [
+        {
+          "value": "/diagnostics.status[:]{hardware_id==\"riegl_vz\"}{name==\"riegl_vz_node: scanner\"}.values[:]{key==\"opstate\"}.value",
+          "timestampMethod": "headerStamp"
+        },
+        {
+          "value": "/diagnostics.status[:]{hardware_id==\"riegl_vz\"}{name==\"riegl_vz_node: scanner\"}.values[:]{key==\"active_task\"}.value",
+          "timestampMethod": "headerStamp"
+        }
+      ]
+    },
+    "Plot!17y0l8m": {
+      "paths": [
+        {
+          "value": "/diagnostics.status[:]{hardware_id==\"riegl_vz\"}{name==\"riegl_vz_node: scanner\"}.values[:]{key==\"progress\"}.value",
+          "enabled": true,
+          "timestampMethod": "headerStamp"
+        }
+      ],
+      "minYValue": "",
+      "maxYValue": "",
+      "showXAxisLabels": true,
+      "showYAxisLabels": true,
+      "showLegend": false,
+      "showSidebar": false,
+      "showPlotValuesInLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "sidebarWidth": 240,
+      "title": "Scan Progress (%)"
+    },
+    "Plot!12xfbeu": {
+      "paths": [
+        {
+          "value": "/diagnostics.status[:]{hardware_id==\"riegl_vz\"}{name==\"riegl_vz_node: memory\"}.values[:]{key==\"mem_free_gb\"}.value",
+          "enabled": true,
+          "timestampMethod": "headerStamp"
+        }
+      ],
+      "minYValue": "",
+      "maxYValue": "",
+      "showLegend": false,
+      "isSynced": true,
+      "xAxisVal": "timestamp",
+      "followingViewWidth": 0,
+      "title": "Memory Free (GByte)"
+    },
+    "RosOut!15jcci8": {
+      "searchTerms": [],
+      "minLogLevel": 1
+    }
+  },
+  "globalVariables": {},
+  "userNodes": {
+    "187505e0-a83c-4eec-8442-f7d788bbbd1a": {
+      "sourceCode": "import { Input, Messages } from \"ros\";\n\ntype Output = {};\ntype GlobalVariables = { id: number };\n\nexport const inputs = [];\nexport const output = \"/studio_node/\";\n\n// Populate 'Input' with a parameter to properly type your inputs, e.g. 'Input<\"/your_input_topic\">'\nconst publisher = (message: Input<>, globalVars: GlobalVariables): Output => {\n  return {};\n};\n\nexport default publisher;",
+      "name": "/studio_node/187505e0"
+    }
+  },
+  "linkedGlobalVariables": [],
+  "playbackConfig": {
+    "speed": 1,
+    "messageOrder": "receiveTime"
+  },
+  "layout": {
+    "direction": "row",
+    "first": {
+      "first": "3D Panel!319jjzr",
+      "second": "map!1j5ckep",
+      "direction": "column",
+      "splitPercentage": 67.59825327510917
+    },
+    "second": {
+      "first": {
+        "first": {
+          "first": "DiagnosticStatusPanel!2h3p27o",
+          "second": "StateTransitions!3wmyb26",
+          "direction": "column",
+          "splitPercentage": 69.9047619047619
+        },
+        "second": {
+          "first": "Plot!17y0l8m",
+          "second": "Plot!12xfbeu",
+          "direction": "column"
+        },
+        "direction": "column",
+        "splitPercentage": 67.82945736434108
+      },
+      "second": "RosOut!15jcci8",
+      "direction": "column",
+      "splitPercentage": 67.59825327510917
+    },
+    "splitPercentage": 39.820166987797045
+  }
+}
