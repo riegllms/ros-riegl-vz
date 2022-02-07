@@ -32,7 +32,7 @@ rosidl_generate_interfaces(${PROJECT_NAME}
   "srv/GetScanPoses.srv"
   "srv/GetPose.srv"
   "srv/SetPosition.srv"
-  "srv/GetScanPatterns.srv"
+  "srv/GetList.srv"
   DEPENDENCIES sensor_msgs geometry_msgs
  )
 

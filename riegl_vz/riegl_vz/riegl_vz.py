@@ -345,7 +345,7 @@ class RieglVz():
 
         self._logger.info("Publish scan position GNSS fix..")
         self.publishScanGnssFix()
-        
+
         self._status.status.setOpstate("processing")
 
         if self._position is not None:
@@ -576,12 +576,37 @@ class RieglVz():
 
     def getScanPatterns(self):
         patterns: str = []
-        instIdentLower = self._status.status.scannerStatus.instIdent.lower()
-        remotePath = "/usr/share/gui/" + instIdentLower + "/patterns"
-        files = self._ssh.listFiles(remotePath, "*.pat")
-        for file in files:
-            patterns.append(os.path.basename(files).replace(".pat", ""))
+        ctrlSvc = ControlService(self._connectionString)
+        for pattern in json.loads(ctrlSvc.scanPatternsDetailed()):
+            patterns.append(pattern["name"])
+        #instIdentLower = self._status.status.scannerStatus.instIdent.lower()
+        #remotePath = "/usr/share/gui/" + instIdentLower + "/patterns"
+        #files = self._ssh.listFiles(remotePath, "*.pat")
+        #for file in files:
+        #    patterns.append(os.path.basename(file).replace(".pat", ""))
         return True, patterns
+
+    def getScanPattern(self, patternName):
+        ctrlSvc = ControlService(self._connectionString)
+        for p in json.loads(ctrlSvc.scanPatternsDetailed()):
+            if p["name"] == patternName:
+                pattern: ScanPattern = ScanPattern()
+                pattern.lineStart = p["thetaStart"]
+                pattern.lineStop = p["thetaStop"]
+                pattern.lineIncrement = p["thetaIncrement"]
+                pattern.frameStart = p["phiStart"]
+                pattern.frameStop = p["phiStop"]
+                pattern.frameIncrement = p["phiIncrement"]
+                return True, pattern
+        self._logger.error("Scan pattern '{}' is not available!")
+        return False, None
+
+    def getReflectorModels(self):
+        models: str = []
+        ctrlSvc = ControlService(self._connectionString)
+        for model in json.loads(ctrlSvc.supportedReflectorSearchModels()):
+            models.append(model["name"])
+        return True, models
 
     def shutdown(self):
         self._status.shutdown()

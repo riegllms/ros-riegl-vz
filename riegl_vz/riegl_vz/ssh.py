@@ -123,8 +123,11 @@ class RieglVzSSH:
     def listFiles(self, remotePath, filter):
         if (len(filter) == 0):
             filter = "*"
-        cmd = "ls -1dq " + remotePath + "/" + filter
+        cmd = "ls -1d " + remotePath + "/" + filter
         files = self.executeCommand(cmd)
         if len(files) == 0 or (len(files) == 1 and files[0].find("No such file or directory")):
             files = []
-        return files
+        filesStripped = []
+        for file in files:
+            filesStripped.append(file.rstrip('\n'))
+        return filesStripped

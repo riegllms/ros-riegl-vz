@@ -29,7 +29,7 @@ from riegl_vz_interfaces.srv import (
     GetScanPoses,
     GetPose,
     SetPosition,
-    GetScanPatterns
+    GetList
 )
 import rclpy
 from rclpy.node import Node
@@ -58,6 +58,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('project_name', '')
         self.declare_parameter('storage_media', 0)
         self.declare_parameter('scan_pattern', [30.0,130.0,0.04,0.0,360.0,0.5])
+        self.declare_parameter('scan_pattern_name', '')
         self.declare_parameter('meas_program', 0)
         self.declare_parameter('scan_publish', True)
         self.declare_parameter('scan_publish_filter', '')
@@ -91,8 +92,8 @@ class RieglVzWrapper(Node):
         self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
         self.odomPublisher = self.create_publisher(Odometry, 'odom', 10)
-        self.gnssFixPublisher = self.create_publisher(NavSatFix, 'gnss/fix', 10)
-        self.scanGnssFixPublisher = self.create_publisher(NavSatFix, 'gnss/fix/scan', 10)
+        self.gnssFixPublisher = self.create_publisher(NavSatFix, 'gnss', 10)
+        self.scanGnssFixPublisher = self.create_publisher(NavSatFix, 'gnss/scan', 10)
 
         self.transformBroadcaster = TransformBroadcaster(self)
 
@@ -106,7 +107,8 @@ class RieglVzWrapper(Node):
         self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
         self._trigStartStopService = self.create_service(Trigger, 'trig_start_stop', self._trigStartStopCallback)
-        self._getScanPatterns = self.create_service(GetScanPatterns, 'get_scan_patterns', self._getScanPatternsCallback)
+        self._getScanPatterns = self.create_service(GetList, 'get_scan_patterns', self._getScanPatternsCallback)
+        self._getReflectorModels = self.create_service(GetList, 'get_reflector_models', self._getReflectorModelsCallback)
         self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
 
         self._rieglVz = RieglVz(self)
@@ -128,12 +130,15 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getScannerStatus()
 
         err = DiagnosticStatus.OK
+        prefix = "RIEGL VZ laser scanner "
+        message = prefix + "is " + status.opstate
         if status.opstate == "unavailable":
             err = DiagnosticStatus.WARN
         if status.err:
             err = DiagnosticStatus.ERROR
+            message = "RIEGL VZ communication error"
 
-        diag.summary(err, "RIEGL VZ laser scanner is " + status.opstate)
+        diag.summary(err, message)
         diag.add('opstate', status.opstate)
         diag.add('active_task', status.activeTask)
         diag.add('progress', str(status.progress))
@@ -145,17 +150,22 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getMemoryStatus(self.storageMedia)
 
         err = DiagnosticStatus.OK
-        memStatus = "ok"
-        if status.memUsage >= 90.0:
-            memStatus = "almost full"
+        prefix = "RIEGL VZ storage "
+        message = prefix + "is ok"
+        if not self._rieglVz.isScannerAvailable():
             err = DiagnosticStatus.WARN
-        if status.memUsage >= 99.0:
-            memStatus = "full"
+            message = prefix + "is unavailable"
+        elif status.memUsage >= 90.0:
+            err = DiagnosticStatus.WARN
+            message = prefix + "is almost full"
+        elif status.memUsage >= 99.0:
             err = DiagnosticStatus.ERROR
+            message = prefix + "media is full"
         if status.err:
             err = DiagnosticStatus.ERROR
+            message = "RIEGL VZ communication error"
 
-        diag.summary(err, "RIEGL VZ storage media is " + memStatus)
+        diag.summary(err, message)
         diag.add('mem_total_gb', str(status.memTotalGB))
         diag.add('mem_free_gb', str(status.memFreeGB))
         diag.add('mem_usage', str(status.memUsage))
@@ -166,15 +176,19 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getGnssStatus()
 
         err = DiagnosticStatus.OK
-        fixStr: str = "no"
-        if status.fix:
-            fixStr = "a"
-        else:
+        prefix = "RIEGL VZ GNSS "
+        message = prefix + "has a fix"
+        if not self._rieglVz.isScannerAvailable():
             err = DiagnosticStatus.WARN
+            message = prefix + "is unavailable"
+        if not status.fix:
+            err = DiagnosticStatus.WARN
+            message = prefix + "has no fix"
         if status.err:
             err = DiagnosticStatus.ERROR
+            "RIEGL VZ communication error"
 
-        diag.summary(err, "RIEGL VZ GNSS has {} fix".format(fixStr))
+        diag.summary(err, message)
         diag.add('fix', str(status.fix))
         diag.add('num_sat', str(status.numSat))
         return diag
@@ -270,14 +284,20 @@ class RieglVzWrapper(Node):
 
     def scan(self):
         self.storageMedia = int(self.get_parameter('storage_media').value)
-        scanPattern = self.get_parameter('scan_pattern').value
-        self.scanPattern = ScanPattern()
-        self.scanPattern.lineStart = scanPattern[0]
-        self.scanPattern.lineStop = scanPattern[1]
-        self.scanPattern.lineIncrement = scanPattern[2]
-        self.scanPattern.frameStart = scanPattern[3]
-        self.scanPattern.frameStop = scanPattern[4]
-        self.scanPattern.frameIncrement = scanPattern[5]
+        scanPatternName = self.get_parameter('scan_pattern_name').value
+        if scanPatternName != "":
+            ok, self.scanPattern = self._rieglVz.getScanPattern(scanPatternName)
+            if not ok:
+                scanPatternName = ""
+        if scanPatternName == "":
+            scanPattern = self.get_parameter('scan_pattern').value
+            self.scanPattern = ScanPattern()
+            self.scanPattern.lineStart = scanPattern[0]
+            self.scanPattern.lineStop = scanPattern[1]
+            self.scanPattern.lineIncrement = scanPattern[2]
+            self.scanPattern.frameStart = scanPattern[3]
+            self.scanPattern.frameStop = scanPattern[4]
+            self.scanPattern.frameIncrement = scanPattern[5]
         self.scanPattern.measProgram = int(self.get_parameter('meas_program').value)
         self.scanPublish = bool(self.get_parameter('scan_publish').value)
         self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
@@ -497,7 +517,27 @@ class RieglVzWrapper(Node):
                 return response
 
             for pattern in patterns:
-                response.patterns.append(pattern)
+                response.list.append(pattern)
+        except:
+            self._setResponseException(response)
+
+        return response
+
+    def getReflectorModels(self):
+        return self._rieglVz.getReflectorModels()
+
+    def _getReflectorModelsCallback(self, request, response):
+        try:
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
+                return response
+
+            ok, models = self.getReflectorModels()
+            if not ok:
+                self._setResponseExecError(response)
+                return response
+
+            for model in models:
+                response.list.append(model)
         except:
             self._setResponseException(response)
 

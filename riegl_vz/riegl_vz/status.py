@@ -156,7 +156,13 @@ class RieglVzStatus():
         return ok, err, instIdent, serialNumber
 
     def getScannerStatus(self):
-        return self.status.getScannerStatus()
+        status = ScannerStatus()
+        try:
+            status = self.status.getScannerStatus()
+        except:
+            status.opstate = "unavailable"
+            status.err = True
+        return status
 
     def getScannerOpstate(self):
         return self.status.getScannerStatus().opstate
@@ -191,22 +197,30 @@ class RieglVzStatus():
         return ok, err, memTotalGB, memFreeGB, memUsage
 
     def getMemoryStatus(self, storageMedia):
-        ok, memUsageErr, memTotalGB, memFreeGB, memUsage = self._getMemoryUsage(storageMedia)
-        if ok:
-            self.status.memoryStatus.memTotalGB = memTotalGB
-            self.status.memoryStatus.memFreeGB = memFreeGB
-            self.status.memoryStatus.memUsage = memUsage
-            self.status.memoryStatus.err = memUsageErr
+        try:
+            ok, memUsageErr, memTotalGB, memFreeGB, memUsage = self._getMemoryUsage(storageMedia)
+            if ok:
+                self.status.memoryStatus.memTotalGB = memTotalGB
+                self.status.memoryStatus.memFreeGB = memFreeGB
+                self.status.memoryStatus.memUsage = memUsage
+                self.status.memoryStatus.err = memUsageErr
+        except:
+            self.status = MemoryStatus()
+            self.status.err = True
         return self.status.memoryStatus
 
     def getGnssStatus(self):
-        if self._gnssSvc:
-            j = json.loads(self._gnssSvc.estimateInfo())
-            self.status.gnssStatus.fix = j["fix"]
-            self.status.gnssStatus.numSat = j["num_sat"]
-            self.status.gnssStatus.longitude = j["longitude"]
-            self.status.gnssStatus.latitude = j["latitude"]
-            self.status.gnssStatus.altitude = j["height"]
+        try:
+            if self._gnssSvc:
+                j = json.loads(self._gnssSvc.estimateInfo())
+                self.status.gnssStatus.fix = j["fix"]
+                self.status.gnssStatus.numSat = j["num_sat"]
+                self.status.gnssStatus.longitude = j["longitude"]
+                self.status.gnssStatus.latitude = j["latitude"]
+                self.status.gnssStatus.altitude = j["height"]
+        except:
+            self.status = GnssStatus()
+            self.status.err = True
         return self.status.gnssStatus
 
     def shutdown(self):
