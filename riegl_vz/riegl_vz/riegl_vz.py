@@ -119,6 +119,9 @@ class RieglVz():
     def getErrorStatus(self):
         return self._status.getErrorStatus()
 
+    def getCameraStatus(self):
+        return self._status.getCameraStatus()
+
     def loadProject(self, projectName: str, storageMedia: int, scanRegister: bool):
         ok = self._project.loadProject(projectName, storageMedia)
         if ok and scanRegister:
@@ -308,6 +311,9 @@ class RieglVz():
         self._logger.info("scan register = {}".format(self.scanRegister))
         if self.reflSearchSettings:
             self._logger.info("reflector search = {}".format(self.reflSearchSettings))
+        self._logger.info("image capture = {}".format(self.imageCapture))
+        self._logger.info("image capture mode = {}".format(self.imageCaptureMode))
+        self._logger.info("image capture overlap = {}".format(self.imageCaptureOverlap))
 
         scriptPath = join(appDir, "acquire-data.py")
         cmd = [

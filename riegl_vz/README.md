@@ -178,6 +178,17 @@ Path to CSV with control points in GLCS (Global Coordinate System).
 
 The coordinate system for control points (e.g. EPSG::4978).
 
+**~image_capture** (bool, default: "False") :
+
+Enable capturing of images with external camera mounted on top of RIEGL Vz laser scanner.
+
+**~image_capture_mode** (integer, default: 1) :
+
+The image capture mode (1=during-scan, 2=after-scan).
+
+**~image_capture_overlap** (integer, default: 25) :
+
+The image overlap factor in percent.
 
 #### 3.1.2 Published Topics
 
@@ -202,20 +213,22 @@ GNSS fix with position in WGS 84 coordinates, published shortly before scan data
 Riegl VZ status information, published once per second:
 
 ```
-errors:
-  num_warn      : number or pending system warnings
-  num_err       : number of pending system
-gnss:
-  fix           : GNSS fix
-  num_sat       : number of available
-memory:
-  mem_free_gb   : free storage media memory space in GByte
-  mem_usage     : storage media memory usage in percent of total space
 scanner:
   opstate       : operating state ("unavailable", "waiting", "scanning", "processing")
   active_task   : active task description
   progress      : scan progress in percent
   scan_position : number of current scan position
+errors:
+  num_warn      : number or pending system warnings
+  num_err       : number of pending system
+memory:
+  mem_free_gb   : free storage media memory space in GByte
+  mem_usage     : storage media memory usage in percent of total space
+gnss:
+  fix           : GNSS fix
+  num_sat       : number of available
+camera:
+  detect        : external camera detected
 ```
 
 #### 3.1.3 Services
@@ -317,13 +330,7 @@ Not available in first implementation but for further extension:
 
 * Providing covariance of pose (see [sensor_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg))
 
-* Additional parameters:
-
-**~capture_images** (bool, default: False) : Enable capturing of camera images.
-
 * Additional services:
-
-**get_image** (riegl_vz_interfaces/GetImage) : Get camera image for scan position.
 
 **get_voxel** (riegl_vz_interfaces/GetPointcloud) : Get voxel data of a previous scan data acquisition.
 

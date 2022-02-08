@@ -8,6 +8,7 @@ from vzi_services.controlservice import ControlService
 from vzi_services.interfaceservice import InterfaceService
 from vzi_services.gnssbaseservice import GnssBaseService
 from vzi_services.riconnectswitch import RiconnectSwitch
+from vzi_services.cameraservice import CameraService
 
 class ScannerStatus(object):
     def __init__(self):
@@ -40,12 +41,18 @@ class ErrorStatus(object):
         self.numErrors = 0
         self.numWarnings = 0
 
+class CameraStatus(object):
+    def __init__(self):
+        self.err = False
+        self.detect = False
+
 class StatusMaintainer(object):
     def __init__(self):
         self._scannerStatus: ScannerStatus = ScannerStatus()
         self._memoryStatus: MemoryStatus = MemoryStatus()
         self._gnssStatus: GnssStatus = GnssStatus()
         self._errorStatus: ErrorStatus = ErrorStatus()
+        self._cameraStatus: CameraStatus = CameraStatus()
         self._threadLock = threading.Lock()
 
     def _lock(self):
@@ -109,6 +116,17 @@ class StatusMaintainer(object):
         self._unlock()
         return status
 
+    def setCameraStatus(self, status):
+        self._lock()
+        self._cameraStatus = status
+        self._unlock()
+
+    def getCameraStatus(self):
+        self._lock()
+        status = self._cameraStatus
+        self._unlock()
+        return status
+
 class RieglVzStatus():
     def __init__(self, node):
         self._node = node
@@ -120,6 +138,7 @@ class RieglVzStatus():
         self._scanSvc = None
         self._intfSvc = None
         self._gnssSvc = None
+        self._camSvc = None
         self._riconSw = None
         self._shutdownReq = False
 
@@ -184,6 +203,11 @@ class RieglVzStatus():
                 self.status._gnssStatus.err = True
                 self._logger.error("GnssBaseService is not available!")
             try:
+                self._camSvc = CameraService(self._connectionString)
+            except:
+                self.status._cameraStatus.err = True
+                self._logger.error("CameraService is not available!")
+            try:
                 self._riconSw = RiconnectSwitch(self._connectionString)
             except:
                 self.status._errorStatus.err = True
@@ -215,7 +239,7 @@ class RieglVzStatus():
 
     def isScannerAvailable(self):
         return (self.getScannerOpstate() != "unavailable")
-        
+
     def _memoryStatusCallback(self):
         memoryStatus = MemoryStatus()
         try:
@@ -284,6 +308,21 @@ class RieglVzStatus():
 
     def getErrorStatus(self):
         return self.status.getErrorStatus()
+
+
+    def _errorCameraCallback(self):
+        cameraStatus = CameraStatus()
+        try:
+            if self._camSvc:
+                cameraList = self._camSvc().list()
+                if len(cameraList) > 0:
+                    cameraStatus.detect = True
+        except:
+            cameraStatus.err = True
+        self.status.setCameraStatus(cameraStatus)
+
+    def getCameraStatus(self):
+        return self.status.getCameraStatus()
 
     def shutdown(self):
         self._shutdownReq = True

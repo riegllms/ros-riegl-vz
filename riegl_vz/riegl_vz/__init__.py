@@ -69,6 +69,9 @@ class RieglVzWrapper(Node):
         self.declare_parameter('reflector_search_limits', [0.0, 10000.0])
         self.declare_parameter('control_points_csv_file', '')
         self.declare_parameter('control_points_coord_system', '')
+        self.declare_parameter('image_capture', False)
+        self.declare_parameter('image_capture_mode', 1)
+        self.declare_parameter('image_capture_overlap', 25)
 
         self.hostname = str(self.get_parameter('hostname').value)
         self.workingDir = str(self.get_parameter('working_dir').value)
@@ -76,12 +79,14 @@ class RieglVzWrapper(Node):
         self.sshPwd = str(self.get_parameter('ssh_password').value)
         self.projectName = str(self.get_parameter('project_name').value)
         self.storageMedia = int(self.get_parameter('storage_media').value)
+        self.imageCapture = bool(self.get_parameter('image_capture').value)
         self.get_logger().debug("hostname = {}".format(self.hostname))
         self.get_logger().debug("workingDir = {}".format(self.workingDir))
         self.get_logger().debug("sshUser = {}".format(self.sshUser))
         self.get_logger().debug("sshPwd = {}".format(self.sshPwd))
         self.get_logger().debug("projectName = {}".format(self.projectName))
         self.get_logger().debug("storageMedia = {}".format(self.storageMedia))
+        self.get_logger().debug("imageCapture = {}".format(self.imageCapture))
 
         self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
         self.get_logger().debug("scanPublishFilter = {}".format(self.scanPublishFilter))
@@ -122,6 +127,8 @@ class RieglVzWrapper(Node):
         self._statusUpdater.add("memory", self._produceMemoryDiagnostics)
         self._statusUpdater.add("gnss", self._produceGnssDiagnostics)
         self._statusUpdater.add("errors", self._produceErrorDiagnostics)
+        if self.imageCapture:
+            self._statusUpdater.add("camera", self._produceCameraDiagnostics)
 
         self._gnssFixTimer = self.create_timer(1.0, self._publishGnssFix)
 
@@ -211,6 +218,22 @@ class RieglVzWrapper(Node):
         diag.summary(err, message)
         diag.add('num_warn', str(status.numWarnings))
         diag.add('num_err', str(status.numErrors))
+        return diag
+
+    def _produceCameraDiagnostics(self, diag):
+        status = self._rieglVz.getCameraStatus()
+
+        err = DiagnosticStatus.OK
+        message = "ok"
+        if not self._rieglVz.isScannerAvailable():
+            err = DiagnosticStatus.WARN
+            message = "unavailable"
+        elif status.err:
+            err = DiagnosticStatus.ERROR
+            message = "com error"
+
+        diag.summary(err, message)
+        diag.add('detect', str(status.detect))
         return diag
 
     def _publishGnssFix(self):
@@ -339,6 +362,9 @@ class RieglVzWrapper(Node):
                 "searchMinRange": reflSearchLimits[0],
                 "searchMaxRange": reflSearchLimits[1]
             }
+        self.imageCapture = bool(self.get_parameter('image_capture').value)
+        self.imageCaptureMode = int(self.get_parameter('image_capture_mode').value)
+        self.imageCaptureOverlap = int(self.get_parameter('image_capture_overlap').value)
 
         if not self.projectValid:
             self.setProject(self.projectName)
@@ -355,9 +381,9 @@ class RieglVzWrapper(Node):
             scanPublishLOD = self.scanPublishLOD,
             scanRegister = self.scanRegister,
             reflSearchSettings = self.reflSearchSettings if self.reflSearch else None,
-            captureImages = False,
-            captureMode = 1,
-            imageOverlap = 25)
+            captureImages = self.imageCapture,
+            captureMode = self.imageCaptureMode,
+            imageOverlap = self.imageCaptureOverlap)
 
     def _scanCallback(self, request, response):
         try:
