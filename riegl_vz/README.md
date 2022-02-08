@@ -1,4 +1,4 @@
-# ROS2 RIEGL-VZ Package API
+# ROS2 Riegl VZ Package API
 
 ## 1. Coordinate Systems
 
@@ -47,18 +47,6 @@ See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/
 
 ### 2.2 Services
 
-**riegl_vz_interfaces/GetPointCloud**:
-```
-uint32 seq     # Scan position number within a project, starting with 1, 0 refers to last scan position
----
-sensor_msgs/PointCloud2 pointcloud
-bool success   # indicate successful run of service
-string message # informational, e.g. for error messages
-```
-See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)  
-'seq' is the scan position number, 0 implicitly refers to the last scan position, 1 is the first scan position.  
-The 'frame_id' in the header is 'riegl_vz_socs'.
-
 **riegl_vz_interfaces/GetScanPoses**:
 ```
 ---
@@ -72,16 +60,6 @@ string message                # informational, e.g. for error messages
 The 'frame_id' in the scanposes[n].header is 'riegl_vz_vocs'.  
 The 'frame_id' in the vop.header is 'riegl_vz_prcs'.  
 The 'frame_id' in the pop.header is 'riegl_vz_glcs', which is e.g. EPSG::4978
-
-**riegl_vz_interfaces/GetPose**:
-```
----
-geometry_msgs/PoseStamped pose
-bool success   # indicate successful run of service
-string message # informational, e.g. for error messages
-```
-See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)  
-The 'frame_id' in the pose.header is either 'riegl_vz_prcs' or 'riegl_vz_vocs'.
 
 **riegl_vz_interfaces/SetPosition**:
 ```
@@ -206,7 +184,7 @@ Actual GNSS fix with position in WGS 84 coordinates, published once per second.
 
 **gnss/scan** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
 
-GNSS fix with position in WGS 84 coordinates, published shortly before scan data acquisition.
+GNSS fix with position in WGS 84 coordinates, published shortly before a scan data acquisition.
 
 **diagnostics** ([diagnostic_msgs/DiagnosticArray.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticArray.msg)):
 
@@ -229,7 +207,7 @@ gnss:
   fix           : GNSS fix
   num_sat       : number of available satellites
 camera:
-  detect        : external camera detected
+  cam_detect    : external camera detected
 ```
 
 #### 3.1.3 Services
@@ -247,14 +225,18 @@ Set position of the scanner origin in a global coordinate system (GLCS) supporte
 
 **scan** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
-Start a background task for laser scan data acquisition
+Start a background task for laser scan data acquisition.
 
 The execution state will be published in 'opstate' field of 'diagnostics' topic.  
 The node is locked until all background tasks have finished and the operating state is 'waiting' again.
 
 If parameter '\~scan_publish' is enabled, acquired data will be published on 'pointcloud' topic soon after scanning has finished.
 
-The parameter '\~scan_register' enables automatic scan position registration after scanning. The registration result is published on topic 'pose' or it can be requested by separate service calls (see 'get_sopv', 'get_vop', 'get_pop' and 'get_scan_poses') after processing, if operating state is 'waiting' again.
+The parameter '\~scan_register' enables automatic scan position registration after scanning. The registration result is published on topic 'pose' and with TF2 broadcast messages (see 3.1.4).
+
+The parameter '\~reflector_search' activates automatic search and scan of reflector targets.
+
+The parameter '\~image_capture' enables automatic capturing of images with an external camera mounted on top of the laser scanner device.
 
 Response:  
 success = True -> message: "success"  
@@ -262,44 +244,12 @@ success = False -> message: "device not available" | "device is busy" | "command
 
 ![ROS Scan Service](img/scan.png)
 
-**get_sopv** (riegl_vz_interfaces/GetPose) :
-
-Request a single SOPV of the previously registered scan position in actual project.
-
-Response:  
-success = True -> message: "success", pose: Last SOPV Pose  
-success = False -> message: "device not available" | "command execution error"
-
-**get_vop** (riegl_vz_interfaces/GetPose) :
-
-Get current VOP, which is a single position and orientation of the VOXEL coordinate system (VOCS) origin based on the project coordinate system (PRCS).
-
-Response:  
-success = True -> message: "success", pose: VOP Pose  
-success = False -> message: "device not available" | "command execution error"
-
-**get_pop** (riegl_vz_interfaces/GetPose) :
-
-Get current POP, which is a single position and orientation of the project coordinate system (PRCS) origin based on the global coordinate system (GLCS).
-
-Response:  
-success = True -> message: "success", pose: POP Pose  
-success = False -> message: "device not available" | "command execution error"
-
 **get_scan_poses** (riegl_vz_interfaces/GetScanPoses) :
 
-Request all SOPVs of previously registered scan positions in actual project.
+Request all positions and orientations of previously registered scans of the actual project.
 
 Response:  
 success = True -> message: "success", project: Project Name, scanposes: All Scan Poses, vop: VOP Pose, pop: POP Pose  
-success = False -> message: "device not available" | "command execution error"
-
-**get_pointcloud** (riegl_vz_interfaces/GetPointCloud) :
-
-Get point cloud of a previously acquired scan position in actual project.
-
-Response:  
-success = True -> message: "success", pointcloud: Scan Data  
 success = False -> message: "device not available" | "command execution error"
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
@@ -318,21 +268,8 @@ Response:
 success = True -> message: "success"  
 success = False -> message: "command execution error"
 
-
 #### 3.1.4 TF2 Transformation
 
 The node will broadcast TF2 transformation messages if an existing project is loaded and after each scan position registration:
 
 ![TF2 Transformation](img/tf2_transform.png)
-
-#### 3.1.5 Extensions
-
-Not available in first implementation but for further extension:
-
-* Providing covariance of pose (see [sensor_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg))
-
-* Additional services:
-
-**get_voxel** (riegl_vz_interfaces/GetPointcloud) : Get voxel data of a previous scan data acquisition.
-
-**get_projectmap** (riegl_vz_interfaces/GetImage) : Get the project map overview image.

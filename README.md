@@ -77,8 +77,8 @@ Start 'foxglove-studio':
 
 ```foxglove-studio```
 
-Import layout from foxglove/diagnostics.json.
+Import layout from foxglove/diagnostics.json..
 
-And open a data source, e.g. open live connection.
+and open a data source, e.g. open live connection.
 
 ![rqt](riegl_vz/img/foxglove.png)

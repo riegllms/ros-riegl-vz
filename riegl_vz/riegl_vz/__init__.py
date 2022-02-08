@@ -251,7 +251,7 @@ class RieglVzWrapper(Node):
             message = "com error"
 
         diag.summary(err, message)
-        diag.add('detect', str(status.detect))
+        diag.add('cam_detect', str(status.detect))
         return diag
 
     def _publishGnssFix(self):

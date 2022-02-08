@@ -46,8 +46,3 @@ Add xauth in running docker container:
 Execute graphical application in the docker container:
 
 ```rviz2```
-
-or  
-
-```foxglove-studio```
-
