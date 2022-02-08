@@ -18,9 +18,11 @@ class ScannerStatus(object):
         self.opstate = "unavailable"
         self.activeTask = ""
         self.progress = 0
+        self.laserOn = False
 
 class MemoryStatus(object):
     def __init__(self):
+        self.valid = False
         self.err = False
         self.memTotalGB = 0
         self.memFreeGB = 0
@@ -28,6 +30,7 @@ class MemoryStatus(object):
 
 class GnssStatus(object):
     def __init__(self):
+        self.valid = False
         self.err = False
         self.fix = True
         self.numSat = 3
@@ -37,12 +40,14 @@ class GnssStatus(object):
 
 class ErrorStatus(object):
     def __init__(self):
+        self.valid = False
         self.err = False
         self.numErrors = 0
         self.numWarnings = 0
 
 class CameraStatus(object):
     def __init__(self):
+        self.valid = False
         self.err = False
         self.detect = False
 
@@ -77,6 +82,11 @@ class StatusMaintainer(object):
         self._scannerStatus.progress = progress
         self._unlock()
 
+    def setLaserOn(self, state):
+        self._lock()
+        self._scannerStatus.laserOn = state
+        self._unlock()
+
     def getScannerStatus(self):
         self._lock()
         status = self._scannerStatus
@@ -85,6 +95,7 @@ class StatusMaintainer(object):
 
     def setMemoryStatus(self, status):
         self._lock()
+        status.valid = True
         self._memoryStatus = status
         self._unlock()
 
@@ -96,6 +107,7 @@ class StatusMaintainer(object):
 
     def setGnssStatus(self, status):
         self._lock()
+        status.valid = True
         self._gnssStatus = status
         self._unlock()
 
@@ -107,6 +119,7 @@ class StatusMaintainer(object):
 
     def setErrorStatus(self, status):
         self._lock()
+        status.valid = True
         self._errorStatus = status
         self._unlock()
 
@@ -118,6 +131,7 @@ class StatusMaintainer(object):
 
     def setCameraStatus(self, status):
         self._lock()
+        status.valid = True
         self._cameraStatus = status
         self._unlock()
 
@@ -215,10 +229,10 @@ class RieglVzStatus():
 
         self._shutdownReq = False
 
-        self._memoryStatusCallback()
-        self._node.create_timer(10.0, self._memoryStatusCallback)
-        self._gnssStatusCallback()
-        self._node.create_timer(1.0, self._gnssStatusCallback)
+        self._timer10Callback()
+        self._node.create_timer(10.0, self._timer10Callback)
+        self._timer1Callback()
+        self._node.create_timer(1.0, self._timer1Callback)
 
     def _getInstInfo(self):
         ok = False
@@ -231,16 +245,8 @@ class RieglVzStatus():
             serialNumber = self._scanSvc.instrumentInformation().serialNumber
         return ok, err, instIdent, serialNumber
 
-    def getScannerStatus(self):
-        return self.status.getScannerStatus()
-
-    def getScannerOpstate(self):
-        return self.status.getScannerStatus().opstate
-
-    def isScannerAvailable(self):
-        return (self.getScannerOpstate() != "unavailable")
-
-    def _memoryStatusCallback(self):
+    def _timer10Callback(self):
+        # memory status
         memoryStatus = MemoryStatus()
         try:
             if self._intfSvc:
@@ -266,10 +272,8 @@ class RieglVzStatus():
             memoryStatus.err = True
         self.status.setMemoryStatus(memoryStatus)
 
-    def getMemoryStatus(self):
-        return self.status.getMemoryStatus()
-
-    def _gnssStatusCallback(self):
+    def _timer1Callback(self):
+        # gnss status
         gnssStatus = GnssStatus()
         try:
             if self._gnssSvc:
@@ -289,10 +293,7 @@ class RieglVzStatus():
             gnssStatus.err = True
         self.status.setGnssStatus(gnssStatus)
 
-    def getGnssStatus(self):
-        return self.status.getGnssStatus()
-
-    def _errorStatusCallback(self):
+        # error status
         errorStatus = ErrorStatus()
         try:
             if self._riconSw:
@@ -306,20 +307,44 @@ class RieglVzStatus():
             errorStatus.err = True
         self.status.setErrorStatus(errorStatus)
 
-    def getErrorStatus(self):
-        return self.status.getErrorStatus()
-
-
-    def _errorCameraCallback(self):
+        # camera status
         cameraStatus = CameraStatus()
         try:
             if self._camSvc:
-                cameraList = self._camSvc().list()
+                cameraList = self._camSvc.list()
                 if len(cameraList) > 0:
                     cameraStatus.detect = True
         except:
             cameraStatus.err = True
+            raise
         self.status.setCameraStatus(cameraStatus)
+
+        # laser status
+        laserOn = False
+        try:
+            if self._scanSvc:
+                laserOn = self._scanSvc.isLaserOn()
+        except:
+            self.status._scannerStatus.err = True
+        self.status.setLaserOn(laserOn)
+
+    def getScannerStatus(self):
+        return self.status.getScannerStatus()
+
+    def getScannerOpstate(self):
+        return self.status.getScannerStatus().opstate
+
+    def isScannerAvailable(self):
+        return (self.getScannerOpstate() != "unavailable")
+
+    def getMemoryStatus(self):
+        return self.status.getMemoryStatus()
+
+    def getGnssStatus(self):
+        return self.status.getGnssStatus()
+
+    def getErrorStatus(self):
+        return self.status.getErrorStatus()
 
     def getCameraStatus(self):
         return self.status.getCameraStatus()

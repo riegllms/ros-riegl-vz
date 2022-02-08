@@ -153,11 +153,16 @@ class RieglVzWrapper(Node):
         diag.add('active_task', status.activeTask)
         diag.add('progress', str(status.progress))
         diag.add('scan_position', self._scanposName)
+        diag.add('laser', 'on' if status.laserOn else 'off')
 
         return diag
 
     def _produceMemoryDiagnostics(self, diag):
         status = self._rieglVz.getMemoryStatus()
+
+        if not status.valid:
+            diag.summary(DiagnosticStatus.OK, '')
+            return diag
 
         err = DiagnosticStatus.OK
         message = "ok"
@@ -184,6 +189,10 @@ class RieglVzWrapper(Node):
     def _produceGnssDiagnostics(self, diag):
         status = self._rieglVz.getGnssStatus()
 
+        if not status.valid:
+            diag.summary(DiagnosticStatus.OK, '')
+            return diag
+
         err = DiagnosticStatus.OK
         message = "ok"
         if not self._rieglVz.isScannerAvailable():
@@ -201,6 +210,10 @@ class RieglVzWrapper(Node):
     def _produceErrorDiagnostics(self, diag):
         status = self._rieglVz.getErrorStatus()
 
+        if not status.valid:
+            diag.summary(DiagnosticStatus.OK, '')
+            return diag
+
         err = DiagnosticStatus.OK
         message = "ok"
         if not self._rieglVz.isScannerAvailable():
@@ -211,10 +224,10 @@ class RieglVzWrapper(Node):
             message = "com error"
         elif status.numErrors > 0:
             err = DiagnosticStatus.ERROR
-            message = "system error"
+            message = "system error(s)"
         elif status.numWarnings > 0:
             err = DiagnosticStatus.WARN
-            message = "system warning"
+            message = "system warning(s)"
 
         diag.summary(err, message)
         diag.add('num_warn', str(status.numWarnings))
@@ -223,6 +236,10 @@ class RieglVzWrapper(Node):
 
     def _produceCameraDiagnostics(self, diag):
         status = self._rieglVz.getCameraStatus()
+
+        if not status.valid:
+            diag.summary(DiagnosticStatus.OK, '')
+            return diag
 
         err = DiagnosticStatus.OK
         message = "ok"

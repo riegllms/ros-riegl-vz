@@ -168,6 +168,9 @@ class RieglVz():
     def _getGnssFixMessage(self):
         status = self._status.getGnssStatus()
 
+        if not status.valid:
+            return False, None
+
         msg = NavSatFix()
         msg.header = Header()
         msg.header.stamp = self._node.get_clock().now().to_msg()
@@ -191,13 +194,17 @@ class RieglVz():
         msg.position_covariance[8] = 0
         msg.position_covariance_type = NavSatFix.COVARIANCE_TYPE_DIAGONAL_KNOWN
 
-        return msg
+        return True, msg
 
     def publishGnssFix(self):
-        self._node.gnssFixPublisher.publish(self._getGnssFixMessage())
+        ok, msg = self._getGnssFixMessage()
+        if ok:
+            self._node.gnssFixPublisher.publish(msg)
 
     def publishScanGnssFix(self):
-        self._node.scanGnssFixPublisher.publish(self._getGnssFixMessage())
+        ok, msg = self._getGnssFixMessage()
+        if ok:
+            self._node.scanGnssFixPublisher.publish(msg)
 
     def setProjectControlPoints(coordSystem: str, csvFile: str):
         projectPath = self._project.getActiveProjectPath()
@@ -311,9 +318,9 @@ class RieglVz():
         self._logger.info("scan register = {}".format(self.scanRegister))
         if self.reflSearchSettings:
             self._logger.info("reflector search = {}".format(self.reflSearchSettings))
-        self._logger.info("image capture = {}".format(self.imageCapture))
-        self._logger.info("image capture mode = {}".format(self.imageCaptureMode))
-        self._logger.info("image capture overlap = {}".format(self.imageCaptureOverlap))
+        self._logger.info("image capture = {}".format(self.captureImages))
+        self._logger.info("image capture mode = {}".format(self.captureMode))
+        self._logger.info("image capture overlap = {}".format(self.imageOverlap))
 
         scriptPath = join(appDir, "acquire-data.py")
         cmd = [

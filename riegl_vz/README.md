@@ -218,6 +218,7 @@ scanner:
   active_task   : active task description
   progress      : scan progress in percent
   scan_position : number of current scan position
+  laser         : laser state 'on' or 'off'
 errors:
   num_warn      : number or pending system warnings
   num_err       : number of pending system
@@ -226,7 +227,7 @@ memory:
   mem_usage     : storage media memory usage in percent of total space
 gnss:
   fix           : GNSS fix
-  num_sat       : number of available
+  num_sat       : number of available satellites
 camera:
   detect        : external camera detected
 ```

@@ -774,3 +774,8 @@ class ScannerService(object):
         val.i32 = 1 if value else 0
         with self._lock:
             self._svc.setProperty("MEAS_MTA_ENABLE", val)
+
+    def isLaserOn(self):
+        """Return laser on state."""
+        with self._lock:
+            return self._svc.getProperty("LASER").i32 != 0
