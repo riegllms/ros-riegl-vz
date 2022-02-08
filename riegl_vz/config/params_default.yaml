@@ -7,7 +7,7 @@ riegl_vz_node:
     project_name: "test"
     storage_media: 0
     meas_program: 3
-    scan_pattern_name: "Panorama_80"
+    scan_pattern_name: "Panorama_40"
     scan_pattern: [30.0,130.0,0.1,0.0,360.0,0.5]
     scan_publish: True
     scan_publish_filter: ""
