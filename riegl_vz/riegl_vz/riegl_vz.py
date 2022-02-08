@@ -457,7 +457,7 @@ class RieglVz():
         scanPublishLOD: int = 1,
         scanRegister: bool = True,
         reflSearchSettings: dict = None,
-        captureImages: bool = False,
+        captureImages: bool = True,
         captureMode: int = 1,
         imageOverlap: int = 25):
         """Acquire data at scan position.

@@ -111,6 +111,7 @@ class RieglVzWrapper(Node):
         self._getPopService = self.create_service(GetPose, 'get_pop', self._getPopCallback)
         self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
+        self._testService = self.create_service(Trigger, 'test', self._testCallback)
         self._trigStartStopService = self.create_service(Trigger, 'trig_start_stop', self._trigStartStopCallback)
         self._getScanPatterns = self.create_service(GetList, 'get_scan_patterns', self._getScanPatternsCallback)
         self._getReflectorModels = self.create_service(GetList, 'get_reflector_models', self._getReflectorModelsCallback)
@@ -327,7 +328,6 @@ class RieglVzWrapper(Node):
             self._setResponseException(response)
 
         return response
-
 
     def scan(self):
         self.storageMedia = int(self.get_parameter('storage_media').value)
@@ -594,6 +594,57 @@ class RieglVzWrapper(Node):
 
             for model in models:
                 response.list.append(model)
+        except:
+            self._setResponseException(response)
+
+        return response
+
+    def test(self):
+        self.storageMedia = int(self.get_parameter('storage_media').value)
+        self.scanPattern: ScanPattern = ScanPattern()
+        self.scanPattern.lineStart = 30.0
+        self.scanPattern.lineStop = 130.0
+        self.scanPattern.lineIncrement = 0.5
+        self.scanPattern.frameStart = 0.0
+        self.scanPattern.frameStop = 360.0
+        self.scanPattern.frameIncrement = 0.5
+        self.scanPattern.measProgram = 3
+        self.scanPublish = False
+        self.scanRegister = False
+        self.reflSearchSettings = None
+        self.reflSearch = False
+        self.imageCapture = False
+
+        if not self.projectValid:
+            self.setProject(self.projectName)
+
+        self._scanposName = "test"
+
+        return self._rieglVz.scan(
+            projectName = self.projectName,
+            scanposName = self._scanposName,
+            storageMedia = self.storageMedia,
+            scanPattern = self.scanPattern,
+            scanPublish = self.scanPublish,
+            scanRegister = self.scanRegister,
+            reflSearchSettings = self.reflSearchSettings,
+            captureImages = self.imageCapture)
+
+    def _testCallback(self, request, response):
+        try:
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
+                return response
+
+            if self._rieglVz.getScannerOpstate() != "waiting":
+                self_.setResponseStatus(response, False, "device is busy")
+                self._logger.warning("Device is busy at the moument.")
+                return response
+
+            if not self.test():
+                self._setResponseException(response)
+                return response
+
+                self._statusUpdater.force_update
         except:
             self._setResponseException(response)
 
