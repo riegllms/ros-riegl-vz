@@ -629,7 +629,7 @@ class RieglVzWrapper(Node):
         self.scanPattern: ScanPattern = ScanPattern()
         self.scanPattern.lineStart = 30.0
         self.scanPattern.lineStop = 130.0
-        self.scanPattern.lineIncrement = 0.5
+        self.scanPattern.lineIncrement = 0.1
         self.scanPattern.frameStart = 0.0
         self.scanPattern.frameStop = 360.0
         self.scanPattern.frameIncrement = 0.5
