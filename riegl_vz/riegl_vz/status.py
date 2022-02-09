@@ -229,10 +229,10 @@ class RieglVzStatus():
 
         self._shutdownReq = False
 
-        self._timer10Callback()
-        self._node.create_timer(10.0, self._timer10Callback)
-        self._timer1Callback()
-        self._node.create_timer(1.0, self._timer1Callback)
+        self._timer10sCallback()
+        self._node.create_timer(10.0, self._timer10sCallback)
+        self._timer1sCallback()
+        self._node.create_timer(1.0, self._timer1sCallback)
 
     def _getInstInfo(self):
         ok = False
@@ -245,7 +245,7 @@ class RieglVzStatus():
             serialNumber = self._scanSvc.instrumentInformation().serialNumber
         return ok, err, instIdent, serialNumber
 
-    def _timer10Callback(self):
+    def _timer10sCallback(self):
         # memory status
         memoryStatus = MemoryStatus()
         try:
@@ -272,7 +272,7 @@ class RieglVzStatus():
             memoryStatus.err = True
         self.status.setMemoryStatus(memoryStatus)
 
-    def _timer1Callback(self):
+    def _timer1sCallback(self):
         # gnss status
         gnssStatus = GnssStatus()
         try:
@@ -327,27 +327,6 @@ class RieglVzStatus():
         except:
             self.status._scannerStatus.err = True
         self.status.setLaserOn(laserOn)
-
-    def getScannerStatus(self):
-        return self.status.getScannerStatus()
-
-    def getScannerOpstate(self):
-        return self.status.getScannerStatus().opstate
-
-    def isScannerAvailable(self):
-        return (self.getScannerOpstate() != "unavailable")
-
-    def getMemoryStatus(self):
-        return self.status.getMemoryStatus()
-
-    def getGnssStatus(self):
-        return self.status.getGnssStatus()
-
-    def getErrorStatus(self):
-        return self.status.getErrorStatus()
-
-    def getCameraStatus(self):
-        return self.status.getCameraStatus()
 
     def shutdown(self):
         self._shutdownReq = True

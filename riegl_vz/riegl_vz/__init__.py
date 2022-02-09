@@ -93,6 +93,7 @@ class RieglVzWrapper(Node):
         self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
         self.get_logger().debug("scanPublishLOD = {}".format(self.scanPublishLOD))
 
+        # create topics..
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
         self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
@@ -100,22 +101,26 @@ class RieglVzWrapper(Node):
         self.gnssFixPublisher = self.create_publisher(NavSatFix, 'gnss', 10)
         self.scanGnssFixPublisher = self.create_publisher(NavSatFix, 'gnss/scan', 10)
 
+        # tf2 message broadcaster..
         self.transformBroadcaster = TransformBroadcaster(self)
 
+        # create documented services..
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
-        self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
-        self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
         self._setPositionService = self.create_service(SetPosition, 'set_position', self._setPositionCallback)
+        self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
+        self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
+        self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
+        self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
+
+        # create undocumented services..
+        self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
         self._getSopvService = self.create_service(GetPose, 'get_sopv', self._getSopvCallback)
         self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
         self._getPopService = self.create_service(GetPose, 'get_pop', self._getPopCallback)
-        self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
-        self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
         self._testService = self.create_service(Trigger, 'test', self._testCallback)
         self._trigStartStopService = self.create_service(Trigger, 'trig_start_stop', self._trigStartStopCallback)
         self._getScanPatterns = self.create_service(GetList, 'get_scan_patterns', self._getScanPatternsCallback)
         self._getReflectorModels = self.create_service(GetList, 'get_reflector_models', self._getReflectorModelsCallback)
-        self._shutdownService = self.create_service(Trigger, 'shutdown', self._shutdownCallback)
 
         self._rieglVz = RieglVz(self)
 
@@ -246,6 +251,9 @@ class RieglVzWrapper(Node):
         if not self._rieglVz.isScannerAvailable():
             err = DiagnosticStatus.WARN
             message = "unavailable"
+        elif not status.detect:
+            err = DiagnosticStatus.WARN
+            message = "no camera"
         elif status.err:
             err = DiagnosticStatus.ERROR
             message = "com error"

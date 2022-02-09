@@ -102,25 +102,25 @@ class RieglVz():
         return True, sopv
 
     def getScannerStatus(self):
-        return self._status.getScannerStatus()
-
-    def isScannerAvailable(self):
-        return self._status.isScannerAvailable()
+        return self._status.status.getScannerStatus()
 
     def getScannerOpstate(self):
         return self.getScannerStatus().opstate
 
+    def isScannerAvailable(self):
+        return (self.getScannerOpstate() != "unavailable")
+
     def getMemoryStatus(self):
-        return self._status.getMemoryStatus()
+        return self._status.status.getMemoryStatus()
 
     def getGnssStatus(self):
-        return self._status.getGnssStatus()
+        return self._status.status.getGnssStatus()
 
     def getErrorStatus(self):
-        return self._status.getErrorStatus()
+        return self._status.status.getErrorStatus()
 
     def getCameraStatus(self):
-        return self._status.getCameraStatus()
+        return self._status.status.getCameraStatus()
 
     def loadProject(self, projectName: str, storageMedia: int, scanRegister: bool):
         ok = self._project.loadProject(projectName, storageMedia)
@@ -166,7 +166,7 @@ class RieglVz():
         self._ssh.uploadFile([localFile], scanposPath)
 
     def _getGnssFixMessage(self):
-        status = self._status.getGnssStatus()
+        status = self.getGnssStatus()
 
         if not status.valid:
             return False, None
