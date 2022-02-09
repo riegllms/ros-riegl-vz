@@ -3,9 +3,9 @@
 <package format="3">
   <name>riegl_vz_interfaces</name>
   <version>0.0.0</version>
-  <description>Specific interfaces for RIEGL VZ package</description>
+  <description>Specific interfaces for ROS RIEGL VZ package</description>
   <maintainer email="afriedl@riegl.com">Andreas Friedl</maintainer>
-  <license>RIEGL License</license>
+  <license>Apache 2.0 License</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
 

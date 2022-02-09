@@ -15,8 +15,8 @@ setup(
     zip_safe=True,
     maintainer='Andreas Friedl',
     maintainer_email='afriedl@riegl.com',
-    description='RIEGL client service communication library for 3D scanners',
-    license='RIEGL License',
+    description='Client service communication library for RIEGL VZ-i scanners',
+    license='Apache 2.0 License',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

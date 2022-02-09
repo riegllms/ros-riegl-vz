@@ -16,7 +16,7 @@ setup(
     maintainer='Andreas Friedl',
     maintainer_email='afriedl@riegl.com',
     description='RIEGL low level client service communication library',
-    license='RIEGL License',
+    license='Apache 2.0 License',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

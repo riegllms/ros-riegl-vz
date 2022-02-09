@@ -3,9 +3,9 @@
 <package format="3">
   <name>vzi_services</name>
   <version>0.0.0</version>
-  <description>RIEGL client service communication library for 3D scanners</description>
+  <description>Client service communication library for RIEGL VZ-i scanners</description>
   <maintainer email="afriedl@riegl.com">Andreas Friedl</maintainer>
-  <license>RIEGL License</license>
+  <license>Apache 2.0 License</license>
 
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

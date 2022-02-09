@@ -18,8 +18,8 @@ setup(
     zip_safe=True,
     maintainer='Andreas Friedl',
     maintainer_email='afriedl@riegl.com',
-    description='ROS (Roboter Operating System) Driver for RIEGL VZ scanner series',
-    license='RIEGL License',
+    description='ROS (Roboter Operating System) package for RIEGL VZ-i scanner series',
+    license='Apache 2.0 License',
     tests_require=['pytest'],
     entry_points={
         'console_scripts': [

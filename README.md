@@ -1,6 +1,7 @@
-# ROS2 RIEGL-VZ Package
+# ROS2 RIEGL VZ Package
 
-This package is based on ROS2 [Galactic Geochelone](https://docs.ros.org/en/galactic/index.html) distribution and has been tested on Ubuntu Desktop 20.04 (Focal Fossa).
+This is a ROS2 package for the RIEGL VZ-i series devices. It provides a ROS interface for scan data acquisition and the scan position registration feature of the 3D laser scanners.
+The package is based on ROS2 [Galactic Geochelone](https://docs.ros.org/en/galactic/index.html) distribution and has been tested on Ubuntu Desktop 20.04 (Focal Fossa).
 
 **ROS2 installation and setup:**
 
@@ -25,11 +26,12 @@ Switch to 'src' subdirectory and install required python modules:
 
 ```python3 -m pip install -r requirements.txt```
 
-**Install librdb python wheel:**
+**Install python wheel with rdb library:**
 
-Request a python wheel for librdb from RIEGL support: support@riegl.com  
-The wheel includes a shared linux library which must be appropriate for the target processor architecture.  
-Install the wheel, e.g. x86_64:
+Find an appropriate python wheel for the rdb library in the 'librdb/' subfolder of the repository  
+or send a request to RIEGL support: support@riegl.com.  
+The wheel includes a shared linux library must be appropriate for the target processor architecture.  
+Install the wheel, e.g. for x86_64:
 
 ```pip3 install riegl.rdb-2.3.4-cp34.cp35.cp36.cp37.cp38.cp39-none-linux_x86_64.whl```
 

@@ -1,4 +1,4 @@
-# ROS2 Riegl VZ Package API
+# ROS2 RIEGL VZ Package API
 
 ## 1. Coordinate Systems
 
@@ -111,7 +111,12 @@ Specifies the field of view (FOV) for scanning and the scan increments.
 [4]: Frame Stop Angle  
 [5]: Frame Angle Increment  
 
-**~meas_program** (integer, default: 3) :
+**~scan_pattern_name** (string, default: "")
+
+Name of a factory or user defined scan pattern, which is for example 'Overview' or 'Panorama_40'.  
+If pattern is available and not empty, this overwrites the configuration values from '~scan_pattern'.
+
+**~meas_program** (integer, default: 3)
 
 This is the laser scanner measurement program, which specifies the laser scanner frequency.
 
