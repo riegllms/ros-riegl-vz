@@ -146,19 +146,19 @@ class RieglVzWrapper(Node):
         err = DiagnosticStatus.OK
         message = "ok"
         if status.opstate == "unavailable":
-            message = status.opstate
             err = DiagnosticStatus.WARN
-            message = "unavailable"
+            message = 'N/A'
         elif status.err:
             err = DiagnosticStatus.ERROR
             message = "com error"
 
         diag.summary(err, message)
         diag.add('opstate', status.opstate)
-        diag.add('active_task', status.activeTask)
-        diag.add('progress', str(status.progress))
-        diag.add('scan_position', self._scanposName)
-        diag.add('laser', 'on' if status.laserOn else 'off')
+        if status.opstate != "unavailable":
+            diag.add('active_task', status.activeTask)
+            diag.add('progress', str(status.progress))
+            diag.add('scan_position', self._scanposName)
+            diag.add('laser', 'on' if status.laserOn else 'off')
 
         return diag
 
@@ -166,15 +166,12 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getMemoryStatus()
 
         if not status.valid:
-            diag.summary(DiagnosticStatus.OK, '')
+            diag.summary(DiagnosticStatus.WARN, 'N/A')
             return diag
 
         err = DiagnosticStatus.OK
         message = "ok"
-        if not self._rieglVz.isScannerAvailable():
-            err = DiagnosticStatus.WARN
-            message = "unavailable"
-        elif status.err:
+        if status.err:
             err = DiagnosticStatus.ERROR
             message = "com error"
         elif status.memUsage >= 90.0:
@@ -195,15 +192,12 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getGnssStatus()
 
         if not status.valid:
-            diag.summary(DiagnosticStatus.OK, '')
+            diag.summary(DiagnosticStatus.WARN, 'N/A')
             return diag
 
         err = DiagnosticStatus.OK
         message = "ok"
-        if not self._rieglVz.isScannerAvailable():
-            err = DiagnosticStatus.WARN
-            message = "unavailable"
-        elif status.err:
+        if status.err:
             err = DiagnosticStatus.ERROR
             message = "com error"
 
@@ -216,15 +210,12 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getErrorStatus()
 
         if not status.valid:
-            diag.summary(DiagnosticStatus.OK, '')
+            diag.summary(DiagnosticStatus.WARN, 'N/A')
             return diag
 
         err = DiagnosticStatus.OK
         message = "ok"
-        if not self._rieglVz.isScannerAvailable():
-            err = DiagnosticStatus.WARN
-            message = "unavailable"
-        elif status.err:
+        if status.err:
             err = DiagnosticStatus.ERROR
             message = "com error"
         elif status.numErrors > 0:
@@ -243,15 +234,12 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getCameraStatus()
 
         if not status.valid:
-            diag.summary(DiagnosticStatus.OK, '')
+            diag.summary(DiagnosticStatus.WARN, 'N/A')
             return diag
 
         err = DiagnosticStatus.OK
         message = "ok"
-        if not self._rieglVz.isScannerAvailable():
-            err = DiagnosticStatus.WARN
-            message = "unavailable"
-        elif not status.detect:
+        if not status.detect:
             err = DiagnosticStatus.WARN
             message = "no camera"
         elif status.err:
