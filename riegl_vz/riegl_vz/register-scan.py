@@ -49,15 +49,15 @@ def mediaString(projSvc):
     """Return string representation of active storage media (used by ControlService)."""
     media = projSvc.storageMedia()
     if media == ProjectService.SM_USB:
-        return "USB"
+        return 'USB'
     if media == ProjectService.SM_SDCARD:
-        return "SDCARD"
+        return 'SDCARD'
     if media == ProjectService.SM_NAS:
-        return "NAS"
-    return "SSD"
+        return 'NAS'
+    return 'SSD'
 
 def main():
-    parser = argparse.ArgumentParser(description="Register scan position.")
+    parser = argparse.ArgumentParser(description='Register scan position.')
     parser.add_argument('--connectionstring',
         default='127.0.0.1:20000',
         help='address of scanner services')

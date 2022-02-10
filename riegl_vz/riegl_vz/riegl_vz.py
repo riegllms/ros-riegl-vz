@@ -68,7 +68,7 @@ class RieglVz():
         self._logger = node.get_logger()
         self._hostname = node.hostname
         self._workingDir = node.workingDir
-        self._connectionString = self._hostname + ":20000"
+        self._connectionString = self._hostname + ':20000'
         self._path = Path()
         self._position = None
         self._stopReq = False
@@ -88,13 +88,13 @@ class RieglVz():
     def _broadcastTfTransforms(self, ts: datetime.time):
         ok, pop = self.getPop()
         if ok:
-            self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, "riegl_vz_prcs", pop))
+            self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, 'riegl_vz_prcs', pop))
         ok, vop = self.getVop()
         if ok:
-            self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, "riegl_vz_vocs", vop))
+            self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, 'riegl_vz_vocs', vop))
             ok, sopv = self.getSopv()
             if ok:
-                self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, "riegl_vz_socs", sopv.pose))
+                self._node.transformBroadcaster.sendTransform(getTransformFromPose(ts, 'riegl_vz_socs', sopv.pose))
             else:
                 return False, None
         else:
@@ -108,7 +108,7 @@ class RieglVz():
         return self.getScannerStatus().opstate
 
     def isScannerAvailable(self):
-        return (self.getScannerOpstate() != "unavailable")
+        return (self.getScannerOpstate() != 'unavailable')
 
     def getMemoryStatus(self):
         return self._status.status.getMemoryStatus()
@@ -149,20 +149,20 @@ class RieglVz():
 
     def _setPositionEstimate(self, position):
         scanposPath = self._project.getActiveScanposPath(self.scanposName)
-        remoteFile = scanposPath + "/final.pose"
-        localFile = self._workingDir + "/final.pose"
+        remoteFile = scanposPath + '/final.pose'
+        localFile = self._workingDir + '/final.pose'
         self._ssh.downloadFile(remoteFile, localFile)
-        with open(localFile, "r") as f:
+        with open(localFile, 'r') as f:
             finalPose = json.load(f)
-        finalPose["positionEstimate"] = {
-            "coordinateSystem": position.header.frame_id,
-            "coord1": position.point.x,
-            "coord2": position.point.y,
-            "coord3": position.point.z
+        finalPose['positionEstimate'] = {
+            'coordinateSystem': position.header.frame_id,
+            'coord1': position.point.x,
+            'coord2': position.point.y,
+            'coord3': position.point.z
         }
-        with open(localFile, "w") as f:
+        with open(localFile, 'w') as f:
             json.dump(finalPose, f, indent=4)
-            f.write("\n")
+            f.write('\n')
         self._ssh.uploadFile([localFile], scanposPath)
 
     def _getGnssFixMessage(self):
@@ -174,7 +174,7 @@ class RieglVz():
         msg = NavSatFix()
         msg.header = Header()
         msg.header.stamp = self._node.get_clock().now().to_msg()
-        msg.header.frame_id = "riegl_vz_gnss"
+        msg.header.frame_id = 'riegl_vz_gnss'
 
         if status.fix:
             msg.status.status = NavSatStatus.STATUS_FIX
@@ -209,7 +209,7 @@ class RieglVz():
     def setProjectControlPoints(coordSystem: str, csvFile: str):
         projectPath = self._project.getActiveProjectPath()
         remoteSrcCpsFile = csvFile
-        localSrcCpsFile = self._workingDir + "/" + os.path.basename(csvFile)
+        localSrcCpsFile = self._workingDir + '/' + os.path.basename(csvFile)
         self._ssh.downloadFile(remoteSrcCpsFile, localSrcCpsFile)
         csvData = parseCSV(localSrcCpsFile)[1:]
         # parse points and write resulting csv file
@@ -217,8 +217,8 @@ class RieglVz():
         if csvData:
             if len(csvData[0]) < 4:
                 raise RuntimeError("Invalid control points definition. File must have at least four columns.")
-            localDstCpsFile = self._workingDir + "/controlpoints.csv"
-            with open(localDstCpsFile, "w") as f:
+            localDstCpsFile = self._workingDir + '/controlpoints.csv'
+            with open(localDstCpsFile, 'w') as f:
                 f.write("Name,CRS,Coord1,Coord2,Coord3\n")
                 for item in csvData:
                     f.write("{},{},{},{},{}\n".format(item[0], coordSystem, item[1], item[2], item[3]))
@@ -226,25 +226,25 @@ class RieglVz():
 
     def getPointCloud(self, scanposName: str, pointcloud: PointCloud2, ts: bool = True):
         self._logger.debug("Downloading rdbx file..")
-        self._status.status.setActiveTask("download rdbx file")
+        self._status.status.setActiveTask('download rdbx file')
         scanId = self._project.getScanId(scanposName)
         self._logger.debug("scan id = {}".format(scanId))
-        if scanId == "null":
+        if scanId == 'null':
             self._logger.error("Scan id is null!")
             return False, pointcloud
 
         scanposPath = self._project.getActiveScanposPath(scanposName)
         self._logger.debug("scanpos path = {}".format(scanposPath))
-        scan = os.path.basename(scanId).replace(".rxp", "")[0:13]
+        scan = os.path.basename(scanId).replace('.rxp', '')[0:13]
         self._logger.debug("scan = {}".format(scan))
-        remoteFile = scanposPath + "/scans/" + scan + ".rdbx"
-        localFile = self._workingDir + "/scan.rdbx"
+        remoteFile = scanposPath + '/scans/' + scan + '.rdbx'
+        localFile = self._workingDir + '/scan.rdbx'
         self._ssh.downloadFile(remoteFile, localFile)
 
         self._logger.debug("Generate point cloud..")
-        self._status.status.setActiveTask("generate point cloud data")
+        self._status.status.setActiveTask('generate point cloud data')
         with riegl.rdb.rdb_open(localFile) as rdb:
-            filter = ""
+            filter = ''
             rosDtype = PointField.FLOAT32
             dtype = np.float32
             itemsize = np.dtype(dtype).itemsize
@@ -262,8 +262,8 @@ class RieglVz():
                 pointStep = 2 ** scanPublishLOD
                 for point in points:
                     if not (numTotalPoints % pointStep):
-                        data.extend(point["riegl.xyz"].astype(dtype).tobytes())
-                        data.extend(point["riegl.reflectance"].astype(dtype).tobytes())
+                        data.extend(point['riegl.xyz'].astype(dtype).tobytes())
+                        data.extend(point['riegl.reflectance'].astype(dtype).tobytes())
                         numPoints += 1
                     numTotalPoints += 1
 
@@ -276,7 +276,7 @@ class RieglVz():
             else:
                 stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
 
-            header = std_msgs.Header(frame_id = "riegl_vz_socs", stamp = stamp)
+            header = std_msgs.Header(frame_id = 'riegl_vz_socs', stamp = stamp)
 
             pointcloud = PointCloud2(
                 header = header,
@@ -291,13 +291,13 @@ class RieglVz():
             )
             #for point in rdb.points():
             #    self._logger.debug("{0}".format(point.riegl_xyz))
-        self._status.status.setActiveTask("")
+        self._status.status.setActiveTask('')
         self._logger.debug("Point cloud generated.")
 
         return True, pointcloud
 
     def _scanThreadFunc(self):
-        self._status.status.setOpstate("scanning", "scan data acquisition")
+        self._status.status.setOpstate('scanning', 'scan data acquisition')
         self._status.status.setProgress(0)
 
         self._logger.info("Starting data acquisition..")
@@ -322,42 +322,42 @@ class RieglVz():
         self._logger.info("image capture mode = {}".format(self.captureMode))
         self._logger.info("image capture overlap = {}".format(self.imageOverlap))
 
-        scriptPath = join(appDir, "acquire-data.py")
+        scriptPath = join(appDir, 'acquire-data.py')
         cmd = [
-            "python3", scriptPath,
-            "--connectionstring", self._connectionString,
-            "--project", self.projectName,
-            "--scanposition", self.scanposName,
-            "--storage-media", str(self.storageMedia)]
+            'python3', scriptPath,
+            '--connectionstring', self._connectionString,
+            '--project', self.projectName,
+            '--scanposition', self.scanposName,
+            '--storage-media', str(self.storageMedia)]
         if self.reflSearchSettings:
-            rssFilePath = join(self._workingDir, "reflsearchsettings.json")
-            with open(rssFilePath, "w") as f:
+            rssFilePath = join(self._workingDir, 'reflsearchsettings.json')
+            with open(rssFilePath, 'w') as f:
                 json.dump(self.reflSearchSettings, f)
-            cmd.append("--reflsearch")
+            cmd.append('--reflsearch')
             cmd.append(rssFilePath)
         if self.scanPattern:
             cmd.extend([
-                "--line-start", str(self.scanPattern.lineStart),
-                "--line-stop", str(self.scanPattern.lineStop),
-                "--line-incr", str(self.scanPattern.lineIncrement),
-                "--frame-start", str(self.scanPattern.frameStart),
-                "--frame-stop", str(self.scanPattern.frameStop),
-                "--frame-incr", str(self.scanPattern.frameIncrement),
-                "--measprog", str(self.scanPattern.measProgram)
+                '--line-start', str(self.scanPattern.lineStart),
+                '--line-stop', str(self.scanPattern.lineStop),
+                '--line-incr', str(self.scanPattern.lineIncrement),
+                '--frame-start', str(self.scanPattern.frameStart),
+                '--frame-stop', str(self.scanPattern.frameStop),
+                '--frame-incr', str(self.scanPattern.frameIncrement),
+                '--measprog', str(self.scanPattern.measProgram)
             ])
         if self.captureImages:
             cmd.extend([
-                "--capture-images",
-                "--capture-mode", str(self.captureMode),
-                "--image-overlap", str(self.imageOverlap)
+                '--capture-images',
+                '--capture-mode', str(self.captureMode),
+                '--image-overlap', str(self.imageOverlap)
             ])
-        self._logger.debug("CMD = {}".format(" ".join(cmd)))
+        self._logger.debug("CMD = {}".format(' '.join(cmd)))
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         self._logger.debug("Subprocess started.")
-        subproc.waitFor(errorMessage="Data acquisition failed.", block=True)
+        subproc.waitFor(errorMessage='Data acquisition failed.', block=True)
         if self._stopReq:
             self._stopReq = False
-            self._status.status.setOpstate("waiting")
+            self._status.status.setOpstate('waiting')
             self._logger.info("Scan stopped")
             return
         self._logger.info("Data acquisition finished")
@@ -365,29 +365,29 @@ class RieglVz():
         self._logger.info("Publish scan position GNSS fix..")
         self.publishScanGnssFix()
 
-        self._status.status.setOpstate("processing")
+        self._status.status.setOpstate('processing')
 
         self._logger.info("Converting RXP to RDBX..")
-        self._status.status.setActiveTask("convert rxp to rdbx")
-        scriptPath = join(appDir, "create-rdbx.py")
+        self._status.status.setActiveTask('convert rxp to rdbx')
+        scriptPath = join(appDir, 'create-rdbx.py')
         cmd = [
-            "python3", scriptPath,
-            "--connectionstring", self._connectionString,
-            "--project", self.projectName,
-            "--scanposition", self.scanposName]
-        self._logger.debug("CMD = {}".format(" ".join(cmd)))
+            'python3', scriptPath,
+            '--connectionstring', self._connectionString,
+            '--project', self.projectName,
+            '--scanposition', self.scanposName]
+        self._logger.debug("CMD = {}".format(' '.join(cmd)))
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
         self._logger.debug("Subprocess started.")
-        subproc.waitFor("RXP to RDBX conversion failed.")
+        subproc.waitFor('RXP to RDBX conversion failed.')
         if self._stopReq:
             self._stopReq = False
-            self._status.status.setOpstate("waiting")
+            self._status.status.setOpstate('waiting')
             self._logger.info("Scan stopped")
             return
         self._logger.info("RXP to RDBX conversion finished")
 
         if self._position is not None:
-            self._status.status.setActiveTask("set position estimate")
+            self._status.status.setActiveTask('set position estimate')
             if self.scanposName == '1':
                 self._logger.info("Set project position.")
                 projSvc = ProjectService(self._connectionString)
@@ -402,25 +402,25 @@ class RieglVz():
 
         if self.scanRegister:
             self._logger.info("Starting registration..")
-            self._status.status.setActiveTask("scan position registration")
-            scriptPath = os.path.join(appDir, "register-scan.py")
+            self._status.status.setActiveTask('scan position registration')
+            scriptPath = os.path.join(appDir, 'register-scan.py')
             cmd = [
-                "python3", scriptPath,
-                "--connectionstring", self._connectionString,
-                "--project", self.projectName,
-                "--scanposition", self.scanposName]
-            self._logger.debug("CMD = {}".format(" ".join(cmd)))
+                'python3', scriptPath,
+                '--connectionstring', self._connectionString,
+                '--project', self.projectName,
+                '--scanposition', self.scanposName]
+            self._logger.debug("CMD = {}".format(' '.join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-            subproc.waitFor(errorMessage="Registration failed.", block=True)
+            subproc.waitFor(errorMessage='Registration failed.', block=True)
             if self._stopReq:
                 self._stopReq = False
-                self._status.status.setOpstate("waiting")
+                self._status.status.setOpstate('waiting')
                 self._logger.info("Scan stopped")
                 return
             self._logger.info("Registration finished")
 
             self._logger.info("Downloading and publishing pose..")
-            self._status.status.setActiveTask("publish registered scan position")
+            self._status.status.setActiveTask('publish registered scan position')
             ts = self._node.get_clock().now()
             ok, sopv = self._broadcastTfTransforms(ts)
             if ok:
@@ -434,8 +434,8 @@ class RieglVz():
                 self._node.pathPublisher.publish(self._path)
                 # publish odometry
                 odom = Odometry(
-                    header = Header(stamp = ts.to_msg(), frame_id = "riegl_vz_vocs"),
-                    child_frame_id = "riegl_vz_socs",
+                    header = Header(stamp = ts.to_msg(), frame_id = 'riegl_vz_vocs'),
+                    child_frame_id = 'riegl_vz_socs',
                     pose = PoseWithCovariance(pose = sopv.pose.pose)
                 )
                 self._node.odomPublisher.publish(odom)
@@ -447,11 +447,11 @@ class RieglVz():
             ts = self._node.get_clock().now()
             ok, pointcloud = self.getPointCloud(self.scanposName, pointcloud)
             if ok:
-                self._status.status.setActiveTask("publish point cloud data")
+                self._status.status.setActiveTask('publish point cloud data')
                 self._node.pointCloudPublisher.publish(pointcloud)
             self._logger.info("Point cloud published")
 
-        self._status.status.setOpstate("waiting")
+        self._status.status.setOpstate('waiting')
 
     def scan(
         self,
@@ -460,7 +460,7 @@ class RieglVz():
         storageMedia: int,
         scanPattern: ScanPattern,
         scanPublish: bool = True,
-        scanPublishFilter: str = "",
+        scanPublishFilter: str = '',
         scanPublishLOD: int = 1,
         scanRegister: bool = True,
         reflSearchSettings: dict = None,
@@ -503,24 +503,24 @@ class RieglVz():
 
     def isScanning(self, block = True):
         if block:
-            while self.getScannerOpstate() == "scanning":
+            while self.getScannerOpstate() == 'scanning':
                 time.sleep(0.2)
-        return True if self.getScannerOpstate() == "scanning" else False
+        return True if self.getScannerOpstate() == 'scanning' else False
 
     def isBusy(self, block = True):
         if block:
-            while self.getScannerOpstate() != "waiting":
+            while self.getScannerOpstate() != 'waiting':
                 time.sleep(0.2)
-        return False if self.getScannerOpstate() == "waiting" else True
+        return False if self.getScannerOpstate() == 'waiting' else True
 
     def setPosition(self, position):
         self._position = position
 
     def getAllSopv(self):
         try:
-            sopvFileName = "all_sopv.csv"
-            remoteFile = self._project.getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
-            localFile = self._workingDir + "/" + sopvFileName
+            sopvFileName = 'all_sopv.csv'
+            remoteFile = self._project.getActiveProjectPath() + '/Voxels1.VPP/' + sopvFileName
+            localFile = self._workingDir + '/' + sopvFileName
             self._ssh.downloadFile(remoteFile, localFile)
             ok = True
             sopvs = readAllSopv(localFile, self._logger)
@@ -542,9 +542,9 @@ class RieglVz():
 
     def getVop(self):
         try:
-            sopvFileName = "VPP.vop"
-            remoteFile = self._project.getActiveProjectPath() + "/Voxels1.VPP/" + sopvFileName
-            localFile = self._workingDir + "/" + sopvFileName
+            sopvFileName = 'VPP.vop'
+            remoteFile = self._project.getActiveProjectPath() + '/Voxels1.VPP/' + sopvFileName
+            localFile = self._workingDir + '/' + sopvFileName
             self._ssh.downloadFile(remoteFile, localFile)
         except Exception as e:
             return False, None
@@ -555,9 +555,9 @@ class RieglVz():
 
     def getPop(self):
         try:
-            popFileName = "project.pop"
-            remoteFile = self._project.getActiveProjectPath() + "/" + popFileName
-            localFile = self._workingDir + "/" + popFileName
+            popFileName = 'project.pop'
+            remoteFile = self._project.getActiveProjectPath() + '/' + popFileName
+            localFile = self._workingDir + '/' + popFileName
             self._ssh.downloadFile(remoteFile, localFile)
         except Exception as e:
             return False, None
@@ -582,7 +582,7 @@ class RieglVz():
             self._status.trigStarted = True
 
         intfSvc = InterfaceService(self._connectionString)
-        intfSvc.triggerInputEvent("ACQ_START_STOP")
+        intfSvc.triggerInputEvent('ACQ_START_STOP')
 
         if not trigStartedPrev and self._status.trigStarted:
             startTime = time.time()
@@ -598,25 +598,25 @@ class RieglVz():
         patterns: str = []
         ctrlSvc = ControlService(self._connectionString)
         for pattern in json.loads(ctrlSvc.scanPatternsDetailed()):
-            patterns.append(pattern["name"])
+            patterns.append(pattern['name'])
         #instIdentLower = self._status.status.scannerStatus.instIdent.lower()
-        #remotePath = "/usr/share/gui/" + instIdentLower + "/patterns"
-        #files = self._ssh.listFiles(remotePath, "*.pat")
+        #remotePath = '/usr/share/gui/' + instIdentLower + '/patterns'
+        #files = self._ssh.listFiles(remotePath, '*.pat')
         #for file in files:
-        #    patterns.append(os.path.basename(file).replace(".pat", ""))
+        #    patterns.append(os.path.basename(file).replace('.pat', ''))
         return True, patterns
 
     def getScanPattern(self, patternName):
         ctrlSvc = ControlService(self._connectionString)
         for p in json.loads(ctrlSvc.scanPatternsDetailed()):
-            if p["name"] == patternName:
+            if p['name'] == patternName:
                 pattern: ScanPattern = ScanPattern()
-                pattern.lineStart = p["thetaStart"]
-                pattern.lineStop = p["thetaStop"]
-                pattern.lineIncrement = p["thetaIncrement"]
-                pattern.frameStart = p["phiStart"]
-                pattern.frameStop = p["phiStop"]
-                pattern.frameIncrement = p["phiIncrement"]
+                pattern.lineStart = p['thetaStart']
+                pattern.lineStop = p['thetaStop']
+                pattern.lineIncrement = p['thetaIncrement']
+                pattern.frameStart = p['phiStart']
+                pattern.frameStop = p['phiStop']
+                pattern.frameIncrement = p['phiIncrement']
                 return True, pattern
         self._logger.error("Scan pattern '{}' is not available!")
         return False, None
@@ -625,7 +625,7 @@ class RieglVz():
         models: str = []
         ctrlSvc = ControlService(self._connectionString)
         for model in json.loads(ctrlSvc.supportedReflectorSearchModels()):
-            models.append(model["name"])
+            models.append(model['name'])
         return True, models
 
     def shutdown(self):

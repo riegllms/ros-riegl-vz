@@ -25,12 +25,12 @@ def mediaString(projSvc):
     """Return string representation of active storage media (used by ControlService)."""
     media = projSvc.storageMedia()
     if media == ProjectService.SM_USB:
-        return "USB"
+        return 'USB'
     if media == ProjectService.SM_SDCARD:
-        return "SDCARD"
+        return 'SDCARD'
     if media == ProjectService.SM_NAS:
-        return "NAS"
-    return "SSD"
+        return 'NAS'
+    return 'SSD'
 
 def createRdbx(sigHandler, ctrlSvc,
     storMedia: str,
@@ -72,7 +72,7 @@ def createRdbx(sigHandler, ctrlSvc,
     return True
 
 def createArgumentParser():
-    parser = argparse.ArgumentParser(description="Perform data acquisition.")
+    parser = argparse.ArgumentParser(description='Perform data acquisition.')
     parser.add_argument('--connectionstring',
         default='127.0.0.1:20000',
         help='address of scanner services')
@@ -106,7 +106,7 @@ def main():
         scan = args.scan
     else:
         scanId = procSvc.actualFile(0)
-        scan: str = os.path.basename(scanId).replace(".rxp", "")[0:13] 
+        scan: str = os.path.basename(scanId).replace('.rxp', '')[0:13]
     storMedia = mediaString(projSvc)
     if not createRdbx(
         sigHandler, ctrlSvc,

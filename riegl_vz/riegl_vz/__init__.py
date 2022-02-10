@@ -124,17 +124,17 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
-        self._scanposName = "0"
+        self._scanposName = '0'
         self.projectValid = False
 
         self._statusUpdater = Updater(self)
         self._statusUpdater.setHardwareID('riegl_vz')
-        self._statusUpdater.add("scanner", self._produceScannerDiagnostics)
-        self._statusUpdater.add("memory", self._produceMemoryDiagnostics)
-        self._statusUpdater.add("gnss", self._produceGnssDiagnostics)
-        self._statusUpdater.add("errors", self._produceErrorDiagnostics)
+        self._statusUpdater.add('scanner', self._produceScannerDiagnostics)
+        self._statusUpdater.add('memory', self._produceMemoryDiagnostics)
+        self._statusUpdater.add('gnss', self._produceGnssDiagnostics)
+        self._statusUpdater.add('errors', self._produceErrorDiagnostics)
         if self.imageCapture:
-            self._statusUpdater.add("camera", self._produceCameraDiagnostics)
+            self._statusUpdater.add('camera', self._produceCameraDiagnostics)
 
         self._gnssFixTimer = self.create_timer(1.0, self._publishGnssFix)
 
@@ -144,17 +144,17 @@ class RieglVzWrapper(Node):
         status = self._rieglVz.getScannerStatus()
 
         err = DiagnosticStatus.OK
-        message = "ok"
-        if status.opstate == "unavailable":
+        message = 'ok'
+        if status.opstate == 'unavailable':
             err = DiagnosticStatus.WARN
             message = 'N/A'
         elif status.err:
             err = DiagnosticStatus.ERROR
-            message = "com error"
+            message = 'com error'
 
         diag.summary(err, message)
         diag.add('opstate', status.opstate)
-        if status.opstate != "unavailable":
+        if status.opstate != 'unavailable':
             diag.add('active_task', status.activeTask)
             diag.add('progress', str(status.progress))
             diag.add('scan_position', self._scanposName)
@@ -170,16 +170,16 @@ class RieglVzWrapper(Node):
             return diag
 
         err = DiagnosticStatus.OK
-        message = "ok"
+        message = 'ok'
         if status.err:
             err = DiagnosticStatus.ERROR
-            message = "com error"
+            message = 'com error'
         elif status.memUsage >= 90.0:
             err = DiagnosticStatus.WARN
-            message = "memory almost full"
+            message = 'memory almost full'
         elif status.memUsage >= 99.0:
             err = DiagnosticStatus.ERROR
-            message = "memory full"
+            message = 'memory full'
 
         diag.summary(err, message)
         #diag.add('mem_total_gb', str(status.memTotalGB))
@@ -196,10 +196,10 @@ class RieglVzWrapper(Node):
             return diag
 
         err = DiagnosticStatus.OK
-        message = "ok"
+        message = 'ok'
         if status.err:
             err = DiagnosticStatus.ERROR
-            message = "com error"
+            message = 'com error'
 
         diag.summary(err, message)
         diag.add('fix', str(status.fix))
@@ -214,16 +214,16 @@ class RieglVzWrapper(Node):
             return diag
 
         err = DiagnosticStatus.OK
-        message = "ok"
+        message = 'ok'
         if status.err:
             err = DiagnosticStatus.ERROR
-            message = "com error"
+            message = 'com error'
         elif status.numErrors > 0:
             err = DiagnosticStatus.ERROR
-            message = "system error(s)"
+            message = 'system error(s)'
         elif status.numWarnings > 0:
             err = DiagnosticStatus.WARN
-            message = "system warning(s)"
+            message = 'system warning(s)'
 
         diag.summary(err, message)
         diag.add('num_warn', str(status.numWarnings))
@@ -238,13 +238,13 @@ class RieglVzWrapper(Node):
             return diag
 
         err = DiagnosticStatus.OK
-        message = "ok"
+        message = 'ok'
         if not status.detect:
             err = DiagnosticStatus.WARN
-            message = "no camera"
+            message = 'no camera'
         elif status.err:
             err = DiagnosticStatus.ERROR
-            message = "com error"
+            message = 'com error'
 
         diag.summary(err, message)
         diag.add('cam_detect', str(status.detect))
@@ -259,27 +259,27 @@ class RieglVzWrapper(Node):
         return success, response
 
     def _setResponseSuccess(self, response):
-        return self._setResponseStatus(response, True, "success")[1]
+        return self._setResponseStatus(response, True, 'success')[1]
 
     def _setResponseExecError(self, response):
         self._logger.error("Service request command execution error!")
-        return self._setResponseStatus(response, False, "command execution error")[1]
+        return self._setResponseStatus(response, False, 'command execution error')[1]
 
     def _setResponseException(self, response):
         self._logger.error("Service request command exception!")
-        return self._setResponseStatus(response, False, "command execution error")[1]
+        return self._setResponseStatus(response, False, 'command execution error')[1]
 
     def _checkExecConditions(self):
         success = True
-        message = "success"
+        message = 'success'
         if not self._rieglVz.isScannerAvailable() or self._shutdownReq:
             success = False
-            message = "device not available"
+            message = 'device not available'
             self._logger.info("Device is not available.")
         return success, message
 
     def _setProjectName(self, projectName):
-        if projectName == "":
+        if projectName == '':
             now = datetime.now()
             self.projectName = now.strftime("%y%m%d_%H%M%S")
         else:
@@ -300,7 +300,7 @@ class RieglVzWrapper(Node):
         self.scanRegister = bool(self.get_parameter('scan_register').value)
         self.get_logger().debug("scan register = {}".format(self.scanRegister))
         ok = True
-        if projectName == "" or not self._rieglVz.loadProject(self.projectName, self.storageMedia, self.scanRegister):
+        if projectName == '' or not self._rieglVz.loadProject(self.projectName, self.storageMedia, self.scanRegister):
             ok = False
         else:
             self.projectName = projectName
@@ -345,12 +345,12 @@ class RieglVzWrapper(Node):
     def scan(self):
         self.storageMedia = int(self.get_parameter('storage_media').value)
         scanPatternName = self.get_parameter('scan_pattern_name').value
-        if scanPatternName != "":
+        if scanPatternName != '':
             self.get_logger().debug("scan pattern name = {}".format(scanPatternName))
             ok, self.scanPattern = self._rieglVz.getScanPattern(scanPatternName)
             if not ok:
-                scanPatternName = ""
-        if scanPatternName == "":
+                scanPatternName = ''
+        if scanPatternName == '':
             scanPattern = self.get_parameter('scan_pattern').value
             self.scanPattern = ScanPattern()
             self.scanPattern.lineStart = scanPattern[0]
@@ -370,10 +370,10 @@ class RieglVzWrapper(Node):
         reflSearchLimits = self.get_parameter('reflector_search_limits').value
         if self.reflSearch and (len(reflSearchModels) > 0):
             self.reflSearchSettings = {
-                "searchMode": 'model',
-                "searchModels": [x.strip() for x in reflSearchModels.split(',')],
-                "searchMinRange": reflSearchLimits[0],
-                "searchMaxRange": reflSearchLimits[1]
+                'searchMode': 'model',
+                'searchModels': [x.strip() for x in reflSearchModels.split(',')],
+                'searchMinRange': reflSearchLimits[0],
+                'searchMaxRange': reflSearchLimits[1]
             }
         self.imageCapture = bool(self.get_parameter('image_capture').value)
         self.imageCaptureMode = int(self.get_parameter('image_capture_mode').value)
@@ -403,8 +403,8 @@ class RieglVzWrapper(Node):
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
-            if self._rieglVz.getScannerOpstate() != "waiting":
-                self_.setResponseStatus(response, False, "device is busy")
+            if self._rieglVz.getScannerOpstate() != 'waiting':
+                self_.setResponseStatus(response, False, 'device is busy')
                 self._logger.warning("Device is busy at the moument.")
                 return response
 
@@ -631,7 +631,7 @@ class RieglVzWrapper(Node):
         if not self.projectValid:
             self.setProject(self.projectName)
 
-        self._scanposName = "test"
+        self._scanposName = 'test'
 
         return self._rieglVz.scan(
             projectName = self.projectName,
@@ -648,8 +648,8 @@ class RieglVzWrapper(Node):
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
-            if self._rieglVz.getScannerOpstate() != "waiting":
-                self_.setResponseStatus(response, False, "device is busy")
+            if self._rieglVz.getScannerOpstate() != 'waiting':
+                self_.setResponseStatus(response, False, 'device is busy')
                 self._logger.warning("Device is busy at the moument.")
                 return response
 

@@ -13,10 +13,10 @@ from vzi_services.cameraservice import CameraService
 class ScannerStatus(object):
     def __init__(self):
         self.err = False
-        self.instIdent = ""
-        self.serialNumber = ""
-        self.opstate = "unavailable"
-        self.activeTask = ""
+        self.instIdent = ''
+        self.serialNumber = ''
+        self.opstate = 'unavailable'
+        self.activeTask = ''
         self.progress = 0
         self.laserOn = False
 
@@ -66,7 +66,7 @@ class StatusMaintainer(object):
     def _unlock(self):
         self._threadLock.release()
 
-    def setOpstate(self, opstate, task = ""):
+    def setOpstate(self, opstate, task = ''):
         self._lock()
         self._scannerStatus.opstate = opstate
         self._scannerStatus.activeTask = task
@@ -146,7 +146,7 @@ class RieglVzStatus():
         self._node = node
         self._logger = node.get_logger()
         self._hostname = node.hostname
-        self._connectionString = self._hostname + ":20000"
+        self._connectionString = self._hostname + ':20000'
         self._node.storageMedia = 0
         self._ctrlSvc = None
         self._scanSvc = None
@@ -166,20 +166,20 @@ class RieglVzStatus():
     def _detectFunction(self):
         def onTaskProgress(arg0):
             obj = json.loads(arg0)
-            self._logger.debug("scan progress: {0} % ({1}, {2})".format(obj["progress"], obj["id"], obj["progresstext"]))
-            if obj["id"] == 1:
-                self.status.setProgress(obj["progress"])
+            self._logger.debug("scan progress: {0} % ({1}, {2})".format(obj['progress'], obj['id'], obj['progresstext']))
+            if obj['id'] == 1:
+                self.status.setProgress(obj['progress'])
             self._node._statusUpdater.force_update()
 
         def onDataAcquisitionStarted(arg0):
             if self.trigStarted:
-                self.status.setOpstate("scanning")
+                self.status.setOpstate('scanning')
                 self._node._statusUpdater.force_update()
                 self._logger.debug("Data Acquisition Started!")
 
         def onDataAcquisitionFinished(arg0):
             if self.trigStarted:
-                self.status.setOpstate("waiting")
+                self.status.setOpstate('waiting')
                 self.trigStarted = False
                 self._node._statusUpdater.force_update()
                 self._logger.debug("Data Acquisition Finished!")
@@ -190,7 +190,7 @@ class RieglVzStatus():
                 self._taskProgress = self._ctrlSvc.taskProgress().connect(onTaskProgress)
                 self._acqStartedSigcon = self._ctrlSvc.acquisitionStarted().connect(onDataAcquisitionStarted)
                 self._acqFinishedSigcon = self._ctrlSvc.acquisitionFinished().connect(onDataAcquisitionFinished)
-                self.status.setOpstate("waiting")
+                self.status.setOpstate('waiting')
             except:
                 pass
             time.sleep(1.0)
@@ -237,8 +237,8 @@ class RieglVzStatus():
     def _getInstInfo(self):
         ok = False
         err = False
-        instIdent = ""
-        serialNumber = ""
+        instIdent = ''
+        serialNumber = ''
         if self._scanSvc:
             ok = True
             instIdent = self._scanSvc.instrumentInformation().identifier
@@ -259,8 +259,8 @@ class RieglVzStatus():
                     intf = self._intfSvc.STORAGEIF_SDCARD
                 storageIfs = self._intfSvc.getStorageInterfaces(intf)
                 if len(storageIfs) > 0:
-                    totalSpace = storageIfs[0]["mounts"][0]["storage_space"]["total_space"]
-                    usedSpace = storageIfs[0]["mounts"][0]["storage_space"]["used_space"]
+                    totalSpace = storageIfs[0]['mounts'][0]['storage_space']['total_space']
+                    usedSpace = storageIfs[0]['mounts'][0]['storage_space']['used_space']
                     memoryStatus.memTotalGB = totalSpace / 1024.0 / 1024.0
                     memoryStatus.memFreeGB = (totalSpace - usedSpace) / 1024.0 / 1024.0
                     memoryStatus.memUsage = usedSpace / totalSpace * 100.0
@@ -279,16 +279,16 @@ class RieglVzStatus():
             if self._gnssSvc:
                 j = json.loads(self._gnssSvc.estimateInfo())
                 #self._logger.debug("gnss: {}".format(j))
-                if "fix" in j:
-                    gnssStatus.fix = j["fix"]
-                if "num_sat" in j:
-                    gnssStatus.numSat = j["num_sat"]
-                if "longitude" in j:
-                    gnssStatus.longitude = j["longitude"]
-                if "latitude" in j:
-                    gnssStatus.latitude = j["latitude"]
-                if "height" in j:
-                    gnssStatus.altitude = j["height"]
+                if 'fix' in j:
+                    gnssStatus.fix = j['fix']
+                if 'num_sat' in j:
+                    gnssStatus.numSat = j['num_sat']
+                if 'longitude' in j:
+                    gnssStatus.longitude = j['longitude']
+                if 'latitude' in j:
+                    gnssStatus.latitude = j['latitude']
+                if 'height' in j:
+                    gnssStatus.altitude = j['height']
         except:
             gnssStatus.err = True
         self.status.setGnssStatus(gnssStatus)

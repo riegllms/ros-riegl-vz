@@ -90,31 +90,31 @@ def acquireData(
 
 def extractReflectorSearchSettings(filepath):
     rss = None
-    with open(filepath, "r") as f:
+    with open(filepath, 'r') as f:
         obj = json.load(f)
-        searchMode = obj.get("searchMode")
-        if searchMode == "model":
+        searchMode = obj.get('searchMode')
+        if searchMode == 'model':
             rss = ReflectorSearchSettings()
             rss.mode = searchMode
-            for model in obj.get("searchModels"):
+            for model in obj.get('searchModels'):
                 rss.models.append(model)
-        elif searchMode == "simple":
+        elif searchMode == 'simple':
             rss = ReflectorSearchSettings()
             rss.mode = searchMode
-            rss.minReflectance = obj["searchReflectance"]
-            rss.minDiameter = obj["searchMinDiameter"]
-            rss.maxDiameter = obj["searchMaxDiameter"]
+            rss.minReflectance = obj['searchReflectance']
+            rss.minDiameter = obj['searchMinDiameter']
+            rss.maxDiameter = obj['searchMaxDiameter']
         if rss:
             # shared configuration
-            rss.resolveMta = obj.get("searchResolveMta", False)
-            if obj.get("searchMinRange") is not None:
-                rss.minRange = obj.get("searchMinRange")
-            if obj.get("searchMaxRange") is not None:
-                rss.maxRange = obj.get("searchMaxRange")
+            rss.resolveMta = obj.get('searchResolveMta', False)
+            if obj.get('searchMinRange') is not None:
+                rss.minRange = obj.get('searchMinRange')
+            if obj.get('searchMaxRange') is not None:
+                rss.maxRange = obj.get('searchMaxRange')
     return rss
 
 def createArgumentParser():
-    parser = argparse.ArgumentParser(description="Perform data acquisition.")
+    parser = argparse.ArgumentParser(description='Perform data acquisition.')
     parser.add_argument('--connectionstring',
         default='127.0.0.1:20000',
         help='address of scanner services')
@@ -140,7 +140,7 @@ def createArgumentParser():
         help='frame angle increment in degrees (default=0.04)')
     parser.add_argument('--measprog', type=int, default=3,
         help='measurement program (default=3)')
-    parser.add_argument('--capture-images', action="store_true",
+    parser.add_argument('--capture-images', action='store_true',
         help='enable image acquisition (during scan)')
     parser.add_argument('--capture-mode', type=int, default=1,
         help='image capture mode. 1=during-scan, 2=after-scan (default=1)')

@@ -57,7 +57,7 @@ class RemoteClient:
         except Exception as e:
             raise e
 
-    def downloadFile(self, filepath: str, localpath: str = "./"):
+    def downloadFile(self, filepath: str, localpath: str = './'):
         """Download file from remote host."""
         scp = self.scp
         scp.get(filepath, localpath)
@@ -117,15 +117,15 @@ class RieglVzSSH:
         ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
         response = ssh.executeCommand(cmd)
         ssh.disconnect()
-        self._logger.debug("RESP = {}".format(" ".join(response)))
+        self._logger.debug("RESP = {}".format(' '.join(response)))
         return response
 
     def listFiles(self, remotePath, filter):
         if (len(filter) == 0):
-            filter = "*"
-        cmd = "ls -1d " + remotePath + "/" + filter
+            filter = '*'
+        cmd = 'ls -1d ' + remotePath + '/' + filter
         files = self.executeCommand(cmd)
-        if len(files) == 0 or (len(files) == 1 and files[0].find("No such file or directory")):
+        if len(files) == 0 or (len(files) == 1 and files[0].find('No such file or directory')):
             files = []
         filesStripped = []
         for file in files:

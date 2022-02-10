@@ -13,7 +13,7 @@ class RieglVzProject():
     def __init__(self, node):
         self._node = node
         self._hostname = node.hostname
-        self._connectionString = self._hostname + ":20000"
+        self._connectionString = self._hostname + ':20000'
         self._logger = node.get_logger()
 
         self._ssh: RieglVzSSH = RieglVzSSH(self._node)
@@ -68,7 +68,7 @@ class RieglVzProject():
     def _getCurrentScanpos(self, projectName: str, storageMedia: int):
         self._logger.debug("get next scanpos: projectName={}, storageMedia={}".format(projectName, storageMedia))
         cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), " | sort -n", " | grep '.SCNPOS'", " | sed 's/.SCNPOS//g'", " | tail -n 1"]
-        response = self._ssh.executeCommand(" ".join(cmd))
+        response = self._ssh.executeCommand(' '.join(cmd))
 
         if len(response) == 0:
             return 0
@@ -83,7 +83,7 @@ class RieglVzProject():
 
     def getCurrentScanpos(self, projectName: str, storageMedia: int):
         scanpos = self._getCurrentScanpos(projectName, storageMedia)
-        return str(scanpos) if (scanpos > 0) else ""
+        return str(scanpos) if (scanpos > 0) else ''
 
     def getNextScanpos(self, projectName: str, storageMedia: int):
         return str(self._getCurrentScanpos(projectName, storageMedia) + 1)
@@ -95,9 +95,9 @@ class RieglVzProject():
 
         scanposPath = self.getActiveScanposPath(scanposName) + '/scans'
         cmd = ["ls -t", scanposPath + "/*.rxp"]
-        response = self._ssh.executeCommand(" ".join(cmd))
+        response = self._ssh.executeCommand(' '.join(cmd))
 
         if len(response) == 0:
-            return "null"
+            return 'null'
 
-        return (scanposPath + "/" + os.path.basename(response[0]).split(".")[0] + ".rxp").replace("/media/", "")
+        return (scanposPath + '/' + os.path.basename(response[0]).split('.')[0] + '.rxp').replace('/media/', '')

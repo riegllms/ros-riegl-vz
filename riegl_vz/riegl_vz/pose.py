@@ -57,19 +57,19 @@ def quaternionFromEuler(roll, pitch, yaw):
 
 def readVop(vopPath):
     """Extract VOP pose."""
-    with open(vopPath, "r") as f:
+    with open(vopPath, 'r') as f:
         vpp_vop = json.load(f)
 
-    x = float(vpp_vop["translation"]["x"])
-    y = float(vpp_vop["translation"]["y"])
-    z = float(vpp_vop["translation"]["z"])
+    x = float(vpp_vop['translation']['x'])
+    y = float(vpp_vop['translation']['y'])
+    z = float(vpp_vop['translation']['z'])
 
     R = np.empty((3,3))
-    R[:3, :3] = vpp_vop["matrix3x3"]
+    R[:3, :3] = vpp_vop['matrix3x3']
 
     vop = PoseStamped()
     vop.header = Header(
-        frame_id = "riegl_vz_prcs",
+        frame_id = 'riegl_vz_prcs',
         stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
         )
     vop.pose = Pose(
@@ -81,12 +81,12 @@ def readVop(vopPath):
 
 def readPop(popPath):
     """Extract POP pose."""
-    with open(popPath, "r") as f:
+    with open(popPath, 'r') as f:
         obj = json.load(f)
-        pop = np.array(obj.get("4x4"))
-        glcs = "EPSG::4978"
-        if "glcs" in obj:
-            glcs = obj["glcs"].get("designator", glcs)
+        pop = np.array(obj.get('4x4'))
+        glcs = 'EPSG::4978'
+        if 'glcs' in obj:
+            glcs = obj['glcs'].get('designator', glcs)
 
     T = np.empty(3)
     T = pop[:3, 3]
@@ -96,7 +96,7 @@ def readPop(popPath):
 
     pop = PoseStamped()
     pop.header = Header(
-        frame_id = "riegl_vz_glcs",
+        frame_id = 'riegl_vz_glcs',
         stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
         )
     pop.pose = Pose(
@@ -110,33 +110,33 @@ def extractSopv(data, logger = None):
     """Extract scanposition information from all_sopv.csv data entry."""
     deg = math.pi / 180.0
     obj = {
-        "name": data[0],
-        "x": float(data[1]),
-        "y": float(data[2]),
-        "z": float(data[3]),
-        "roll": float(data[4])*deg,
-        "pitch": float(data[5])*deg,
-        "yaw": float(data[6])*deg
+        'name': data[0],
+        'x': float(data[1]),
+        'y': float(data[2]),
+        'z': float(data[3]),
+        'roll': float(data[4])*deg,
+        'pitch': float(data[5])*deg,
+        'yaw': float(data[6])*deg
     }
     if logger is not None:
         logger.debug("sopv (x y z yaw pitch roll)= {0} {1} {2} {3} {4} {5}".format(
-            obj["x"],
-            obj["y"],
-            obj["z"],
-            obj["yaw"],
-            obj["pitch"],
-            obj["roll"]))
+            obj['x'],
+            obj['y'],
+            obj['z'],
+            obj['yaw'],
+            obj['pitch'],
+            obj['roll']))
     pose = PoseStamped()
     pose.header = Header(
-        frame_id = "riegl_vz_vocs",
+        frame_id = 'riegl_vz_vocs',
         stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
         )
     pose.pose = Pose(
-        position = Point(x=float(obj["x"]), y=float(obj["y"]), z=float(obj["z"])),
-        orientation = quaternionFromEuler(float(obj["roll"]), float(obj["pitch"]), float(obj["yaw"]))
+        position = Point(x=float(obj['x']), y=float(obj['y']), z=float(obj['z'])),
+        orientation = quaternionFromEuler(float(obj['roll']), float(obj['pitch']), float(obj['yaw']))
         )
 
-    sopv = ScanPose(seq = int(obj["name"]), pose = pose)
+    sopv = ScanPose(seq = int(obj['name']), pose = pose)
 
     return sopv
 
@@ -144,12 +144,12 @@ def readAllSopv(sopvFilepath, logger = None):
     """Return information of all registered scanposes in VOCS."""
     sopvs = []
     first_line = True
-    with open(sopvFilepath, "r") as f:
+    with open(sopvFilepath, 'r') as f:
         for line in f:
             if first_line:
                 first_line = False
                 continue
-            sopvs.append(extractSopv(line.split(","), logger))
+            sopvs.append(extractSopv(line.split(','), logger))
     return sopvs
 
 def getTransformFromPose(ts, child_frame_id, pose):

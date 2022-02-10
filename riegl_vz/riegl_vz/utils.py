@@ -37,20 +37,20 @@ class SubProcess(object):
                 outs = outs.decode()
             if not isinstance(errs, str):
                 errs = errs.decode()
-            msg = "".join([errorMessage + "\n", outs, errs])
+            msg = ''.join([errorMessage + '\n', outs, errs])
             raise RuntimeError(msg)
         return True
 
 def parseCSV(csvFilepath: str):
     delimiter = None
     # auto detect delimiter
-    with open(csvFilepath, "r") as f:
+    with open(csvFilepath, 'r') as f:
         for line in f:
             line = line.strip()
             if not line:
                 continue
             if delimiter is None:
-                for d in (",", ";", ":"):
+                for d in (',', ';', ':'):
                     values = re.split(d+"\\s*", line)
                     if len(values) > 3:
                         delimiter = d
