@@ -37,6 +37,11 @@ class GnssStatus(object):
         self.longitude = 15.656631
         self.latitude = 48.6625
         self.altitude = math.nan
+        self.horAcc = math.nan
+        self.verAcc = math.nan
+        self.hdop = math.nan
+        self.vdop = math.nan
+        self.pdop = math.nan
 
 class ErrorStatus(object):
     def __init__(self):
@@ -284,11 +289,21 @@ class RieglVzStatus():
                 if 'num_sat' in j:
                     gnssStatus.numSat = j['num_sat']
                 if 'longitude' in j:
-                    gnssStatus.longitude = j['longitude']
+                    gnssStatus.longitude = float(j['longitude'])
                 if 'latitude' in j:
-                    gnssStatus.latitude = j['latitude']
+                    gnssStatus.latitude = float(j['latitude'])
                 if 'height' in j:
-                    gnssStatus.altitude = j['height']
+                    gnssStatus.altitude = float(j['height'])
+                if 'hor_acc' in j:
+                    gnssStatus.horAcc = float(j['hor_acc'])
+                if 'ver_acc' in j:
+                    gnssStatus.verAcc = float(j['ver_acc'])
+                if 'hdop' in j:
+                    gnssStatus.hdop = float(j['hdop'])
+                if 'vdop' in j:
+                    gnssStatus.vdop = float(j['vdop'])
+                if 'pdop' in j:
+                    gnssStatus.pdop = float(j['pdop'])
         except:
             gnssStatus.err = True
         self.status.setGnssStatus(gnssStatus)

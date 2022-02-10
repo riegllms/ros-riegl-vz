@@ -2,6 +2,7 @@ import sys
 import os
 import time
 import json
+import math
 from datetime import datetime
 import subprocess
 import threading
@@ -183,15 +184,18 @@ class RieglVz():
         msg.status.service = NavSatStatus.SERVICE_GPS
 
         # Position in degrees.
-        msg.latitude = float(status.latitude)
-        msg.longitude = float(status.longitude)
+        msg.latitude = status.latitude
+        msg.longitude = status.longitude
 
         # Altitude in metres.
-        msg.altitude = float(status.altitude)
+        msg.altitude = status.altitude if not math.isnan(status.altitude) else 0.0
 
-        msg.position_covariance[0] = 0
-        msg.position_covariance[4] = 0
-        msg.position_covariance[8] = 0
+        lat_std = status.horAcc if not math.isnan(status.horAcc) else 0.0
+        lon_std = status.horAcc if not math.isnan(status.horAcc) else 0.0
+        alt_std = status.verAcc if not math.isnan(status.verAcc) else 0.0
+        msg.position_covariance[0] = lat_std**2
+        msg.position_covariance[4] = lon_std**2
+        msg.position_covariance[8] = alt_std**2
         msg.position_covariance_type = NavSatFix.COVARIANCE_TYPE_DIAGONAL_KNOWN
 
         return True, msg
