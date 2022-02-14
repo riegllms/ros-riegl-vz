@@ -187,10 +187,6 @@ Topic provides SOPV (Scan Position and Orientation in VOCS) of the currently reg
 
 Actual GNSS fix with position in WGS 84 coordinates, published once per second.
 
-**gnss/scan** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
-
-GNSS fix with position in WGS 84 coordinates, published shortly before a scan data acquisition.
-
 **diagnostics** ([diagnostic_msgs/DiagnosticArray.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticArray.msg)):
 
 Riegl VZ status information, published once per second:

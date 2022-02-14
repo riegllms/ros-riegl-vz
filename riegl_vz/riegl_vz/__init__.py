@@ -99,7 +99,6 @@ class RieglVzWrapper(Node):
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
         self.odomPublisher = self.create_publisher(Odometry, 'odom', 10)
         self.gnssFixPublisher = self.create_publisher(NavSatFix, 'gnss', 10)
-        self.scanGnssFixPublisher = self.create_publisher(NavSatFix, 'gnss/scan', 10)
 
         # tf2 message broadcaster..
         self.transformBroadcaster = TransformBroadcaster(self)

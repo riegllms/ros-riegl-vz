@@ -205,11 +205,6 @@ class RieglVz():
         if ok:
             self._node.gnssFixPublisher.publish(msg)
 
-    def publishScanGnssFix(self):
-        ok, msg = self._getGnssFixMessage()
-        if ok:
-            self._node.scanGnssFixPublisher.publish(msg)
-
     def setProjectControlPoints(coordSystem: str, csvFile: str):
         projectPath = self._project.getActiveProjectPath()
         remoteSrcCpsFile = csvFile
@@ -365,9 +360,6 @@ class RieglVz():
             self._logger.info("Scan stopped")
             return
         self._logger.info("Data acquisition finished")
-
-        self._logger.info("Publish scan position GNSS fix..")
-        self.publishScanGnssFix()
 
         self._status.status.setOpstate('processing')
 
