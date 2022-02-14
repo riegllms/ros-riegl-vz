@@ -5,7 +5,7 @@
 Git clone or extract source into local working directory to subfolder 'src'.   
 Stay in local working directory and build the docker container, using a network proxy configuration:
 
-```docker build . -t ros2t1 -f src/docker/Dockerfile --build-arg http_proxy=http://192.168.0.9:3128 --build-arg https_proxy=http://192.168.0.9:3128```
+```docker build . -t ros2t1 -f src/docker/Dockerfile --build-arg http_proxy=http://<ip-address>:<port-number> --build-arg https_proxy=http://<ip-address>:<port-number>```
 
 **Run docker container:**
 
