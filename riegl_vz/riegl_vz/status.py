@@ -32,6 +32,7 @@ class GnssStatus(object):
     def __init__(self):
         self.valid = False
         self.err = False
+        self.enabled = True
         self.fix = True
         self.numSat = 3
         self.longitude = 15.656631
@@ -54,7 +55,7 @@ class CameraStatus(object):
     def __init__(self):
         self.valid = False
         self.err = False
-        self.detect = False
+        self.avail = False
 
 class StatusMaintainer(object):
     def __init__(self):
@@ -284,26 +285,28 @@ class RieglVzStatus():
             if self._gnssSvc:
                 j = json.loads(self._gnssSvc.estimateInfo())
                 #self._logger.debug("gnss: {}".format(j))
-                if 'fix' in j:
+                if 'fix' in j and j['fix'] != None:
                     gnssStatus.fix = j['fix']
-                if 'num_sat' in j:
+                if 'num_sat' in j and j['num_sat'] != None:
                     gnssStatus.numSat = j['num_sat']
-                if 'longitude' in j:
+                if 'longitude' in j and j['longitude'] != None:
                     gnssStatus.longitude = float(j['longitude'])
-                if 'latitude' in j:
+                if 'latitude' in j and j['latitude'] != None:
                     gnssStatus.latitude = float(j['latitude'])
-                if 'height' in j:
+                if 'height' in j and j['height'] != None:
                     gnssStatus.altitude = float(j['height'])
-                if 'hor_acc' in j:
+                if 'hor_acc' in j and j['hor_acc'] != None:
                     gnssStatus.horAcc = float(j['hor_acc'])
-                if 'ver_acc' in j:
+                if 'ver_acc' in j and j['ver_acc'] != None:
                     gnssStatus.verAcc = float(j['ver_acc'])
-                if 'hdop' in j:
+                if 'hdop' in j and j['hdop'] != None:
                     gnssStatus.hdop = float(j['hdop'])
-                if 'vdop' in j:
+                if 'vdop' in j and j['vdop'] != None:
                     gnssStatus.vdop = float(j['vdop'])
-                if 'pdop' in j:
+                if 'pdop' in j and j['pdop'] != None:
                     gnssStatus.pdop = float(j['pdop'])
+            if self._scanSvc:
+                gnssStatus.enabled = True if (self._scanSvc.gpsMode() != 0) else False
         except:
             gnssStatus.err = True
         self.status.setGnssStatus(gnssStatus)
@@ -328,10 +331,9 @@ class RieglVzStatus():
             if self._camSvc:
                 cameraList = self._camSvc.list()
                 if len(cameraList) > 0:
-                    cameraStatus.detect = True
+                    cameraStatus.avail = True
         except:
             cameraStatus.err = True
-            raise
         self.status.setCameraStatus(cameraStatus)
 
         # laser status

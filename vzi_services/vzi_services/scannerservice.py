@@ -779,3 +779,8 @@ class ScannerService(object):
         """Return laser on state."""
         with self._lock:
             return self._svc.getProperty("LASER").i32 != 0
+
+    def gpsMode(self):
+        """Return gps config mode."""
+        with self._lock:
+            return self._svc.getProperty("GPS_MODE").i32

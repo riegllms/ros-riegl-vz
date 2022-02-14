@@ -132,8 +132,7 @@ class RieglVzWrapper(Node):
         self._statusUpdater.add('memory', self._produceMemoryDiagnostics)
         self._statusUpdater.add('gnss', self._produceGnssDiagnostics)
         self._statusUpdater.add('errors', self._produceErrorDiagnostics)
-        if self.imageCapture:
-            self._statusUpdater.add('camera', self._produceCameraDiagnostics)
+        self._statusUpdater.add('camera', self._produceCameraDiagnostics)
 
         self._gnssFixTimer = self.create_timer(1.0, self._publishGnssFix)
 
@@ -201,8 +200,9 @@ class RieglVzWrapper(Node):
             message = 'com error'
 
         diag.summary(err, message)
-        diag.add('fix', str(status.fix))
-        diag.add('num_sat', str(status.numSat))
+        diag.add('gnss_ena', str(status.enabled))
+        diag.add('gnss_fix', str(status.fix))
+        diag.add('gnss_num_sat', str(status.numSat))
         return diag
 
     def _produceErrorDiagnostics(self, diag):
@@ -225,8 +225,8 @@ class RieglVzWrapper(Node):
             message = 'system warning(s)'
 
         diag.summary(err, message)
-        diag.add('num_warn', str(status.numWarnings))
-        diag.add('num_err', str(status.numErrors))
+        diag.add('warn_num', str(status.numWarnings))
+        diag.add('err_num', str(status.numErrors))
         return diag
 
     def _produceCameraDiagnostics(self, diag):
@@ -238,7 +238,7 @@ class RieglVzWrapper(Node):
 
         err = DiagnosticStatus.OK
         message = 'ok'
-        if not status.detect:
+        if not status.avail:
             err = DiagnosticStatus.WARN
             message = 'no camera'
         elif status.err:
@@ -246,7 +246,7 @@ class RieglVzWrapper(Node):
             message = 'com error'
 
         diag.summary(err, message)
-        diag.add('cam_detect', str(status.detect))
+        diag.add('cam_avail', str(status.avail))
         return diag
 
     def _publishGnssFix(self):

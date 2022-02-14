@@ -199,14 +199,14 @@ scanner:
   scan_position : number of current scan position
   laser         : laser state 'on' or 'off'
 errors:
-  num_warn      : number or pending system warnings
-  num_err       : number of pending system
+  warn_num      : number or pending system warnings
+  err_num       : number of pending system
 memory:
   mem_free_gb   : free storage media memory space in GByte
   mem_usage     : storage media memory usage in percent of total space
 gnss:
-  fix           : GNSS fix
-  num_sat       : number of available satellites
+  gnss_fix      : GNSS fix
+  gnss_num_sat  : number of available satellites
 camera:
   cam_detect    : external camera detected
 ```
