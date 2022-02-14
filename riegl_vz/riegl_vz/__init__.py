@@ -80,18 +80,18 @@ class RieglVzWrapper(Node):
         self.projectName = str(self.get_parameter('project_name').value)
         self.storageMedia = int(self.get_parameter('storage_media').value)
         self.imageCapture = bool(self.get_parameter('image_capture').value)
-        self.get_logger().debug("hostname = {}".format(self.hostname))
-        self.get_logger().debug("workingDir = {}".format(self.workingDir))
-        self.get_logger().debug("sshUser = {}".format(self.sshUser))
-        self.get_logger().debug("sshPwd = {}".format(self.sshPwd))
-        self.get_logger().debug("projectName = {}".format(self.projectName))
-        self.get_logger().debug("storageMedia = {}".format(self.storageMedia))
-        self.get_logger().debug("imageCapture = {}".format(self.imageCapture))
+        self.get_logger().info("hostname = {}".format(self.hostname))
+        self.get_logger().info("workingDir = {}".format(self.workingDir))
+        self.get_logger().info("sshUser = {}".format(self.sshUser))
+        self.get_logger().info("sshPwd = {}".format(self.sshPwd))
+        self.get_logger().info("projectName = {}".format(self.projectName))
+        self.get_logger().info("storageMedia = {}".format(self.storageMedia))
+        self.get_logger().info("imageCapture = {}".format(self.imageCapture))
 
         self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
-        self.get_logger().debug("scanPublishFilter = {}".format(self.scanPublishFilter))
+        self.get_logger().info("scanPublishFilter = {}".format(self.scanPublishFilter))
         self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
-        self.get_logger().debug("scanPublishLOD = {}".format(self.scanPublishLOD))
+        self.get_logger().info("scanPublishLOD = {}".format(self.scanPublishLOD))
 
         # create topics..
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
@@ -287,7 +287,7 @@ class RieglVzWrapper(Node):
     def _createProject(self, projectName):
         self._setProjectName(projectName)
         self.storageMedia = int(self.get_parameter('storage_media').value)
-        self.get_logger().debug("storage media = {}".format(self.storageMedia))
+        self.get_logger().info("storage media = {}".format(self.storageMedia))
         ok = True
         if not self._rieglVz.createProject(self.projectName, self.storageMedia):
             ok = False
@@ -295,9 +295,9 @@ class RieglVzWrapper(Node):
 
     def _loadProject(self, projectName):
         self.storageMedia = int(self.get_parameter('storage_media').value)
-        self.get_logger().debug("storage media = {}".format(self.storageMedia))
+        self.get_logger().info("storage media = {}".format(self.storageMedia))
         self.scanRegister = bool(self.get_parameter('scan_register').value)
-        self.get_logger().debug("scan register = {}".format(self.scanRegister))
+        self.get_logger().info("scan register = {}".format(self.scanRegister))
         ok = True
         if projectName == '' or not self._rieglVz.loadProject(self.projectName, self.storageMedia, self.scanRegister):
             ok = False
@@ -313,23 +313,24 @@ class RieglVzWrapper(Node):
         if ok:
             self.projectValid = True
             self.cpsCsvFile = str(self.get_parameter('control_points_csv_file').value)
-            self.get_logger().debug("control points CSV file = {}".format(self.cpsCsvFile))
+            self.get_logger().info("control points CSV file = {}".format(self.cpsCsvFile))
             if len(self.cpsCsvFile) > 0:
                 self.cpsCoordSystem = str(self.get_parameter('control_points_coord_system').value)
-                self.get_logger().debug("control points coord system = {}".format(self.cpsCsvCoordSystem))
+                self.get_logger().info("control points coord system = {}".format(self.cpsCsvCoordSystem))
                 self._rieglVz.setProjectControlPoints(self.cpsCoordSystem, self.cpsCsvFile)
 
         return ok
 
     def _setProjectCallback(self, request, response):
+        self.get_logger().info("Service Request: set_project")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             self.projectName = str(self.get_parameter('project_name').value)
-            self.get_logger().debug("project name = {}".format(self.projectName))
+            self.get_logger().info("project name = {}".format(self.projectName))
             self.storageMedia = int(self.get_parameter('storage_media').value)
-            self.get_logger().debug("storage media = {}".format(self.storageMedia))
+            self.get_logger().info("storage media = {}".format(self.storageMedia))
 
             if not self.setProject(self.projectName):
                 self._setResponseExecError(response)
@@ -345,7 +346,7 @@ class RieglVzWrapper(Node):
         self.storageMedia = int(self.get_parameter('storage_media').value)
         scanPatternName = self.get_parameter('scan_pattern_name').value
         if scanPatternName != '':
-            self.get_logger().debug("scan pattern name = {}".format(scanPatternName))
+            self.get_logger().info("scan pattern name = {}".format(scanPatternName))
             ok, self.scanPattern = self._rieglVz.getScanPattern(scanPatternName)
             if not ok:
                 scanPatternName = ''
@@ -398,6 +399,7 @@ class RieglVzWrapper(Node):
             imageOverlap = self.imageCaptureOverlap)
 
     def _scanCallback(self, request, response):
+        self.get_logger().info("Service Request: scan")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -422,6 +424,7 @@ class RieglVzWrapper(Node):
         return ok, pointcloud
 
     def _getPointCloudCallback(self, request, response):
+        self.get_logger().info("Service Request: get_pointcloud")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -439,6 +442,7 @@ class RieglVzWrapper(Node):
         return self._rieglVz.setPosition(position)
 
     def _setPositionCallback(self, request, response):
+        self.get_logger().info("Service Request: set_position")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -453,6 +457,7 @@ class RieglVzWrapper(Node):
         return self._rieglVz.getSopv()
 
     def _getSopvCallback(self, request, response):
+        self.get_logger().info("Service Request: get_sopv")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -478,6 +483,7 @@ class RieglVzWrapper(Node):
         return self._rieglVz.getPop()
 
     def _getScanPosesCallback(self, request, response):
+        self.get_logger().info("Service Request: get_scan_poses")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -510,6 +516,7 @@ class RieglVzWrapper(Node):
         return response
 
     def _getVopCallback(self, request, response):
+        self.get_logger().info("Service Request: get_vop")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -526,6 +533,7 @@ class RieglVzWrapper(Node):
         return response
 
     def _getPopCallback(self, request, response):
+        self.get_logger().info("Service Request: get_pop")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -545,6 +553,7 @@ class RieglVzWrapper(Node):
         self._rieglVz.stop()
 
     def _stopCallback(self, request, response):
+        self.get_logger().info("Service Request: stop")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -559,6 +568,7 @@ class RieglVzWrapper(Node):
         return self._rieglVz.trigStartStop()
 
     def _trigStartStopCallback(self, request, response):
+        self.get_logger().info("Service Request: trig_start_stop")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -575,6 +585,7 @@ class RieglVzWrapper(Node):
         return self._rieglVz.getScanPatterns()
 
     def _getScanPatternsCallback(self, request, response):
+        self.get_logger().info("Service Request: get_scan_patterns")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -595,6 +606,7 @@ class RieglVzWrapper(Node):
         return self._rieglVz.getReflectorModels()
 
     def _getReflectorModelsCallback(self, request, response):
+        self.get_logger().info("Service Request: get_reflector_models")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -643,6 +655,7 @@ class RieglVzWrapper(Node):
             captureImages = self.imageCapture)
 
     def _testCallback(self, request, response):
+        self.get_logger().info("Service Request: test")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
@@ -668,6 +681,7 @@ class RieglVzWrapper(Node):
         self._rieglVz.shutdown()
 
     def _shutdownCallback(self, request, response):
+        self.get_logger().info("Service Request: shutdown")
         try:
             self.shutdown()
             self._setResponseSuccess(response)
