@@ -47,7 +47,7 @@ Open a second terminal. Execute '. install/setup.bash'.
 
 Find .yaml files for configuration of node parameters in package install directory at: **install/riegl_vz/share/riegl_vz/config/**.
 
-Copy **params_default.yaml** to **params.yaml** end edit parameter settings.
+Copy **params_default.yaml** to **params.yaml** and edit parameter settings.
 
 Launch 'riegl_vz' node with parameter settings from params.yaml:
 
