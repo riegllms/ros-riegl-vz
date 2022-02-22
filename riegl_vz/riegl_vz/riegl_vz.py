@@ -344,7 +344,11 @@ class RieglVz():
                 '--frame-incr', str(self.scanPattern.frameIncrement),
                 '--measprog', str(self.scanPattern.measProgram)
             ])
-        if self.captureImages:
+        captureImages = (self.captureImages != 0)
+        if self.captureImages == 2:
+            if not self.getCameraStatus().avail:
+                captureImages = False
+        if captureImages:
             cmd.extend([
                 '--capture-images',
                 '--capture-mode', str(self.captureMode),
@@ -460,7 +464,7 @@ class RieglVz():
         scanPublishLOD: int = 1,
         scanRegister: bool = True,
         reflSearchSettings: dict = None,
-        captureImages: bool = True,
+        captureImages: int = 2,
         captureMode: int = 1,
         imageOverlap: int = 25):
         """Acquire data at scan position.

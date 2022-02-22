@@ -69,7 +69,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('reflector_search_limits', [0.0, 10000.0])
         self.declare_parameter('control_points_csv_file', '')
         self.declare_parameter('control_points_coord_system', '')
-        self.declare_parameter('image_capture', False)
+        self.declare_parameter('image_capture', 0)
         self.declare_parameter('image_capture_mode', 1)
         self.declare_parameter('image_capture_overlap', 25)
 
@@ -79,7 +79,7 @@ class RieglVzWrapper(Node):
         self.sshPwd = str(self.get_parameter('ssh_password').value)
         self.projectName = str(self.get_parameter('project_name').value)
         self.storageMedia = int(self.get_parameter('storage_media').value)
-        self.imageCapture = bool(self.get_parameter('image_capture').value)
+        self.imageCapture = int(self.get_parameter('image_capture').value)
         self.get_logger().info("hostname = {}".format(self.hostname))
         self.get_logger().info("workingDir = {}".format(self.workingDir))
         self.get_logger().info("sshUser = {}".format(self.sshUser))
@@ -375,7 +375,7 @@ class RieglVzWrapper(Node):
                 'searchMinRange': reflSearchLimits[0],
                 'searchMaxRange': reflSearchLimits[1]
             }
-        self.imageCapture = bool(self.get_parameter('image_capture').value)
+        self.imageCapture = int(self.get_parameter('image_capture').value)
         self.imageCaptureMode = int(self.get_parameter('image_capture_mode').value)
         self.imageCaptureOverlap = int(self.get_parameter('image_capture_overlap').value)
 
@@ -637,7 +637,7 @@ class RieglVzWrapper(Node):
         self.scanRegister = False
         self.reflSearchSettings = None
         self.reflSearch = False
-        self.imageCapture = False
+        self.imageCapture = 0
 
         if not self.projectValid:
             self.setProject(self.projectName)

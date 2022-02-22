@@ -161,9 +161,9 @@ Path to CSV with control points in GLCS (Global Coordinate System).
 
 The coordinate system for control points (e.g. EPSG::4978).
 
-**~image_capture** (bool, default: "False") :
+**~image_capture** (integer, default: 0) :
 
-Enable capturing of images with external camera mounted on top of RIEGL Vz laser scanner.
+Configures capturing of images with external camera mounted on top of RIEGL Vz laser scanner. (0=disabled, 1=enabled, 2=automatic)
 
 **~image_capture_mode** (integer, default: 1) :
 

@@ -9,15 +9,15 @@ riegl_vz_node:
     meas_program: 3
     scan_pattern_name: "Panorama_40"
     scan_pattern: [30.0,130.0,0.1,0.0,360.0,0.5]
-    scan_publish: True
+    scan_publish: False
     scan_publish_filter: ""
     scan_publish_lod: 8
     scan_register: True
-    reflector_search: False
+    reflector_search: True
     reflector_search_models: "RIEGL flat reflector 50 mm"
-    reflector_search_limits: [0.0,10000.0]
+    reflector_search_limits: [1.0,12.0]
     control_points_csv_file: ""
     control_points_coord_system: "EPSG::4978"
-    image_capture: 0
+    image_capture: 2
     image_capture_mode: 1
     image_capture_overlap: 25
