@@ -315,6 +315,7 @@ class RieglVz():
         self._logger.info("scan publish filter = '{}'".format(self.scanPublishFilter))
         self._logger.info("scan publish LOD = {}".format(self.scanPublishLOD))
         self._logger.info("scan register = {}".format(self.scanRegister))
+        self._logger.info("pose publish = {}".format(self.posePublish))
         if self.reflSearchSettings:
             self._logger.info("reflector search = {}".format(self.reflSearchSettings))
         self._logger.info("image capture = {}".format(self.captureImages))
@@ -400,27 +401,28 @@ class RieglVz():
                 return
             self._logger.info("Registration finished")
 
-            self._logger.info("Downloading and publishing pose..")
-            self._status.status.setActiveTask('publish registered scan position')
-            ts = self._node.get_clock().now()
-            ok, sopv = self._broadcastTfTransforms(ts)
-            if ok:
-                # update sopv timestamp
-                sopv.pose.header.stamp = ts.to_msg()
-                # publish pose
-                self._node.posePublisher.publish(sopv.pose)
-                # publish path
-                self._path.header = sopv.pose.header
-                self._path.poses.append(sopv.pose)
-                self._node.pathPublisher.publish(self._path)
-                # publish odometry
-                odom = Odometry(
-                    header = Header(stamp = ts.to_msg(), frame_id = 'riegl_vz_vocs'),
-                    child_frame_id = 'riegl_vz_socs',
-                    pose = PoseWithCovariance(pose = sopv.pose.pose)
-                )
-                self._node.odomPublisher.publish(odom)
-            self._logger.info("Pose published")
+            if self.posePublish:
+                self._logger.info("Downloading and publishing pose..")
+                self._status.status.setActiveTask('publish registered scan position')
+                ts = self._node.get_clock().now()
+                ok, sopv = self._broadcastTfTransforms(ts)
+                if ok:
+                    # update sopv timestamp
+                    sopv.pose.header.stamp = ts.to_msg()
+                    # publish pose
+                    self._node.posePublisher.publish(sopv.pose)
+                    # publish path
+                    self._path.header = sopv.pose.header
+                    self._path.poses.append(sopv.pose)
+                    self._node.pathPublisher.publish(self._path)
+                    # publish odometry
+                    odom = Odometry(
+                        header = Header(stamp = ts.to_msg(), frame_id = 'riegl_vz_vocs'),
+                        child_frame_id = 'riegl_vz_socs',
+                        pose = PoseWithCovariance(pose = sopv.pose.pose)
+                    )
+                    self._node.odomPublisher.publish(odom)
+                self._logger.info("Pose published")
 
         if self.scanPublish:
             self._logger.info("Converting RXP to RDBX..")
@@ -463,6 +465,7 @@ class RieglVz():
         scanPublishFilter: str = '',
         scanPublishLOD: int = 1,
         scanRegister: bool = True,
+        posePublish: bool = True,
         reflSearchSettings: dict = None,
         captureImages: int = 2,
         captureMode: int = 1,
@@ -487,6 +490,7 @@ class RieglVz():
         self.scanPublishFilter = scanPublishFilter
         self.scanPublishLOD = scanPublishLOD
         self.scanRegister = scanRegister
+        self.posePublish = posePublish
         self.reflSearchSettings = reflSearchSettings
         self.captureImages = captureImages
         self.captureMode = captureMode

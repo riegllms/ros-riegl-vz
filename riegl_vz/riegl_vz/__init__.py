@@ -64,6 +64,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('scan_publish_filter', '')
         self.declare_parameter('scan_publish_lod', 0)
         self.declare_parameter('scan_register', True)
+        self.declare_parameter('pose_publish', True)
         self.declare_parameter('reflector_search', False)
         self.declare_parameter('reflector_search_models', '')
         self.declare_parameter('reflector_search_limits', [0.0, 10000.0])
@@ -364,6 +365,7 @@ class RieglVzWrapper(Node):
         self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
         self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
         self.scanRegister = bool(self.get_parameter('scan_register').value)
+        self.posePublish = bool(self.get_parameter('pose_publish').value)
         self.reflSearchSettings = None
         self.reflSearch = bool(self.get_parameter('reflector_search').value)
         reflSearchModels = str(self.get_parameter('reflector_search_models').value)
@@ -393,6 +395,7 @@ class RieglVzWrapper(Node):
             scanPublish = self.scanPublish,
             scanPublishLOD = self.scanPublishLOD,
             scanRegister = self.scanRegister,
+            posePublish = self.posePublish,
             reflSearchSettings = self.reflSearchSettings if self.reflSearch else None,
             captureImages = self.imageCapture,
             captureMode = self.imageCaptureMode,
@@ -635,6 +638,7 @@ class RieglVzWrapper(Node):
         self.scanPattern.measProgram = 3
         self.scanPublish = False
         self.scanRegister = False
+        self.posePublish = False
         self.reflSearchSettings = None
         self.reflSearch = False
         self.imageCapture = 0
@@ -651,6 +655,7 @@ class RieglVzWrapper(Node):
             scanPattern = self.scanPattern,
             scanPublish = self.scanPublish,
             scanRegister = self.scanRegister,
+            posePublish = self.posePublish,
             reflSearchSettings = self.reflSearchSettings,
             captureImages = self.imageCapture)
 

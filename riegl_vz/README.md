@@ -141,6 +141,10 @@ lod=3 : reduce point cloud by factor 8 (2^3)
 
 Enable automatic scan position registration in current project after scan data acquisition has finished.
 
+**~pose_publish** (bool, default: "True") :
+
+Enable publishing of scan registration result on topic 'pose' after scan registration has finished.
+
 **~reflector_search** (bool, default: "False") :
 
 Enable automatic reflector search with every scan data acquisition.
