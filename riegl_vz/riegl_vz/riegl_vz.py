@@ -367,25 +367,6 @@ class RieglVz():
 
         self._status.status.setOpstate('processing')
 
-        self._logger.info("Converting RXP to RDBX..")
-        self._status.status.setActiveTask('convert rxp to rdbx')
-        scriptPath = join(appDir, 'create-rdbx.py')
-        cmd = [
-            'python3', scriptPath,
-            '--connectionstring', self._connectionString,
-            '--project', self.projectName,
-            '--scanposition', self.scanposName]
-        self._logger.debug("CMD = {}".format(' '.join(cmd)))
-        subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-        self._logger.debug("Subprocess started.")
-        subproc.waitFor('RXP to RDBX conversion failed.')
-        if self._stopReq:
-            self._stopReq = False
-            self._status.status.setOpstate('waiting')
-            self._logger.info("Scan stopped")
-            return
-        self._logger.info("RXP to RDBX conversion finished")
-
         if self._position is not None:
             self._status.status.setActiveTask('set position estimate')
             if self.scanposName == '1':
@@ -442,6 +423,25 @@ class RieglVz():
             self._logger.info("Pose published")
 
         if self.scanPublish:
+            self._logger.info("Converting RXP to RDBX..")
+            self._status.status.setActiveTask('convert rxp to rdbx')
+            scriptPath = join(appDir, 'create-rdbx.py')
+            cmd = [
+                'python3', scriptPath,
+                '--connectionstring', self._connectionString,
+                '--project', self.projectName,
+                '--scanposition', self.scanposName]
+            self._logger.debug("CMD = {}".format(' '.join(cmd)))
+            subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+            self._logger.debug("Subprocess started.")
+            subproc.waitFor('RXP to RDBX conversion failed.')
+            if self._stopReq:
+                self._stopReq = False
+                self._status.status.setOpstate('waiting')
+                self._logger.info("Scan stopped")
+                return
+            self._logger.info("RXP to RDBX conversion finished")
+
             self._logger.info("Downloading and publishing point cloud..")
             pointcloud: PointCloud2 = PointCloud2()
             ts = self._node.get_clock().now()

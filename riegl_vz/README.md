@@ -147,7 +147,7 @@ Enable automatic reflector search with every scan data acquisition.
 
 **~reflector_search_models** (string, default: "") :
 
-Name of reflector search model. Can be specified multiple times, seperated by comma (e.g. "RIEGL flat reflector 50 mm, RIEGL flat reflector 100 mm")
+Name of reflector search model. Can be specified multiple times, separated by comma (e.g. "RIEGL flat reflector 50 mm, RIEGL flat reflector 100 mm")
 
 **~reflector_search_limits** (double[], default: {0.0,10000.0}) :
 
