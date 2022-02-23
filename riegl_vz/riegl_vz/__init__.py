@@ -300,7 +300,7 @@ class RieglVzWrapper(Node):
         self.scanRegister = bool(self.get_parameter('scan_register').value)
         self.get_logger().info("scan register = {}".format(self.scanRegister))
         ok = True
-        if projectName == '' or not self._rieglVz.loadProject(self.projectName, self.storageMedia, self.scanRegister):
+        if projectName == '' or not self._rieglVz.loadProject(self.projectName, self.storageMedia, self.scanRegister and self.posePublish):
             ok = False
         else:
             self.projectName = projectName

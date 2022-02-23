@@ -18,30 +18,34 @@ class SignalHandler(object):
     def _handleSignal(self, signal_number, frame):
         self.canceled = True
 
-def registerScanposition(sigHandler, ctrlSvc, media, project, scanposition, mode):
+def registerScanposition(sigHandler, ctrlSvc, media, project, scanposition, mode, waitUntilFinished = True):
     """Register scanposition. Blocks until registration is finished."""
     taskId = None
-    finishedEvent = Event()
-    def onBackgroundTaskRemoved(arg0):
-        obj = json.loads(arg0)
-        if obj.get('id') == taskId:
-            finishedEvent.set()
 
-    sigcon = ctrlSvc.backgroundTaskRemoved().connect(onBackgroundTaskRemoved)
-    taskId = ctrlSvc.addRegistrationTask(media, project, scanposition, mode)
-    while not sigHandler.canceled:
-        if finishedEvent.is_set():
-            break
-        time.sleep(0.2)
-    if sigHandler.canceled:
-        try:
-            if taskId:
-                ctrlSvc.cancelBackgroundTask(taskId)
-        except Exception:
-            pass
-        return False
+    if waitUntilFinished:
+        finishedEvent = Event()
+        def onBackgroundTaskRemoved(arg0):
+            obj = json.loads(arg0)
+            if obj.get('id') == taskId:
+                finishedEvent.set()
 
-    sigcon.disconnect()
+        sigcon = ctrlSvc.backgroundTaskRemoved().connect(onBackgroundTaskRemoved)
+        taskId = ctrlSvc.addRegistrationTask(media, project, scanposition, mode)
+        while not sigHandler.canceled:
+            if finishedEvent.is_set():
+                break
+            time.sleep(0.2)
+        if sigHandler.canceled:
+            try:
+                if taskId:
+                    ctrlSvc.cancelBackgroundTask(taskId)
+            except Exception:
+                pass
+            return False
+
+        sigcon.disconnect()
+    else:
+        ctrlSvc.addRegistrationTask(media, project, scanposition, mode)
 
     return True
 
@@ -67,6 +71,8 @@ def main():
         help='scanposition name')
     parser.add_argument('--registrationmode', type=int, default=1,
         help='the registration mode')
+    parser.add_argument('--wait-until-finished',  action='store_true',
+        help='block until scan registration has finished')
     args = parser.parse_args()
 
     # verify command line options
@@ -98,7 +104,7 @@ Supported values:
     print("media = {}".format(media))
     registerScanposition(
         sigHandler, ctrlSvc, media,
-        args.project, args.scanposition, args.registrationmode)
+        args.project, args.scanposition, args.registrationmode, args.wait_until_finished)
 
 if __name__ == "__main__":
     main()

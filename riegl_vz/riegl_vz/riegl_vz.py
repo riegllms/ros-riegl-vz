@@ -123,9 +123,9 @@ class RieglVz():
     def getCameraStatus(self):
         return self._status.status.getCameraStatus()
 
-    def loadProject(self, projectName: str, storageMedia: int, scanRegister: bool):
+    def loadProject(self, projectName: str, storageMedia: int, scanRegisterAndPublish: bool):
         ok = self._project.loadProject(projectName, storageMedia)
-        if ok and scanRegister:
+        if ok and scanRegisterAndPublish:
             ts = self._node.get_clock().now()
             self._broadcastTfTransforms(ts)
         return ok;
@@ -391,6 +391,8 @@ class RieglVz():
                 '--connectionstring', self._connectionString,
                 '--project', self.projectName,
                 '--scanposition', self.scanposName]
+            if self.posePublish:
+                cmd.append('--wait-until-finished')
             self._logger.debug("CMD = {}".format(' '.join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
             subproc.waitFor(errorMessage='Registration failed.', block=True)
