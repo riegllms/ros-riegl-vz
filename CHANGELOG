@@ -7,6 +7,7 @@ v1.4.0:
   *  Add diagnostics data: scan position and memory usage, error info, gnss and camera data.
   *  Add tf2 transformation message broadcasts.
   *  Add image capturing with external camera mounted on top of scanner device.
+  *  Change scan position folder naming scheme.
 
  -- Andreas Friedl <afriedl@riegl.com>  Thu Feb 10 21:30:00 2022 +0200
 

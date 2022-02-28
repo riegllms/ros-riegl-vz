@@ -50,7 +50,7 @@ class RieglVzProject():
         return True, projectName
 
     def getActiveScanposPath(self, scanposName: str):
-        path = self.getActiveProjectPath() + '/' + scanposName + '.SCNPOS'
+        path = self.getActiveProjectPath() + '/ScanPos' + scanposName.zfill(3) + '.SCNPOS'
         #self._logger.info("getActiveScanposPath = {}".format(path))
         return path
 
@@ -67,7 +67,7 @@ class RieglVzProject():
 
     def _getCurrentScanpos(self, projectName: str, storageMedia: int):
         self._logger.debug("get next scanpos: projectName={}, storageMedia={}".format(projectName, storageMedia))
-        cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), " | sort -n", " | grep '.SCNPOS'", " | sed 's/.SCNPOS//g'", " | tail -n 1"]
+        cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), " | sort -n", " | grep '.SCNPOS'", " | sed 's/.SCNPOS//g'", " | sed 's/ScanPos//g'", " | tail -n 1"]
         response = self._ssh.executeCommand(' '.join(cmd))
 
         if len(response) == 0:
@@ -75,7 +75,7 @@ class RieglVzProject():
 
         scanpos = 0
         try:
-            scanpos = int(response[0])
+            scanpos = int(response[0].lstrip('0'))
         except:
             scanpos = 0
 
