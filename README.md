@@ -1,7 +1,27 @@
 # ROS2 RIEGL VZ Package
 
-This is a ROS2 package for the RIEGL VZ-i series devices. It provides a ROS interface for scan data acquisition and the scan position registration feature of the 3D laser scanners.
+This is a ROS2 package for the RIEGL VZ-i series devices.
 The package is based on ROS2 [Galactic Geochelone](https://docs.ros.org/en/galactic/index.html) distribution and has been tested on Ubuntu Desktop 20.04 (Focal Fossa).
+
+It provides a ROS interface with services and topics for scan data acquisition and scan position registration with a 3D laser scanner.  
+In detail, it provides the following functions:
+
+* Create a project on the laser scanner device
+
+* Configure the the laser scanner, including configuration of the scan pattern and the measurement program as well as the storage device for data logging on the device
+
+* Start a scan data acquisition with
+  - optional scan registration
+  - optional reflector scan and search
+  - optional camera image capture
+
+* Publish the 3D point cloud in ROS
+
+* Publish scan position resulting from scan registration, position is in scanner project coordinates or referenced to a global coordinate system if required
+
+* Publish the device status (memory usage, error stack, ...) and data acquisition progress information
+
+* Publish positional data from the GNSS receiver in the laser scanner
 
 **ROS2 installation and setup:**
 
