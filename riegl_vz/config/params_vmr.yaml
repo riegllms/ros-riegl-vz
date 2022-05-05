@@ -12,7 +12,7 @@ riegl_vz_node:
     scan_publish: False
     scan_publish_filter: ""
     scan_publish_lod: 8
-    scan_register: True
+    scan_register: False
     pose_publish: False
     reflector_search: True
     reflector_search_models: "RIEGL flat reflector 50 mm"

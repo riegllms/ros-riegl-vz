@@ -8,7 +8,6 @@ import json
 import signal
 import time
 from threading import Event
-from vzi_services.projectservice import ProjectService
 from vzi_services.scannerservice import ScannerService, RectScanPattern
 from vzi_services.controlservice import ControlService, ReflectorSearchSettings, ReflectorScanSettings
 from vzi_services.dataprocservice import DataprocService
@@ -118,12 +117,6 @@ def createArgumentParser():
     parser.add_argument('--connectionstring',
         default='127.0.0.1:20000',
         help='address of scanner services')
-    parser.add_argument('--project',
-        help='project name')
-    parser.add_argument('--scanposition',
-        help='scanposition name')
-    parser.add_argument('--storage-media', type=int, default=2,
-        help='storage media for data recording (default=2)')
     parser.add_argument('--reflsearch',
         help='file path of JSON file containing reflector search settings')
     parser.add_argument('--line-start', type=float, default=30.0,
@@ -152,26 +145,11 @@ def main():
     parser = createArgumentParser()
     args = parser.parse_args()
 
-    # verify command line options
-    if not args.project:
-        print("No project name specified.")
-        sys.exit(1)
-    if not args.scanposition:
-        print("No scanposition name specified.")
-        sys.exit(2)
-
     sigHandler = SignalHandler()
-    projSvc = ProjectService(args.connectionstring)
     scanSvc = ScannerService(args.connectionstring)
     procSvc = DataprocService(args.connectionstring)
     ctrlSvc = ControlService(args.connectionstring)
 
-    # prepare project
-    projSvc.setStorageMedia(args.storage_media)
-    projSvc.createProject(args.project)
-    projSvc.loadProject(args.project)
-    projSvc.createScanposition(args.scanposition)
-    projSvc.selectScanposition(args.scanposition)
     reflSearch = extractReflectorSearchSettings(args.reflsearch) if args.reflsearch else None
 
     scanPattern = RectScanPattern()

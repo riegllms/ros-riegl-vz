@@ -59,7 +59,7 @@ string message                # informational, e.g. for error messages
 ```   
 The 'frame_id' in the scanposes[n].header is 'riegl_vz_vocs'.  
 The 'frame_id' in the vop.header is 'riegl_vz_prcs'.  
-The 'frame_id' in the pop.header is 'riegl_vz_glcs', which is e.g. EPSG::4978
+The 'frame_id' in the pop.header is the name of the global coordinate system, which is e.g. EPSG::4978.
 
 **riegl_vz_interfaces/SetPosition**:
 ```
@@ -69,7 +69,17 @@ bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PointStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PointStamped.msg)
-The 'frame_id' in the position.header is 'riegl_vz_glcs', which is e.g. EPSG::4978
+The 'frame_id' in the position.header is the name of a global coordinate system, which is e.g. EPSG::4978, or 'riegl_vz_prcs'. If string is empty 'riegl_vz_prcs' is assumed.
+
+**riegl_vz_interfaces/SetPose**:
+```
+geometry_msgs/PoseWithCovarianceStamped pose
+---
+bool success   # indicate successful run of service
+string message # informational, e.g. for error messages
+```
+See PoseWithCovarianceStamped definition: [geometry_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg)
+The 'frame_id' in the position.header is the name of the referenced coordinate system.
 
 ## 3. Nodes
 
@@ -227,6 +237,10 @@ success = True -> message: Project Name
 **set_position** (riegl_vz_interfaces/SetPosition) :
 
 Set position of the scanner origin in a global coordinate system (GLCS) supported by RIEGL GeoSys Manager. The position must be set before the scan. This allows transformation of scans into a global coordinate system and furthermore the position is an initial guess for scan registration.
+
+**set_pose** (riegl_vz_interfaces/SetPose) :
+
+Set position and orientation from an external IMU. The position must be set before the scan. The driver calculates relative position and orientation movements from one scan position to another. The resulting data is used for scanner localization for scan registration without GNSS (e.g. accurate IMU data from a robot).
 
 **scan** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 

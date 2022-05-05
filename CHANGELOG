@@ -1,15 +1,17 @@
-v1.4.0:
+v1.4.0~dev:
 
   *  Add storage media configuration.
   *  Fix get pose services after project loading.
   *  Fix initial set_project service call, if scanner is unavailable.
-  *  Add reflector scan and search with control points.
+  *  Add reflector scan feature
   *  Add diagnostics data: scan position and memory usage, error info, gnss and camera data.
   *  Add tf2 transformation message broadcasts.
   *  Add image capturing with external camera mounted on top of scanner device.
   *  Change scan position folder naming scheme.
+  *  Add gnss topic
+  *  Add set_pose service for pose data from external IMU
 
- -- Andreas Friedl <afriedl@riegl.com>  Thu Feb 10 21:30:00 2022 +0200
+ -- Andreas Friedl <afriedl@riegl.com>  Mon May 9 17:00:00 2022 +0200
 
 v1.3:
 

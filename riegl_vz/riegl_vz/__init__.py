@@ -29,6 +29,7 @@ from riegl_vz_interfaces.srv import (
     GetScanPoses,
     GetPose,
     SetPosition,
+    SetPose,
     GetList
 )
 import rclpy
@@ -105,6 +106,7 @@ class RieglVzWrapper(Node):
         # create documented services..
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._setPositionService = self.create_service(SetPosition, 'set_position', self._setPositionCallback)
+        self._setPoseService = self.create_service(SetPose, 'set_pose', self._setPoseCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
         self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
@@ -449,6 +451,21 @@ class RieglVzWrapper(Node):
                 return response
 
             self.setPosition(request.position)
+        except:
+            self._setResponseException(response)
+
+        return response
+
+    def setPose(self, pose):
+        return self._rieglVz.setPose(pose)
+
+    def _setPoseCallback(self, request, response):
+        self.get_logger().info("Service Request: set_pose")
+        try:
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
+                return response
+
+            self.setPose(request.pose)
         except:
             self._setResponseException(response)
 

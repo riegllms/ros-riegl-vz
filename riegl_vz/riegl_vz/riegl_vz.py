@@ -20,6 +20,7 @@ from sensor_msgs.msg import (
 )
 from geometry_msgs.msg import (
     PoseWithCovariance,
+    PoseWithCovarianceStamped
 )
 from nav_msgs.msg import (
     Path,
@@ -41,7 +42,9 @@ from .pose import (
     readVop,
     readPop,
     readAllSopv,
-    getTransformFromPose
+    getTransformFromPose,
+    calcRelativePose,
+    calcRelativeCovariances
 )
 from .project import RieglVzProject
 from .status import RieglVzStatus
@@ -63,6 +66,51 @@ class ScanPattern(object):
         self.frameIncrement = 0.04
         self.measProgram = 3
 
+class ImuPose(object):
+    def __init__(self, scanpos=None, pose=None):
+        self.scanpos = scanpos
+        self.pose = pose
+
+    def isValid(self):
+        return (self.scanpos is not None and self.pose is not None)
+
+class ImuRelativePose(object):
+    def __init__(self):
+        self._pose = None
+        self._previous = ImuPose()
+        self._lock = threading.Lock()
+
+    def _poseLock(self):
+        self._lock.acquire()
+
+    def _poseUnlock(self):
+        self._lock.release()
+
+    def update(self, pose):
+        self._poseLock()
+        self._pose = pose
+        self._poseUnlock()
+
+    def previous(self):
+        self._poseLock()
+        pose = self._previous
+        self._poseUnlock()
+        return pose
+
+    def reset(self):
+        self._poseLock()
+        self._previous = ImuPose()
+        self._poseUnlock()
+
+    def get(self, scanposName):
+        self._poseLock()
+        poseCurrent = ImuPose(scanposName, self._pose)
+        posePrevious = self._previous
+        self._previous = poseCurrent
+        self._pose = None
+        self._poseUnlock()
+        return poseCurrent, posePrevious
+
 class RieglVz():
     def __init__(self, node):
         self._node = node
@@ -72,6 +120,7 @@ class RieglVz():
         self._connectionString = self._hostname + ':20000'
         self._path = Path()
         self._position = None
+        self._imuRelPose = ImuRelativePose()
         self._stopReq = False
         self._shutdownReq = False
         self._project: RieglVzProject = RieglVzProject(self._node)
@@ -128,11 +177,14 @@ class RieglVz():
         if ok and scanRegisterAndPublish:
             ts = self._node.get_clock().now()
             self._broadcastTfTransforms(ts)
+        if ok:
+            self._imuRelPose.reset()
         return ok;
 
     def createProject(self, projectName: str, storageMedia: int):
         if self._project.createProject(projectName, storageMedia):
             self._path = Path();
+            self._imuRelPose.reset()
             return True
         return False
 
@@ -163,6 +215,46 @@ class RieglVz():
         }
         with open(localFile, 'w') as f:
             json.dump(finalPose, f, indent=4)
+            f.write('\n')
+        self._ssh.uploadFile([localFile], scanposPath)
+
+    def _prepareImuRelativePose(self):
+        # This will create a dummy 'imu_relative.pose' file in the scan position directory.
+        # The trajectory service will not overwrite this file, instead it will create a file
+        # 'imu_relative01.pose' (if scanner has been moved) which will not be used then.
+        scanposPath = self._project.getActiveScanposPath(self.scanposition)
+        localFile = self._workingDir + '/imu_relative.pose'
+        with open(localFile, 'w') as f:
+            f.write('{}\n')
+        self._ssh.uploadFile([localFile], scanposPath)
+
+    def _setImuRelativePose(self, posePrevious, poseCurrent):
+        # This will create the file 'imu_relative.pose' with date from the external imu
+        # and mode set to 'imu_external'.
+        scanposPath = self._project.getActiveScanposPath(self.scanposition)
+        localFile = self._workingDir + '/imu_relative.pose'
+        pos_x, pos_y, pos_z, pos_roll, pos_pitch, pos_yaw = calcRelativePose(posePrevious.pose.pose.pose, poseCurrent.pose.pose.pose)
+        cov_x, cov_y, cov_z, cov_roll, cov_pitch, cov_yaw = calcRelativeCovariances(posePrevious.pose.pose.covariance, poseCurrent.pose.pose.covariance)
+        imuRelative = {
+            'mode': 'imu_external',
+            'origin': posePrevious.scanpos,
+            'x': pos_x,
+            'y': pos_y,
+            'z': pos_z,
+            'roll': pos_roll,
+            'pitch': pos_pitch,
+            'yaw': pos_yaw,
+            'accuracy': {
+                'x': cov_x,
+                'y': cov_y,
+                'z': cov_z,
+                'roll': cov_roll,
+                'pitch': cov_pitch,
+                'yaw': cov_yaw
+            }
+        }
+        with open(localFile, 'w') as f:
+            json.dump(imuRelative, f, indent=4)
             f.write('\n')
         self._ssh.uploadFile([localFile], scanposPath)
 
@@ -323,13 +415,24 @@ class RieglVz():
         self._logger.info("image capture mode = {}".format(self.captureMode))
         self._logger.info("image capture overlap = {}".format(self.imageOverlap))
 
+        # prepare project
+        try:
+            projSvc = ProjectService(self._connectionString)
+            projSvc.setStorageMedia(self.storageMedia)
+            projSvc.createProject(self.projectName)
+            projSvc.loadProject(self.projectName)
+            projSvc.createScanposition(scanposName)
+            projSvc.selectScanposition(scanposName)
+            posePrevious = self._imuRelPose.previous()
+            if posePrevious.isValid():
+                self._prepareImuRelativePose()
+        except:
+            self._logger.error("Project and scan position prepare failed!")
+
         scriptPath = join(appDir, 'acquire-data.py')
         cmd = [
             'python3', scriptPath,
-            '--connectionstring', self._connectionString,
-            '--project', self.projectName,
-            '--scanposition',  scanposName,
-            '--storage-media', str(self.storageMedia)]
+            '--connectionstring', self._connectionString]
         if self.reflSearchSettings:
             rssFilePath = join(self._workingDir, 'reflsearchsettings.json')
             with open(rssFilePath, 'w') as f:
@@ -382,6 +485,19 @@ class RieglVz():
             except:
                 self._logger.error("Set position estimate failed!")
             self._position = None
+
+        poseCurrent, posePrevious = self._imuRelPose.get(self._project.getScanposName(self.scanposition))
+        if poseCurrent.isValid():
+            self._logger.info("Set relative imu pose (current available).")
+            if posePrevious.isValid():
+                self._logger.info("Set relative imu pose (previous available).")
+                self._status.status.setActiveTask('set relative imu pose')
+                try:
+                    self._setImuRelativePose(posePrevious, poseCurrent)
+                    self._logger.info("Set relative imu pose finished")
+                except:
+                    self._logger.error("Set relative imu pose failed!")
+            self._logger.info("Set relative imu pose (previous = current).")
 
         if self.scanPublish:
             self._logger.info("Converting RXP to RDBX..")
@@ -523,6 +639,9 @@ class RieglVz():
 
     def setPosition(self, position):
         self._position = position
+
+    def setPose(self, pose):
+        self._imuRelPose.update(pose)
 
     def getAllSopv(self):
         try:
