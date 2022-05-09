@@ -78,7 +78,7 @@ class RieglVz():
         self._status: RieglVzStatus = RieglVzStatus(self._node)
         self._ssh: RieglVzSSH = RieglVzSSH(self._node)
 
-        self.scanposName = None
+        self.scanposition = None
 
         self.scanPublishFilter = node.scanPublishFilter
         self.scanPublishLOD = node.scanPublishLOD
@@ -149,7 +149,7 @@ class RieglVz():
     #    return int(dateTime.strftime("%s"))
 
     def _setPositionEstimate(self, position):
-        scanposPath = self._project.getActiveScanposPath(self.scanposName)
+        scanposPath = self._project.getActiveScanposPath(self.scanposition)
         remoteFile = scanposPath + '/final.pose'
         localFile = self._workingDir + '/final.pose'
         self._ssh.downloadFile(remoteFile, localFile)
@@ -223,16 +223,16 @@ class RieglVz():
                     f.write("{},{},{},{},{}\n".format(item[0], coordSystem, item[1], item[2], item[3]))
             self._ssh.uploadFile([localDstCpsFile], projectPath)
 
-    def getPointCloud(self, scanposName: str, pointcloud: PointCloud2, ts: bool = True):
+    def getPointCloud(self, scanposition: str, pointcloud: PointCloud2, ts: bool = True):
         self._logger.debug("Downloading rdbx file..")
         self._status.status.setActiveTask('download rdbx file')
-        scanId = self._project.getScanId(scanposName)
+        scanId = self._project.getScanId(scanposition)
         self._logger.debug("scan id = {}".format(scanId))
         if scanId == 'null':
             self._logger.error("Scan id is null!")
             return False, pointcloud
 
-        scanposPath = self._project.getActiveScanposPath(scanposName)
+        scanposPath = self._project.getActiveScanposPath(scanposition)
         self._logger.debug("scanpos path = {}".format(scanposPath))
         scan = os.path.basename(scanId).replace('.rxp', '')[0:13]
         self._logger.debug("scan = {}".format(scan))
@@ -301,7 +301,8 @@ class RieglVz():
 
         self._logger.info("Starting data acquisition..")
         self._logger.info("project name = {}".format(self.projectName))
-        self._logger.info("scanpos name = {}".format(self.scanposName))
+        scanposName = self._project.getScanposName(self.scanposition)
+        self._logger.info("scanpos name = {0} ({1})".format(self.scanposition, scanposName))
         self._logger.info("storage media = {}".format(self.storageMedia))
         self._logger.info("scan pattern = {0}, {1}, {2}, {3}, {4}, {5}".format(
             self.scanPattern.lineStart,
@@ -327,7 +328,7 @@ class RieglVz():
             'python3', scriptPath,
             '--connectionstring', self._connectionString,
             '--project', self.projectName,
-            '--scanposition', self.scanposName,
+            '--scanposition',  scanposName,
             '--storage-media', str(self.storageMedia)]
         if self.reflSearchSettings:
             rssFilePath = join(self._workingDir, 'reflsearchsettings.json')
@@ -370,7 +371,7 @@ class RieglVz():
 
         if self._position is not None:
             self._status.status.setActiveTask('set position estimate')
-            if self.scanposName == '1':
+            if self.scanposition == '1':
                 self._logger.info("Set project position.")
                 projSvc = ProjectService(self._connectionString)
                 projSvc.setProjectLocation(self._position.header.frame_id, self._position.point.x, self._position.point.y, self._position.point.z)
@@ -390,7 +391,7 @@ class RieglVz():
                 'python3', scriptPath,
                 '--connectionstring', self._connectionString,
                 '--project', self.projectName,
-                '--scanposition', self.scanposName]
+                '--scanposition', scanposName]
             self._logger.debug("CMD = {}".format(' '.join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
             self._logger.debug("Subprocess started.")
@@ -410,7 +411,7 @@ class RieglVz():
                 'python3', scriptPath,
                 '--connectionstring', self._connectionString,
                 '--project', self.projectName,
-                '--scanposition', self.scanposName]
+                '--scanposition', scanposName]
             if self.posePublish:
                 cmd.append('--wait-until-finished')
             self._logger.debug("CMD = {}".format(' '.join(cmd)))
@@ -450,7 +451,7 @@ class RieglVz():
             self._logger.info("Downloading and publishing point cloud..")
             pointcloud: PointCloud2 = PointCloud2()
             ts = self._node.get_clock().now()
-            ok, pointcloud = self.getPointCloud(self.scanposName, pointcloud)
+            ok, pointcloud = self.getPointCloud(self.scanposition, pointcloud)
             if ok:
                 self._status.status.setActiveTask('publish point cloud data')
                 self._node.pointCloudPublisher.publish(pointcloud)
@@ -461,7 +462,7 @@ class RieglVz():
     def scan(
         self,
         projectName: str,
-        scanposName: str,
+        scanposition: str,
         storageMedia: int,
         scanPattern: ScanPattern,
         scanPublish: bool = True,
@@ -477,7 +478,7 @@ class RieglVz():
 
         Args:
           projectName ... the project name
-          scanposName ... the name of the new scan position
+          scanposition ... the name of the new scan position
           storageMedia ... storage media for data recording
           scanPattern ... the scan pattern
           reflSearchSettings ... reflector search settings"""
@@ -486,7 +487,7 @@ class RieglVz():
             return False
 
         self.projectName = projectName
-        self.scanposName = scanposName
+        self.scanposition = scanposition
         self.storageMedia = storageMedia
         self.scanPattern = scanPattern
         self.scanPublish = scanPublish

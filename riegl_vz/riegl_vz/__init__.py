@@ -122,7 +122,7 @@ class RieglVzWrapper(Node):
 
         self._rieglVz = RieglVz(self)
 
-        self._scanposName = '0'
+        self._scanposition = '0'
         self.projectValid = False
 
         self._statusUpdater = Updater(self)
@@ -154,7 +154,7 @@ class RieglVzWrapper(Node):
         if status.opstate != 'unavailable':
             diag.add('active_task', status.activeTask)
             diag.add('progress', str(status.progress))
-            diag.add('scan_position', self._scanposName)
+            diag.add('scan_position', self._scanposition)
             diag.add('laser', 'on' if status.laserOn else 'off')
 
         return diag
@@ -335,7 +335,7 @@ class RieglVzWrapper(Node):
                 self._setResponseExecError(response)
                 return response
 
-            self._scanposName = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
+            self._scanposition = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
         except:
             self._setResponseException(response)
 
@@ -382,11 +382,11 @@ class RieglVzWrapper(Node):
         if not self.projectValid:
             self.setProject(self.projectName)
 
-        self._scanposName = self._rieglVz.getNextScanpos(self.projectName, self.storageMedia)
+        self._scanposition = self._rieglVz.getNextScanpos(self.projectName, self.storageMedia)
 
         return self._rieglVz.scan(
             projectName = self.projectName,
-            scanposName = self._scanposName,
+            scanposition = self._scanposition,
             storageMedia = self.storageMedia,
             scanPattern = self.scanPattern,
             scanPublishFilter = self.scanPublishFilter,
@@ -644,11 +644,11 @@ class RieglVzWrapper(Node):
         if not self.projectValid:
             self.setProject(self.projectName)
 
-        self._scanposName = 'test'
+        self._scanposition = 'test'
 
         return self._rieglVz.scan(
             projectName = self.projectName,
-            scanposName = self._scanposName,
+            scanposition = self._scanposition,
             storageMedia = self.storageMedia,
             scanPattern = self.scanPattern,
             scanPublish = self.scanPublish,
