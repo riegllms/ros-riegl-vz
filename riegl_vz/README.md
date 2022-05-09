@@ -199,7 +199,7 @@ Topic provides SOPV (Scan Position and Orientation in VOCS) of the currently reg
 
 **gnss** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
 
-Actual GNSS fix with position in WGS 84 coordinates, published once per second.
+Actual GNSS fix with position in WGS84 coordinates (EPSG::4979). If the gnss receiver does not provide coordinates in another coordinate system, they are automatically transformed to WGS84 by means of the GeoSys service in the scanner. If coordinate transformation fails because the required database in '/media/internal/gsm.gsfx' is missing or does not contain the required information, the coordinates will be set to 0 each.
 
 **diagnostics** ([diagnostic_msgs/DiagnosticArray.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticArray.msg)):
 

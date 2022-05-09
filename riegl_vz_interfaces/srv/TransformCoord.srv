@@ -1,0 +1,11 @@
+string src_cs    # the source coordinate system name
+string dst_cs    # the target coordinate system name
+float64 coord1   # the source coordinate of the first axis
+float64 coord2   # the source coordinate of the second axis
+float64 coord3   # the source coordinate of the third axis
+---
+float64 coord1   # the target coordinate of the first axis
+float64 coord2   # the target coordinate of the second axis
+float64 coord3   # the target coordinate of the third axis
+bool success     # indicate successful run of service
+string message   # informational, e.g. for error messages

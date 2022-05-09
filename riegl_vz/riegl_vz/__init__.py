@@ -30,7 +30,8 @@ from riegl_vz_interfaces.srv import (
     GetPose,
     SetPosition,
     SetPose,
-    GetList
+    GetList,
+    TransformCoord
 )
 import rclpy
 from rclpy.node import Node
@@ -121,6 +122,7 @@ class RieglVzWrapper(Node):
         self._trigStartStopService = self.create_service(Trigger, 'trig_start_stop', self._trigStartStopCallback)
         self._getScanPatterns = self.create_service(GetList, 'get_scan_patterns', self._getScanPatternsCallback)
         self._getReflectorModels = self.create_service(GetList, 'get_reflector_models', self._getReflectorModelsCallback)
+        self._transformGeoCoordService = self.create_service(TransformCoord, 'transform_geo_coord', self._transformGeoCoordCallback)
 
         self._rieglVz = RieglVz(self)
 
@@ -690,6 +692,26 @@ class RieglVzWrapper(Node):
                 return response
 
                 self._statusUpdater.force_update
+        except:
+            self._setResponseException(response)
+
+        return response
+
+    def _transformGeoCoordCallback(self, request, response):
+        self.get_logger().info("Service Request: transform_geo_coord")
+        try:
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
+                return response
+
+            ok, coord1, coord2, coord3 = self._rieglVz.transformGeoCoordinate(request.src_cs, request.dst_cs, request.coord1, request.coord2, request.coord3)
+            if not ok:
+                self._setResponseException(response)
+                return response
+
+            response.coord1 = coord1
+            response.coord2 = coord2
+            response.coord3 = coord3
+
         except:
             self._setResponseException(response)
 

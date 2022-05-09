@@ -72,6 +72,8 @@ def _gnssbaseservice_lograwdatachanged_decoder(payload):
     return struct.unpack("!?", payload)[0]
 def _gnssbaseservice_timesyncchanged_decoder(payload):
     return struct.unpack("!i", payload)[0]
+def _gnssbaseservice_positionupdate_decoder(payload):
+    return payload.decode()
 
 class GnssBaseService(object):
     """"""
@@ -152,6 +154,7 @@ class GnssBaseService(object):
         self._configChanged = ServiceSignal(self._svc, "configChanged")
         self._logRawDataChanged = ServiceSignal(self._svc, "logRawDataChanged", decoderFn=_gnssbaseservice_lograwdatachanged_decoder)
         self._timesyncChanged = ServiceSignal(self._svc, "timesyncChanged", decoderFn=_gnssbaseservice_timesyncchanged_decoder)
+        self._positionUpdate = ServiceSignal(self._svc, "positionUpdate", decoderFn=_gnssbaseservice_positionupdate_decoder)
         self._lock = threading.Lock()
 
     def __enter__(self):
@@ -165,7 +168,7 @@ class GnssBaseService(object):
 
     def storDir(self):
         """Return the path to the directory where the raw data logs are stored.
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -178,7 +181,7 @@ class GnssBaseService(object):
 
     def setStorDir(self, value):
         """Set the path of the directory where the raw data logs are stored.
-           
+
            Arguments:
              value (str): the new target directory"""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -186,10 +189,10 @@ class GnssBaseService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setStorDir_f4d5e9ce", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def defConfig(self):
         """Return the default configuration.
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -202,9 +205,9 @@ class GnssBaseService(object):
 
     def setDefConfig(self, value):
         """Set the default configuration.
-           
+
            The default configuration is loaded at startup of the service.
-           
+
            Arguments:
              value (str): """
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -212,10 +215,10 @@ class GnssBaseService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setDefConfig_40617cc7", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def logRawData(self):
         """Return true if the raw GNSS data is written to disk.
-           
+
            Returns: bool"""
         inputs = None
         inputTransfers = None
@@ -228,10 +231,10 @@ class GnssBaseService(object):
 
     def setLogRawData(self, value):
         """Set this value to true if the raw GNSS data should be written to disk.
-           
+
            The target directory where the created data files are stored can be set
            via setStorDir().
-           
+
            Arguments:
              value (bool): """
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -239,10 +242,10 @@ class GnssBaseService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setLogRawData_c9f8bb57", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def configDir(self):
         """Return the directory path where the GNSS antenna configurations are stored.
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -255,7 +258,7 @@ class GnssBaseService(object):
 
     def setConfigDir(self, value):
         """Set the directory path where the GNSS antenna configurations are stored.
-           
+
            Arguments:
              value (str): the new directory path"""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -263,10 +266,10 @@ class GnssBaseService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setConfigDir_468d3284", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def posValidTimeout(self):
         """Return the position valid timeout in seconds.
-           
+
            Returns: float"""
         inputs = None
         inputTransfers = None
@@ -279,7 +282,7 @@ class GnssBaseService(object):
 
     def setPosValidTimeout(self, value):
         """Set the position valid timeout in seconds.
-           
+
            Arguments:
              value (float): the position valid timeout n seconds"""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -287,10 +290,10 @@ class GnssBaseService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setPosValidTimeout_bd591915", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def activeConfiguration(self):
         """Return the name of the active configuration.
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -303,7 +306,7 @@ class GnssBaseService(object):
 
     def listConfigs(self):
         """Return the list of available configurations.
-           
+
            Returns: list(str)
              list of available configurations"""
         inputs = None
@@ -320,7 +323,7 @@ class GnssBaseService(object):
 
     def loadConfig(self, name):
         """Load the specified configuration.
-           
+
            Arguments:
              name (str): the name of the configuration"""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -328,13 +331,13 @@ class GnssBaseService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("loadConfig_3244abbc", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def saveConfig(self, filename):
         """Save the current configuration to disk.
-           
+
            If filename is an absolute path then it will be used as is, otherwise
            the file will be stored in the configuration directory (see setConfigDir()).
-           
+
            Arguments:
              filename (str): the file name of the created configuration"""
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -342,10 +345,10 @@ class GnssBaseService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("saveConfig_a23f5a1e", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def getConfig(self, name):
         """Return the configuration with the specified name.
-           
+
            The data is returned as JSON string in the following format:
            {
              "antPosSOCS": [0, 0, 0.107],
@@ -361,10 +364,10 @@ class GnssBaseService(object):
              "recOriginCSIdent" : "EPSG::4979",
              "recVendor": "u-blox"
            }
-           
+
            Arguments:
              name (str): the name of the configuration
-           
+
            Returns: str"""
         inputs = [riconnect.Value() for i in range(0, 1)]
         inputs[0].s = name
@@ -378,7 +381,7 @@ class GnssBaseService(object):
 
     def setConfig(self, json_str):
         """Set the parameters of the active configuration.
-           
+
            Arguments:
              json_str (str): """
         inputs = [riconnect.Value() for i in range(0, 1)]
@@ -386,10 +389,10 @@ class GnssBaseService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("setConfig_ff6cba9e", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def estimateInfo(self):
         """Return information about the current position estimate.
-           
+
            The data is returned as JSON string in the following format:
            {
              "baseline_length": 0,
@@ -412,7 +415,7 @@ class GnssBaseService(object):
              "vdop": 1.2799999713897705,
              "ver_acc": 12.196001052856445
            }
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -425,12 +428,12 @@ class GnssBaseService(object):
 
     def satelliteInfo(self):
         """Return information about the currently visible satellites.
-           
+
            The data is returned as JSON string in the following format:
            {
              "num_sat": 8
            }
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -443,7 +446,7 @@ class GnssBaseService(object):
 
     def receiverInfo(self):
         """Return information about the receiver.
-           
+
            The data is returned as JSON string in the following format:
            {
              "recInfo": ["EXT CORE 3.01 (d080e3)","00080000","ROM BASE 2.01 (75331)","FWVER=HPG 1.30REF","PROTVER=20.20","FIS=0xEF4015 (200028)","GPS;GLO;BDS","QZSS"],
@@ -451,7 +454,7 @@ class GnssBaseService(object):
              "recVendor" : "u-blox"
              "rtkSupport" : 1
            }
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -464,7 +467,7 @@ class GnssBaseService(object):
 
     def timeInfo(self):
         """Return the current time information.
-           
+
            The data is returned as JSON string in the following format:
            {
              "gps_time_acc": 9.4999997202194209e-08,
@@ -475,7 +478,7 @@ class GnssBaseService(object):
              "utc_seconds_of_day": 32878,
              "utc_time_acc": 9.4999997202194209e-08
            }
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -488,13 +491,13 @@ class GnssBaseService(object):
 
     def timesyncInfo(self):
         """Return the current time synchronization information.
-           
+
            The data is returned as JSON string in the following format:
            {
              "exttime": 58258.0,
              "status": 0
            }
-           
+
            Returns: str"""
         inputs = None
         inputTransfers = None
@@ -520,47 +523,56 @@ class GnssBaseService(object):
            unrelated to service calls. It was intended to allow services
            to report hardware related problems. But since most services
            provide some kind of business logic, this signal is rarely used.
-           
+
            Returns: ServiceSignal
            Payload: dict"""
         return self._error
 
     def statusChanged(self):
         """This signal is emitted when the GNSS fix changed.
-           
+
            The signal payload contains the new GNSS fix.
-           
+
            Returns: ServiceSignal
            Payload: int"""
         return self._statusChanged
 
     def satellitesChanged(self):
         """This signal is emitted when the number of visible satellites changed.
-           
+
            The signal payload contains the new number of visible satellites.
-           
+
            Returns: ServiceSignal
            Payload: int"""
         return self._satellitesChanged
 
     def configChanged(self):
         """This signal is emitted when the active configuration changed.
-           
+
            Returns: ServiceSignal"""
         return self._configChanged
 
     def logRawDataChanged(self):
         """This signal is emitted when the log raw data setting changed.
-           
+
            Returns: ServiceSignal
            Payload: bool"""
         return self._logRawDataChanged
 
     def timesyncChanged(self):
         """This signal is emitted when the time synchronization status changed.
-           
+
            The signal payload contains the new time synchronization status.
-           
+
            Returns: ServiceSignal
            Payload: int"""
         return self._timesyncChanged
+
+    def positionUpdate(self):
+        """This signal is emitted when new position information is available.
+
+           The signal payload contains the new position information.
+
+           Returns: ServiceSignal
+           Payload: str"""
+        return self._positionUpdate

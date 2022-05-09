@@ -37,6 +37,7 @@ from vzi_services.controlservice import ControlService
 from vzi_services.interfaceservice import InterfaceService
 from vzi_services.projectservice import ProjectService
 from vzi_services.scannerservice import ScannerService
+from vzi_services.geosysservice import GeoSysService
 
 from .pose import (
     readVop,
@@ -48,6 +49,7 @@ from .pose import (
 )
 from .project import RieglVzProject
 from .status import RieglVzStatus
+from .geosys import RieglVzGeoSys
 from .ssh import RieglVzSSH
 from .utils import (
     SubProcess,
@@ -78,37 +80,37 @@ class ImuRelativePose(object):
     def __init__(self):
         self._pose = None
         self._previous = ImuPose()
-        self._lock = threading.Lock()
+        self._threadLock = threading.Lock()
 
-    def _poseLock(self):
-        self._lock.acquire()
+    def _lock(self):
+        self._threadLock.acquire()
 
-    def _poseUnlock(self):
-        self._lock.release()
+    def _unlock(self):
+        self._threadLock.release()
 
     def update(self, pose):
-        self._poseLock()
+        self._lock()
         self._pose = pose
-        self._poseUnlock()
+        self._unlock()
 
     def previous(self):
-        self._poseLock()
+        self._lock()
         pose = self._previous
-        self._poseUnlock()
+        self._unlock()
         return pose
 
     def reset(self):
-        self._poseLock()
+        self._lock()
         self._previous = ImuPose()
-        self._poseUnlock()
+        self._unlock()
 
     def get(self, scanposName):
-        self._poseLock()
+        self._lock()
         poseCurrent = ImuPose(scanposName, self._pose)
         posePrevious = self._previous
         self._previous = poseCurrent
         self._pose = None
-        self._poseUnlock()
+        self._unlock()
         return poseCurrent, posePrevious
 
 class RieglVz():
@@ -125,6 +127,7 @@ class RieglVz():
         self._shutdownReq = False
         self._project: RieglVzProject = RieglVzProject(self._node)
         self._status: RieglVzStatus = RieglVzStatus(self._node)
+        self.geosys: RieglVzGeoSys = RieglVzGeoSys(self._node)
         self._ssh: RieglVzSSH = RieglVzSSH(self._node)
 
         self.scanposition = None
@@ -258,10 +261,11 @@ class RieglVz():
             f.write('\n')
         self._ssh.uploadFile([localFile], scanposPath)
 
-    def _getGnssFixMessage(self):
-        status = self.getGnssStatus()
+    def _getGnssFixMessage(self, status=None):
+        if status is None:
+            status = self.getGnssStatus()
 
-        if not status.valid:
+        if not status.valid or not status.publish:
             return False, None
 
         msg = NavSatFix()
@@ -292,8 +296,8 @@ class RieglVz():
 
         return True, msg
 
-    def publishGnssFix(self):
-        ok, msg = self._getGnssFixMessage()
+    def publishGnssFix(self, status=None):
+        ok, msg = self._getGnssFixMessage(status)
         if ok:
             self._node.gnssFixPublisher.publish(msg)
 
@@ -754,6 +758,9 @@ class RieglVz():
         for model in json.loads(ctrlSvc.supportedReflectorSearchModels()):
             models.append(model['name'])
         return True, models
+
+    def transformGeoCoordinate(self, srcCs: str, dstCs: str, coord1=0, coord2=0, coord3=0):
+        return self.geosys.transformCoordinate(srcCs, dstCs, coord1, coord2, coord3)
 
     def shutdown(self):
         self._status.shutdown()

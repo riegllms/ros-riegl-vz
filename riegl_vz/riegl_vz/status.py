@@ -3,12 +3,15 @@ import json
 import math
 import threading
 
+from .geosys import RieglVzGeoSys
+
 from vzi_services.scannerservice import ScannerService
 from vzi_services.controlservice import ControlService
 from vzi_services.interfaceservice import InterfaceService
 from vzi_services.gnssbaseservice import GnssBaseService
 from vzi_services.riconnectswitch import RiconnectSwitch
 from vzi_services.cameraservice import CameraService
+from vzi_services.geosysservice import GeoSysService
 
 class ScannerStatus(object):
     def __init__(self):
@@ -33,6 +36,7 @@ class GnssStatus(object):
         self.valid = False
         self.err = False
         self.enabled = True
+        self.publish = True
         self.fix = True
         self.numSat = 3
         self.longitude = 15.656631
@@ -43,6 +47,7 @@ class GnssStatus(object):
         self.hdop = math.nan
         self.vdop = math.nan
         self.pdop = math.nan
+        self.cs = ''
 
 class ErrorStatus(object):
     def __init__(self):
@@ -160,7 +165,9 @@ class RieglVzStatus():
         self._gnssSvc = None
         self._camSvc = None
         self._riconSw = None
+        self._geoSvc = None
         self._shutdownReq = False
+        self._gnssPosUpdateSigcon = None
 
         self._detectThread = threading.Thread(target=self._detectFunction, args=())
         self._detectThread.daemon = True
@@ -189,6 +196,12 @@ class RieglVzStatus():
                 self.trigStarted = False
                 self._node._statusUpdater.force_update()
                 self._logger.debug("Data Acquisition Finished!")
+
+        def onGnssPositionUpdate(arg0):
+            posInfo = json.loads(arg0)
+            gnssStatus = self._getGnssStatusFromPositionUpdate(posInfo)
+            gnssStatus.valid = True
+            self._node._rieglVz.publishGnssFix(gnssStatus)
 
         while self._ctrlSvc is None and not self._shutdownReq:
             try:
@@ -222,6 +235,18 @@ class RieglVzStatus():
             except:
                 self.status._gnssStatus.err = True
                 self._logger.error("GnssBaseService is not available!")
+            if self._gnssSvc is not None:
+                try:
+                    ricSvc = RiconnectSwitch(self._connectionString)
+                    vstr = ricSvc.getMessages('version','GnssBaseService')
+                    self._logger.info("GnssBaseService version: {}".format(vstr[0].text))
+                    v = vstr[0].text.split(".")
+                    if int(v[0]) == 1 and int(v[1]) >= 11 and int(v[2]) >= 1:
+                        self._gnssPosUpdateSigcon = self._gnssSvc.positionUpdate().connect(onGnssPositionUpdate)
+                        self._logger.info("GnssBaseService with positionUpdate signal.")
+                except:
+                    self._logger.info("GnssBaseService without positionUpdate signal!")
+                    self._gnssPosUpdateSigcon = None
             try:
                 self._camSvc = CameraService(self._connectionString)
             except:
@@ -278,36 +303,77 @@ class RieglVzStatus():
             memoryStatus.err = True
         self.status.setMemoryStatus(memoryStatus)
 
+    def _getGnssStatusFromPositionUpdate(self, posInfo):
+        gnssStatus = GnssStatus()
+        #self._logger.debug("gnss (signal): {}".format(posInfo))
+        if 'fix' in posInfo and posInfo['fix'] != None:
+            gnssStatus.fix = posInfo['fix']
+        if 'num_sat' in posInfo and posInfo['num_sat'] != None:
+            gnssStatus.numSat = posInfo['num_sat']
+        if 'longitude' in posInfo and posInfo['longitude'] != None:
+            gnssStatus.longitude = float(posInfo['longitude'])
+        if 'latitude' in posInfo and posInfo['latitude'] != None:
+            gnssStatus.latitude = float(posInfo['latitude'])
+        if 'height' in posInfo and posInfo['height'] != None:
+            gnssStatus.altitude = float(posInfo['height'])
+        if 'horAcc' in posInfo and posInfo['horAcc'] != None:
+            gnssStatus.horAcc = float(posInfo['horAcc'])
+        if 'verAcc' in posInfo and posInfo['verAcc'] != None:
+            gnssStatus.verAcc = float(posInfo['verAcc'])
+        if 'hdop' in posInfo and posInfo['hdop'] != None:
+            gnssStatus.hdop = float(posInfo['hdop'])
+        if 'vdop' in posInfo and posInfo['vdop'] != None:
+            gnssStatus.vdop = float(posInfo['vdop'])
+        if 'pdop' in posInfo and posInfo['pdop'] != None:
+            gnssStatus.pdop = float(posInfo['pdop'])
+        if 'origin_cs_ident' in posInfo and posInfo['origin_cs_ident'] != None:
+            gnssStatus.cs = str(posInfo['origin_cs_ident'])
+        if gnssStatus.cs != None and gnssStatus.cs != 'EPSG::4979':
+            ok, gnssStatus.longitude, gnssStatus.latitude, gnssStatus.altitude = self._node._rieglVz.geosys.transformToWgs84(gnssStatus.cs, gnssStatus.longitude, gnssStatus.latitude, gnssStatus.altitude)
+        return gnssStatus
+
+    def _getGnssStatusFromEstimateInfo(self, estimInfo):
+        gnssStatus = GnssStatus()
+        #self._logger.debug("gnss (status): {}".format(estimInfo))
+        if 'fix' in estimInfo and estimInfo['fix'] != None:
+            gnssStatus.fix = estimInfo['fix']
+        if 'num_sat' in estimInfo and estimInfo['num_sat'] != None:
+            gnssStatus.numSat = estimInfo['num_sat']
+        if 'longitude' in estimInfo and estimInfo['longitude'] != None:
+            gnssStatus.longitude = float(estimInfo['longitude'])
+        if 'latitude' in estimInfo and estimInfo['latitude'] != None:
+            gnssStatus.latitude = float(estimInfo['latitude'])
+        if 'height' in estimInfo and estimInfo['height'] != None:
+            gnssStatus.altitude = float(estimInfo['height'])
+        if 'hor_acc' in estimInfo and estimInfo['hor_acc'] != None:
+            gnssStatus.horAcc = float(estimInfo['hor_acc'])
+        if 'ver_acc' in estimInfo and estimInfo['ver_acc'] != None:
+            gnssStatus.verAcc = float(estimInfo['ver_acc'])
+        if 'hdop' in estimInfo and estimInfo['hdop'] != None:
+            gnssStatus.hdop = float(estimInfo['hdop'])
+        if 'vdop' in estimInfo and estimInfo['vdop'] != None:
+            gnssStatus.vdop = float(estimInfo['vdop'])
+        if 'pdop' in estimInfo and estimInfo['pdop'] != None:
+            gnssStatus.pdop = float(estimInfo['pdop'])
+        if 'recOriginCSIdent' in estimInfo and estimInfo['recOriginCSIdent'] != None:
+            gnssStatus.cs = str(estimInfo['recOriginCSIdent'])
+        if gnssStatus.cs != None and gnssStatus.cs != 'EPSG::4979':
+            ok, gnssStatus.longitude, gnssStatus.latitude, gnssStatus.altitude = self._node._rieglVz.geosys.transformToWgs84(gnssStatus.cs, gnssStatus.longitude, gnssStatus.latitude, gnssStatus.altitude)
+        return gnssStatus
+
     def _timer1sCallback(self):
         # gnss status
         gnssStatus = GnssStatus()
         try:
             if self._gnssSvc:
-                j = json.loads(self._gnssSvc.estimateInfo())
-                #self._logger.debug("gnss: {}".format(j))
-                if 'fix' in j and j['fix'] != None:
-                    gnssStatus.fix = j['fix']
-                if 'num_sat' in j and j['num_sat'] != None:
-                    gnssStatus.numSat = j['num_sat']
-                if 'longitude' in j and j['longitude'] != None:
-                    gnssStatus.longitude = float(j['longitude'])
-                if 'latitude' in j and j['latitude'] != None:
-                    gnssStatus.latitude = float(j['latitude'])
-                if 'height' in j and j['height'] != None:
-                    gnssStatus.altitude = float(j['height'])
-                if 'hor_acc' in j and j['hor_acc'] != None:
-                    gnssStatus.horAcc = float(j['hor_acc'])
-                if 'ver_acc' in j and j['ver_acc'] != None:
-                    gnssStatus.verAcc = float(j['ver_acc'])
-                if 'hdop' in j and j['hdop'] != None:
-                    gnssStatus.hdop = float(j['hdop'])
-                if 'vdop' in j and j['vdop'] != None:
-                    gnssStatus.vdop = float(j['vdop'])
-                if 'pdop' in j and j['pdop'] != None:
-                    gnssStatus.pdop = float(j['pdop'])
+                estimInfo = json.loads(self._gnssSvc.estimateInfo())
+                gnssStatus = self._getGnssStatusFromEstimateInfo(estimInfo)
+            if self._gnssPosUpdateSigcon is not None:
+                gnssStatus.publish = False
             if self._scanSvc:
                 gnssStatus.enabled = True if (self._scanSvc.gpsMode() != 0) else False
         except:
+            gnssStatus.publish = False
             gnssStatus.err = True
         self.status.setGnssStatus(gnssStatus)
 
