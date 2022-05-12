@@ -1,4 +1,5 @@
 geometry_msgs/PointStamped position
+float64[3] covariance    # covariances of X, Y, Z axis
 ---
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages

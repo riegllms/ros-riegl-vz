@@ -64,12 +64,16 @@ The 'frame_id' in the pop.header is the name of the global coordinate system, wh
 **riegl_vz_interfaces/SetPosition**:
 ```
 geometry_msgs/PointStamped position
+float64[3] covariance   # covariances of X, Y, Z axis
 ---
 bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PointStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PointStamped.msg)
-The 'frame_id' in the position.header is the name of a global coordinate system, which is e.g. EPSG::4978, or 'riegl_vz_prcs'. If string is empty 'riegl_vz_prcs' is assumed.
+The 'frame_id' in the header is either  
+... the name of a global coordinate system, which is e.g. EPSG::4978. If its not WGS84 it must be supported by the GeoSys manager in the scanner.
+... 'riegl_vz_prcs' the scanner project coordinate system. If string is empty 'riegl_vz_prcs' is assumed.  
+... another coordinate system with an available tf2 transformation to 'riegl_vz_prcs'.  
 
 **riegl_vz_interfaces/SetPose**:
 ```
@@ -79,7 +83,9 @@ bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PoseWithCovarianceStamped definition: [geometry_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg)
-The 'frame_id' in the position.header is the name of the referenced coordinate system.
+The 'frame_id' in the header is either  
+... a coordinate system with an available tf2 transformation to 'riegl_vz_prcs'.
+... 'riegl_vz_prcs' the scanner project coordinate system. If string is empty 'riegl_vz_prcs' is assumed.    
 
 ## 3. Nodes
 
@@ -187,6 +193,10 @@ The image capture mode (1=during-scan, 2=after-scan).
 
 The image overlap factor in percent.
 
+**~imu_relative_pose** (bool, default: "False") :
+
+If true the driver calculates relative position and orientation changes from one scan position to the next, otherwise it uses the absolute positions and orientation (see service 'set_imu_pose').
+
 #### 3.1.2 Published Topics
 
 **pointcloud** ([sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)) :
@@ -236,11 +246,15 @@ success = True -> message: Project Name
 
 **set_position** (riegl_vz_interfaces/SetPosition) :
 
-Set position of the scanner origin in a global coordinate system (GLCS) supported by RIEGL GeoSys Manager. The position must be set before the scan. This allows transformation of scans into a global coordinate system and furthermore the position is an initial guess for scan registration.
+Set position of the scanner origin. The position must be set before the scan has finished. This is used for scan registration without GNSS. Scanner orientation still comes from the scanner internal IMU and magnetic field sensor.
 
-**set_pose** (riegl_vz_interfaces/SetPose) :
+**set_imu_pose** (riegl_vz_interfaces/SetPose) :
 
-Set position and orientation from an external IMU. The position must be set before the scan. The driver calculates relative position and orientation movements from one scan position to another. The resulting data is used for scanner localization for scan registration without GNSS (e.g. accurate IMU data from a robot).
+Set position and orientation from an external IMU. The position and orientation must be set before the scan has finished. The behavior of the service call depends on the parameter 'imu_relative_pose'.  
+
+imu_relative_pose = True: The driver calculates relative position and orientation changes from one scan position to the next. The resulting data is used for scanner position determination of the scan registration algorithm (e.g. accurate IMU data from a robot).  
+
+imu_relative_pose = False: The driver uses the absolute positions and only the yaw angle from the orientation for scanner position determination of the scan registration algorithm.  
 
 **scan** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 

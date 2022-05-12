@@ -24,6 +24,8 @@ from diagnostic_msgs.msg import (
 )
 from diagnostic_updater import Updater
 from tf2_ros import TransformBroadcaster
+from tf2_ros.buffer import Buffer
+from tf2_ros.transform_listener import TransformListener
 from riegl_vz_interfaces.srv import (
     GetPointCloud,
     GetScanPoses,
@@ -75,6 +77,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('image_capture', 0)
         self.declare_parameter('image_capture_mode', 1)
         self.declare_parameter('image_capture_overlap', 25)
+        self.declare_parameter('imu_relative_pose', False)
 
         self.hostname = str(self.get_parameter('hostname').value)
         self.workingDir = str(self.get_parameter('working_dir').value)
@@ -104,10 +107,14 @@ class RieglVzWrapper(Node):
         # tf2 message broadcaster..
         self.transformBroadcaster = TransformBroadcaster(self)
 
+        # tf2 listener..
+        self.transformBuffer = Buffer()
+        self.transformListener = TransformListener(self.transformBuffer, self)
+
         # create documented services..
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._setPositionService = self.create_service(SetPosition, 'set_position', self._setPositionCallback)
-        self._setPoseService = self.create_service(SetPose, 'set_pose', self._setPoseCallback)
+        self._setImuPoseService = self.create_service(SetPose, 'set_imu_pose', self._setImuPoseCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
         self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
@@ -443,8 +450,8 @@ class RieglVzWrapper(Node):
 
         return response
 
-    def setPosition(self, position):
-        return self._rieglVz.setPosition(position)
+    def setPosition(self, position, covariance):
+        return self._rieglVz.setPosition(position, covariance)
 
     def _setPositionCallback(self, request, response):
         self.get_logger().info("Service Request: set_position")
@@ -452,22 +459,23 @@ class RieglVzWrapper(Node):
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
-            self.setPosition(request.position)
+            self.setPosition(request.position, request.covariance)
         except:
             self._setResponseException(response)
 
         return response
 
-    def setPose(self, pose):
-        return self._rieglVz.setPose(pose)
+    def setImuPose(self, pose):
+        return self._rieglVz.setImuPose(pose)
 
-    def _setPoseCallback(self, request, response):
-        self.get_logger().info("Service Request: set_pose")
+    def _setImuPoseCallback(self, request, response):
+        self.get_logger().info("Service Request: set_imu_pose")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
-            self.setPose(request.pose)
+            self.imuRelativePose = bool(self.get_parameter('imu_relative_pose').value)
+            self.setImuPose(request.pose, self.imuRelativePose)
         except:
             self._setResponseException(response)
 

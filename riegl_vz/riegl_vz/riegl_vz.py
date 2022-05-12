@@ -19,6 +19,7 @@ from sensor_msgs.msg import (
     NavSatFix
 )
 from geometry_msgs.msg import (
+    PoseStamped,
     PoseWithCovariance,
     PoseWithCovarianceStamped
 )
@@ -45,7 +46,8 @@ from .pose import (
     readAllSopv,
     getTransformFromPose,
     calcRelativePose,
-    calcRelativeCovariances
+    calcRelativeCovariances,
+    eulerFromQuaternion, quaternionFromEuler
 )
 from .project import RieglVzProject
 from .status import RieglVzStatus
@@ -67,6 +69,16 @@ class ScanPattern(object):
         self.frameStop = 360.0
         self.frameIncrement = 0.04
         self.measProgram = 3
+
+class PositionWithCovariance(object):
+    def __init__(self, position, covariance):
+        self.position = position
+        self.covariance = covariance
+
+class YawAngleWithCovariance(object):
+    def __init__(self, angle, covariance):
+        self.angle = angle
+        self.covariance = covariance
 
 class ImuPose(object):
     def __init__(self, scanpos=None, pose=None):
@@ -121,6 +133,7 @@ class RieglVz():
         self._workingDir = node.workingDir
         self._connectionString = self._hostname + ':20000'
         self._path = Path()
+        self._yawAngle = None
         self._position = None
         self._imuRelPose = ImuRelativePose()
         self._stopReq = False
@@ -203,19 +216,27 @@ class RieglVz():
     #    #self._logger.debug("dateTime = {}".format(dateTime))
     #    return int(dateTime.strftime("%s"))
 
-    def _setPositionEstimate(self, position):
+    def _setPositionEstimate(self, position=None, yawAngle=None):
         scanposPath = self._project.getActiveScanposPath(self.scanposition)
         remoteFile = scanposPath + '/final.pose'
         localFile = self._workingDir + '/final.pose'
         self._ssh.downloadFile(remoteFile, localFile)
         with open(localFile, 'r') as f:
             finalPose = json.load(f)
-        finalPose['positionEstimate'] = {
-            'coordinateSystem': position.header.frame_id,
-            'coord1': position.point.x,
-            'coord2': position.point.y,
-            'coord3': position.point.z
-        }
+        if position is not None:
+            finalPose['positionEstimate'] = {
+                'coordinateSystem': position.position.header.frame_id,
+                'coord1': position.position.point.x,
+                'coord2': position.position.point.y,
+                'coord3': position.position.point.z,
+                'coord1_conf': position.position.covariance[0],
+                'coord2_conf': position.position.covariance[1],
+                'coord3_conf': position.position.covariance[2]
+            }
+        if yawAngle is not None:
+            finalPose['yaw'] = yawAngle.angle
+            finalPose['yaw_conf'] = yawAngle.covariance
+            finalPose['yaw_trust_level_high'] = True
         with open(localFile, 'w') as f:
             json.dump(finalPose, f, indent=4)
             f.write('\n')
@@ -476,18 +497,21 @@ class RieglVz():
 
         self._status.status.setOpstate('processing')
 
-        if self._position is not None:
-            self._status.status.setActiveTask('set position estimate')
-            if self.scanposition == '1':
+        if self._position is not None or self._yawAngle is not None:
+            if self._position is not None:
+                self._status.status.setActiveTask('set position estimate')
+            if self._yawAngle is not None:
+                self._status.status.setActiveTask('set yaw angle estimate')
+            if self._position is not None and self.scanposition == '1':
                 self._logger.info("Set project position.")
                 projSvc = ProjectService(self._connectionString)
-                projSvc.setProjectLocation(self._position.header.frame_id, self._position.point.x, self._position.point.y, self._position.point.z)
-            self._logger.info("Set scan position estimate..")
+                projSvc.setProjectLocation(self._position.position.header.frame_id, self._position.position.point.x, self._position.position.point.y, self._position.position.point.z)
+            self._logger.info("Set scan position and/or yaw angle estimate..")
             try:
-                self._setPositionEstimate(self._position)
-                self._logger.info("Set position estimate finished")
+                self._setPositionEstimate(self._position, self._yawAngle)
+                self._logger.info("Set position and/or yaw angle estimate finished")
             except:
-                self._logger.error("Set position estimate failed!")
+                self._logger.error("Set position and/or yaw angle estimate failed!")
             self._position = None
 
         poseCurrent, posePrevious = self._imuRelPose.get(self._project.getScanposName(self.scanposition))
@@ -641,11 +665,38 @@ class RieglVz():
                 time.sleep(0.2)
         return False if self.getScannerOpstate() == 'waiting' else True
 
-    def setPosition(self, position):
-        self._position = position
+    def setPosition(self, position, covariance):
+        if position.header.frame_id != '' and position.header.frame_id != 'riegl_vz_prcs':
+            try:
+                # try to convert to PRCS
+                position.point = self._node.transformBuffer.transform(position.point, 'riegl_vz_prcs')
+            except:
+                pass
+        self._position = PositionWithCovariance(position, covariance)
 
-    def setPose(self, pose):
-        self._imuRelPose.update(pose)
+
+    def _setYawAngle(self, header, yawAngle, covariance):
+        if header.frame_id != '' and header.frame_id != 'riegl_vz_prcs':
+            pose = PoseStamped()
+            pose.header = header
+            pose.pose = Pose(
+                position = Point(x=0, y=0, z=0),
+                orientation = quaternionFromEuler(0, 0, yawAngle)
+            )
+            # must be converted to PRCS
+            pose = self._node.transformBuffer.transform(pose, 'riegl_vz_prcs')
+            roll, pitch, yawAngle = eulerFromQuaternion(pose.pose.orientation)
+        self._yawAngle = YawAngleWithCovariance(yawAngle, covariance)
+
+    def setImuPose(self, pose, isRelative):
+        self.imuRelativePose = isRelative
+        self._logger.info("imu relative pose = {}".format(self.imuRelativePose))
+        if self.imuRelativePose:
+            self._imuRelPose.update(pose)
+        else:
+            self.setPosition(pose.pose.pose.position)
+            roll, pitch, yaw = eulerFromQuaternion(pose.pose.pose.orientation)
+            self._setYawAngle(pose.pose.header, yaw, pose.pose.covariance[5][5])
 
     def getAllSopv(self):
         try:
