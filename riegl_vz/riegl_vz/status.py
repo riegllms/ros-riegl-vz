@@ -244,6 +244,9 @@ class RieglVzStatus():
                     if int(v[0]) == 1 and int(v[1]) >= 11 and int(v[2]) >= 1:
                         self._gnssPosUpdateSigcon = self._gnssSvc.positionUpdate().connect(onGnssPositionUpdate)
                         self._logger.info("GnssBaseService with positionUpdate signal.")
+                    else:
+                        self._logger.info("GnssBaseService without positionUpdate signal!")
+                        self._gnssPosUpdateSigcon = None
                 except:
                     self._logger.info("GnssBaseService without positionUpdate signal!")
                     self._gnssPosUpdateSigcon = None
