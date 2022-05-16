@@ -23,3 +23,4 @@ riegl_vz_node:
     image_capture_mode: 1
     image_capture_overlap: 25
     imu_relative_pose: False
+    scanner_mounting_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

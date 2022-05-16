@@ -78,6 +78,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('image_capture_mode', 1)
         self.declare_parameter('image_capture_overlap', 25)
         self.declare_parameter('imu_relative_pose', False)
+        self.declare_parameter('scanner_mounting_pose', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         self.hostname = str(self.get_parameter('hostname').value)
         self.workingDir = str(self.get_parameter('working_dir').value)
@@ -465,8 +466,8 @@ class RieglVzWrapper(Node):
 
         return response
 
-    def setImuPose(self, pose):
-        return self._rieglVz.setImuPose(pose)
+    def setImuPose(self, pose, isRelative, mounting):
+        return self._rieglVz.setImuPose(pose, isRelative, mounting)
 
     def _setImuPoseCallback(self, request, response):
         self.get_logger().info("Service Request: set_imu_pose")
@@ -475,7 +476,8 @@ class RieglVzWrapper(Node):
                 return response
 
             self.imuRelativePose = bool(self.get_parameter('imu_relative_pose').value)
-            self.setImuPose(request.pose, self.imuRelativePose)
+            self.mountingPose = self.get_parameter('scanner_mounting_pose').value
+            self.setImuPose(request.pose, self.imuRelativePose, self.mountingPose)
         except:
             self._setResponseException(response)
 

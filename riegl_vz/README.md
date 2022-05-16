@@ -169,7 +169,7 @@ Enable automatic reflector search with every scan data acquisition.
 
 Name of reflector search model. Can be specified multiple times, separated by comma (e.g. "RIEGL flat reflector 50 mm, RIEGL flat reflector 100 mm")
 
-**~reflector_search_limits** (double[], default: {0.0,10000.0}) :
+**~reflector_search_limits** (double[], default: {0.0, 10000.0}) :
 
 Minimum and maximum range in meter between scan-position and reflector.
 
@@ -196,6 +196,10 @@ The image overlap factor in percent.
 **~imu_relative_pose** (bool, default: "False") :
 
 If true the driver calculates relative position and orientation changes from one scan position to the next, otherwise it uses the absolute positions and orientation (see service 'set_imu_pose').
+
+**~scanner_mounting_pose** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+
+The mounting position and orientation (x, y, z, roll, pitch, yaw) of the scanner on a roboter, with coordinates in meter and euler angles in radians. This is used for 'set_imu_pose' service call if 'imu_relative_pose' parameter is set to False.
 
 #### 3.1.2 Published Topics
 
@@ -244,18 +248,6 @@ Load an existing project on the scanner with name from parameter '~project_name'
 Response:  
 success = True -> message: Project Name  
 
-**set_position** (riegl_vz_interfaces/SetPosition) :
-
-Set position of the scanner origin. The position must be set before the scan has finished. This is used for scan registration without GNSS. Scanner orientation still comes from the scanner internal IMU and magnetic field sensor.
-
-**set_imu_pose** (riegl_vz_interfaces/SetPose) :
-
-Set position and orientation from an external IMU. The position and orientation must be set before the scan has finished. The behavior of the service call depends on the parameter 'imu_relative_pose'.  
-
-imu_relative_pose = True: The driver calculates relative position and orientation changes from one scan position to the next. The resulting data is used for scanner position determination of the scan registration algorithm (e.g. accurate IMU data from a robot).  
-
-imu_relative_pose = False: The driver uses the absolute positions and only the yaw angle from the orientation for scanner position determination of the scan registration algorithm.  
-
 **scan** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :
 
 Start a background task for laser scan data acquisition.
@@ -276,6 +268,24 @@ success = True -> message: "success"
 success = False -> message: "device not available" | "device is busy" | "command execution error"
 
 ![ROS Scan Service](img/scan.png)
+
+**set_position** (riegl_vz_interfaces/SetPosition) :
+
+Set position of the scanner origin. The position must be set before the scan has finished. This is used for scan registration without GNSS. Scanner orientation still comes from the scanner internal IMU and magnetic field sensor.
+
+**set_imu_pose** (riegl_vz_interfaces/SetPose) :
+
+Set position and orientation from an external IMU on a robot for example. The position and orientation must be set before the scan has finished. The behavior of the service call depends on the parameter 'imu_relative_pose'.  
+
+imu_relative_pose = True: The driver calculates relative position and orientation changes from one scan position to the next. The resulting data is used for scanner position determination of the scan registration algorithm.  
+
+imu_relative_pose = False: The driver uses the absolute positions and only the yaw angle from the orientation for scanner position determination of the scan registration algorithm.  
+
+![IMU absolute pose coordinate systems](img/imu_pose_cs.png)
+
+For absolute pose from IMU the driver needs:
+- The scanner mounting position and orientation on the robot, which is the transformation from roboter body CS (robot_body_cs) to VZ scanner SOCS (robot_vz_socs). This has to be configured with parameter 'scanner_mounting_pose'.  
+- A TF2 transformation available for coordinate transformation from roboter to scanner project CS (robot_proj_cs -> riegl_vz_prcs). It is expected that 'set_imu_pose' service call provides absolute positions and orientations in the roboter project CS.
 
 **get_scan_poses** (riegl_vz_interfaces/GetScanPoses) :
 

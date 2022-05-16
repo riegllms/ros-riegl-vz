@@ -19,9 +19,11 @@ from sensor_msgs.msg import (
     NavSatFix
 )
 from geometry_msgs.msg import (
+    PointStamped,
     PoseStamped,
     PoseWithCovariance,
-    PoseWithCovarianceStamped
+    PoseWithCovarianceStamped,
+    TransformStamped
 )
 from nav_msgs.msg import (
     Path,
@@ -29,6 +31,8 @@ from nav_msgs.msg import (
 )
 import std_msgs.msg as std_msgs
 import builtin_interfaces.msg as builtin_msgs
+
+import tf2_geometry_msgs.tf2_geometry_msgs
 
 from rclpy.node import Node
 
@@ -671,32 +675,55 @@ class RieglVz():
                 # try to convert to PRCS
                 position.point = self._node.transformBuffer.transform(position.point, 'riegl_vz_prcs')
             except:
-                pass
+                self._logger.warning("Position coordinate transformation to PRCS failed!")
         self._position = PositionWithCovariance(position, covariance)
 
 
     def _setYawAngle(self, header, yawAngle, covariance):
         if header.frame_id != '' and header.frame_id != 'riegl_vz_prcs':
+            # must be converted to PRCS
             pose = PoseStamped()
             pose.header = header
             pose.pose = Pose(
                 position = Point(x=0, y=0, z=0),
                 orientation = quaternionFromEuler(0, 0, yawAngle)
             )
-            # must be converted to PRCS
             pose = self._node.transformBuffer.transform(pose, 'riegl_vz_prcs')
             roll, pitch, yawAngle = eulerFromQuaternion(pose.pose.orientation)
         self._yawAngle = YawAngleWithCovariance(yawAngle, covariance)
 
-    def setImuPose(self, pose, isRelative):
+    def setImuPose(self, pose, isRelative, mounting):
         self.imuRelativePose = isRelative
         self._logger.info("imu relative pose = {}".format(self.imuRelativePose))
+        self._logger.info("scanner mounting pose = x: {0}, y: {1}, z: {2}, roll: {3}, pitch: {4}, yaw: {5}".format(self.imuRelativePose, mounting[0], mounting[1], mounting[2], mounting[3], mounting[4], mounting[5]))
         if self.imuRelativePose:
+            try:
+                # try to set yaw angle
+                trans = TransformStamped()
+                trans.transform.translation.x = mounting[0]
+                trans.transform.translation.y = mounting[1]
+                trans.transform.translation.z = mounting[2]
+                trans.transform = quaternionFromEuler(mounting[3], mounting[4], mounting[5])
+                pose2 = tf2_geometry_msgs.do_transform_pose(pose, trans)
+                roll, pitch, yaw = eulerFromQuaternion(pose2.pose.pose.orientation)
+                self._setYawAngle(pose.pose.header, yaw, pose.pose.covariance[5][5])
+            except:
+                self._logger.warning("Yaw angle configuration with transformation to PRCS failed!")
             self._imuRelPose.update(pose)
         else:
-            self.setPosition(pose.pose.pose.position)
-            roll, pitch, yaw = eulerFromQuaternion(pose.pose.pose.orientation)
+            trans = TransformStamped()
+            trans.transform.translation.x = mounting[0]
+            trans.transform.translation.y = mounting[1]
+            trans.transform.translation.z = mounting[2]
+            trans.transform = quaternionFromEuler(mounting[3], mounting[4], mounting[5])
+            pose2 = tf2_geometry_msgs.do_transform_pose(pose, trans)
+            roll, pitch, yaw = eulerFromQuaternion(pose2.pose.pose.orientation)
             self._setYawAngle(pose.pose.header, yaw, pose.pose.covariance[5][5])
+            position = PointStamped(
+                header = pose.pose.header,
+                point = pose2.pose.pose.position
+            )
+            self.setPosition(position, [pose.pose.covariance[0][0], pose.pose.covariance[1][1], pose.pose.covariance[2][2]])
 
     def getAllSopv(self):
         try:
