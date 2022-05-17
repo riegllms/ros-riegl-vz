@@ -273,17 +273,17 @@ success = False -> message: "device not available" | "device is busy" | "command
 
 Set position of the scanner origin. The position must be set before the scan has finished. This is used for scan registration without GNSS. Scanner orientation still comes from the scanner internal IMU and magnetic field sensor.
 
-**set_imu_pose** (riegl_vz_interfaces/SetPose) :
+**set_pose** (riegl_vz_interfaces/SetPose) :
 
-Set position and orientation from an external IMU on a robot for example. The position and orientation must be set before the scan has finished. The behavior of the service call depends on the parameter 'imu_relative_pose'.  
+Set position and orientation from a robot with accurate kinematic sensors for example. The position and orientation must be set before the scan has finished. The behavior of the service call depends on the parameter 'imu_relative_pose'.  
 
 imu_relative_pose = True: The driver calculates relative position and orientation changes from one scan position to the next. The resulting data is used for scanner position determination of the scan registration algorithm.  
 
 imu_relative_pose = False: The driver uses the absolute positions and only the yaw angle from the orientation for scanner position determination of the scan registration algorithm.  
 
-![IMU absolute pose coordinate systems](img/imu_pose_cs.png)
+![Robot coordinate systems](img/robot_cs.png)
 
-For absolute pose from IMU the driver needs:
+For absolute pose from a robot the driver needs:
 - The scanner mounting position and orientation on the robot, which is the transformation from roboter body CS (robot_body_cs) to VZ scanner SOCS (robot_vz_socs). This has to be configured with parameter 'scanner_mounting_pose'.  
 - A TF2 transformation available for coordinate transformation from roboter to scanner project CS (robot_proj_cs -> riegl_vz_prcs). It is expected that 'set_imu_pose' service call provides absolute positions and orientations in the roboter project CS.
 

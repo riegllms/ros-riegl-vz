@@ -692,18 +692,18 @@ class RieglVz():
             roll, pitch, yawAngle = eulerFromQuaternion(pose.pose.orientation)
         self._yawAngle = YawAngleWithCovariance(yawAngle, covariance)
 
-    def setImuPose(self, pose, isRelative, mounting):
+    def setPose(self, pose, isRelative, mountingPose):
         self.imuRelativePose = isRelative
         self._logger.info("imu relative pose = {}".format(self.imuRelativePose))
-        self._logger.info("scanner mounting pose = x: {0}, y: {1}, z: {2}, roll: {3}, pitch: {4}, yaw: {5}".format(self.imuRelativePose, mounting[0], mounting[1], mounting[2], mounting[3], mounting[4], mounting[5]))
+        self._logger.info("scanner mounting pose = x: {0}, y: {1}, z: {2}, roll: {3}, pitch: {4}, yaw: {5}".format(self.imuRelativePose, mountingPose[0], mountingPose[1], mountingPose[2], mountingPose[3], mountingPose[4], mountingPose[5]))
         if self.imuRelativePose:
             try:
                 # try to set yaw angle
                 trans = TransformStamped()
-                trans.transform.translation.x = mounting[0]
-                trans.transform.translation.y = mounting[1]
-                trans.transform.translation.z = mounting[2]
-                trans.transform = quaternionFromEuler(mounting[3], mounting[4], mounting[5])
+                trans.transform.translation.x = mountingPose[0]
+                trans.transform.translation.y = mountingPose[1]
+                trans.transform.translation.z = mountingPose[2]
+                trans.transform = quaternionFromEuler(mountingPose[3], mountingPose[4], mountingPose[5])
                 pose2 = tf2_geometry_msgs.do_transform_pose(pose, trans)
                 roll, pitch, yaw = eulerFromQuaternion(pose2.pose.pose.orientation)
                 self._setYawAngle(pose.pose.header, yaw, pose.pose.covariance[5][5])
@@ -712,10 +712,10 @@ class RieglVz():
             self._imuRelPose.update(pose)
         else:
             trans = TransformStamped()
-            trans.transform.translation.x = mounting[0]
-            trans.transform.translation.y = mounting[1]
-            trans.transform.translation.z = mounting[2]
-            trans.transform = quaternionFromEuler(mounting[3], mounting[4], mounting[5])
+            trans.transform.translation.x = mountingPose[0]
+            trans.transform.translation.y = mountingPose[1]
+            trans.transform.translation.z = mountingPose[2]
+            trans.transform = quaternionFromEuler(mountingPose[3], mountingPose[4], mountingPose[5])
             pose2 = tf2_geometry_msgs.do_transform_pose(pose, trans)
             roll, pitch, yaw = eulerFromQuaternion(pose2.pose.pose.orientation)
             self._setYawAngle(pose.pose.header, yaw, pose.pose.covariance[5][5])

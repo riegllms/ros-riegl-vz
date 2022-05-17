@@ -115,7 +115,7 @@ class RieglVzWrapper(Node):
         # create documented services..
         self._setProjectService = self.create_service(Trigger, 'set_project', self._setProjectCallback)
         self._setPositionService = self.create_service(SetPosition, 'set_position', self._setPositionCallback)
-        self._setImuPoseService = self.create_service(SetPose, 'set_imu_pose', self._setImuPoseCallback)
+        self._setPoseService = self.create_service(SetPose, 'set_pose', self._setPoseCallback)
         self._scanService = self.create_service(Trigger, 'scan', self._scanCallback)
         self._getScanPoses = self.create_service(GetScanPoses, 'get_scan_poses', self._getScanPosesCallback)
         self._stopService = self.create_service(Trigger, 'stop', self._stopCallback)
@@ -466,18 +466,18 @@ class RieglVzWrapper(Node):
 
         return response
 
-    def setImuPose(self, pose, isRelative, mounting):
-        return self._rieglVz.setImuPose(pose, isRelative, mounting)
+    def setPose(self, pose, isRelative, mountingPose):
+        return self._rieglVz.setPose(pose, isRelative, mountingPose)
 
-    def _setImuPoseCallback(self, request, response):
+    def _setPoseCallback(self, request, response):
         self.get_logger().info("Service Request: set_imu_pose")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
             self.imuRelativePose = bool(self.get_parameter('imu_relative_pose').value)
-            self.mountingPose = self.get_parameter('scanner_mounting_pose').value
-            self.setImuPose(request.pose, self.imuRelativePose, self.mountingPose)
+            self.scannerMountingPose = self.get_parameter('scanner_mounting_pose').value
+            self.setPose(request.pose, self.imuRelativePose, self.scannerMountingPose)
         except:
             self._setResponseException(response)
 
