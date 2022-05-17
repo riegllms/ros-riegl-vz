@@ -477,7 +477,7 @@ class RieglVzWrapper(Node):
         return self._rieglVz.setPose(pose, isRelative, mountingPose)
 
     def _setPoseCallback(self, request, response):
-        self.get_logger().info("Service Request: set_imu_pose")
+        self.get_logger().info("Service Request: set_pose")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response

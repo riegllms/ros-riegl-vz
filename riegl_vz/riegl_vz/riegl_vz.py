@@ -19,8 +19,10 @@ from sensor_msgs.msg import (
     NavSatFix
 )
 from geometry_msgs.msg import (
+    Point,
     PointStamped,
     PoseStamped,
+    Pose,
     PoseWithCovariance,
     PoseWithCovarianceStamped,
     TransformStamped
@@ -31,8 +33,6 @@ from nav_msgs.msg import (
 )
 import std_msgs.msg as std_msgs
 import builtin_interfaces.msg as builtin_msgs
-
-import tf2_geometry_msgs.tf2_geometry_msgs
 
 from rclpy.node import Node
 
@@ -55,6 +55,9 @@ from .pose import (
     calcRelativePose,
     calcRelativeCovariances,
     eulerFromQuaternion, quaternionFromEuler
+)
+from .tf2_geometry_msgs import (
+    do_transform_pose
 )
 from .project import RieglVzProject
 from .status import RieglVzStatus
@@ -749,7 +752,7 @@ class RieglVz():
         if position.header.frame_id != '' and position.header.frame_id != 'riegl_vz_prcs':
             try:
                 # try to convert to PRCS
-                position.point = self._node.transformBuffer.transform(position.point, 'riegl_vz_prcs')
+                position = self._node.transformBuffer.transform(position, 'riegl_vz_prcs')
             except:
                 self._logger.warning("Position coordinate transformation to PRCS failed!")
         self._position = PositionWithCovariance(position, covariance)
@@ -761,8 +764,8 @@ class RieglVz():
             pose = PoseStamped()
             pose.header = header
             pose.pose = Pose(
-                position = Point(x=0, y=0, z=0),
-                orientation = quaternionFromEuler(0, 0, yawAngle)
+                position = Point(x=0.0, y=0.0, z=0.0),
+                orientation = quaternionFromEuler(0.0, 0.0, yawAngle)
             )
             pose = self._node.transformBuffer.transform(pose, 'riegl_vz_prcs')
             roll, pitch, yawAngle = eulerFromQuaternion(pose.pose.orientation)
@@ -779,10 +782,16 @@ class RieglVz():
                 trans.transform.translation.x = mountingPose[0]
                 trans.transform.translation.y = mountingPose[1]
                 trans.transform.translation.z = mountingPose[2]
-                trans.transform = quaternionFromEuler(mountingPose[3], mountingPose[4], mountingPose[5])
-                pose2 = tf2_geometry_msgs.do_transform_pose(pose, trans)
-                roll, pitch, yaw = eulerFromQuaternion(pose2.pose.pose.orientation)
-                self._setYawAngle(pose.pose.header, yaw, pose.pose.covariance[5][5])
+                self._logger.error("euler = {0} {1} {2}".format(mountingPose[0], mountingPose[1], mountingPose[2]))
+                trans.transform.rotation = quaternionFromEuler(mountingPose[3], mountingPose[4], mountingPose[5])
+                self._logger.error("trans = {}".format(trans))
+                self._logger.error("pose = {}".format(pose.pose.pose))
+                pose2 = do_transform_pose(pose.pose.pose, trans)
+                self._logger.error("pose2 = {}".format(pose2))
+                roll, pitch, yaw = eulerFromQuaternion(pose2.orientation)
+                self._logger.error("euler2 = {}".format(eulerFromQuaternion(pose2.orientation)))
+                cov = np.array(pose.pose.covariance).reshape(6,6)
+                self._setYawAngle(pose.header, yaw, cov[5][5].item())
             except:
                 self._logger.warning("Yaw angle configuration with transformation to PRCS failed!")
             self._imuRelPose.update(pose)
@@ -791,15 +800,16 @@ class RieglVz():
             trans.transform.translation.x = mountingPose[0]
             trans.transform.translation.y = mountingPose[1]
             trans.transform.translation.z = mountingPose[2]
-            trans.transform = quaternionFromEuler(mountingPose[3], mountingPose[4], mountingPose[5])
-            pose2 = tf2_geometry_msgs.do_transform_pose(pose, trans)
-            roll, pitch, yaw = eulerFromQuaternion(pose2.pose.pose.orientation)
-            self._setYawAngle(pose.pose.header, yaw, pose.pose.covariance[5][5])
+            trans.transform.rotation = quaternionFromEuler(mountingPose[3], mountingPose[4], mountingPose[5])
+            pose2 = do_transform_pose(pose.pose.pose, trans)
+            roll, pitch, yaw = eulerFromQuaternion(pose2.orientation)
+            cov = np.array(pose.pose.covariance).reshape(6,6)
+            self._setYawAngle(pose.header, yaw, cov[5][5].item())
             position = PointStamped(
-                header = pose.pose.header,
-                point = pose2.pose.pose.position
+                header = pose.header,
+                point = pose2.position
             )
-            self.setPosition(position, [pose.pose.covariance[0][0], pose.pose.covariance[1][1], pose.pose.covariance[2][2]])
+            self.setPosition(position, [cov[0][0].item(), cov[1][1].item(), cov[2][2].item()])
 
     def getAllSopv(self):
         try:
