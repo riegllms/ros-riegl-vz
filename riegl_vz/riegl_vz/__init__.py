@@ -26,6 +26,9 @@ from diagnostic_updater import Updater
 from tf2_ros import TransformBroadcaster
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
+from riegl_vz_interfaces.msg import (
+    VoxelGrid
+)
 from riegl_vz_interfaces.srv import (
     GetPointCloud,
     GetScanPoses,
@@ -65,6 +68,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('scan_pattern_name', '')
         self.declare_parameter('meas_program', 0)
         self.declare_parameter('scan_publish', True)
+        self.declare_parameter('voxel_publish', False)
         self.declare_parameter('scan_publish_filter', '')
         self.declare_parameter('scan_publish_lod', 0)
         self.declare_parameter('scan_register', True)
@@ -100,6 +104,7 @@ class RieglVzWrapper(Node):
 
         # create topics..
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
+        self.voxelGridPublisher = self.create_publisher(VoxelGrid, 'voxelgrid', 2)
         self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
         self.odomPublisher = self.create_publisher(Odometry, 'odom', 10)
@@ -374,6 +379,7 @@ class RieglVzWrapper(Node):
         self.scanPublish = bool(self.get_parameter('scan_publish').value)
         self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
         self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
+        self.voxelPublish = bool(self.get_parameter('voxel_publish').value)
         self.scanRegister = bool(self.get_parameter('scan_register').value)
         self.posePublish = bool(self.get_parameter('pose_publish').value)
         self.reflSearchSettings = None
@@ -404,6 +410,7 @@ class RieglVzWrapper(Node):
             scanPublishFilter = self.scanPublishFilter,
             scanPublish = self.scanPublish,
             scanPublishLOD = self.scanPublishLOD,
+            voxelPublish = self.voxelPublish,
             scanRegister = self.scanRegister,
             posePublish = self.posePublish,
             reflSearchSettings = self.reflSearchSettings if self.reflSearch else None,
@@ -664,6 +671,7 @@ class RieglVzWrapper(Node):
         self.scanPattern.frameIncrement = 0.5
         self.scanPattern.measProgram = 3
         self.scanPublish = False
+        self.voxelPublish = False
         self.scanRegister = False
         self.posePublish = False
         self.reflSearchSettings = None
@@ -681,6 +689,7 @@ class RieglVzWrapper(Node):
             storageMedia = self.storageMedia,
             scanPattern = self.scanPattern,
             scanPublish = self.scanPublish,
+            voxelPublish = self.voxelPublish,
             scanRegister = self.scanRegister,
             posePublish = self.posePublish,
             reflSearchSettings = self.reflSearchSettings,

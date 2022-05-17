@@ -14,6 +14,7 @@ riegl_vz_node:
     scan_publish_lod: 8
     scan_register: True
     pose_publish: True
+    voxel_publish: False
     reflector_search: False
     reflector_search_models: "RIEGL flat reflector 50 mm"
     reflector_search_limits: [1.0,100.0]
@@ -23,4 +24,4 @@ riegl_vz_node:
     image_capture_mode: 1
     image_capture_overlap: 25
     imu_relative_pose: False
-    scanner_mounting_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    robot_scanner_mounting_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

@@ -1,0 +1,5 @@
+uint32 seq                    # Scan position number within a project, starting with 1, 0 means project voxel
+---
+VoxelGrid voxels              # Voxel grid 
+bool success                  # indicate successful run of service
+string message                # informational, e.g. for error messages

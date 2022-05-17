@@ -44,6 +44,9 @@ from vzi_services.projectservice import ProjectService
 from vzi_services.scannerservice import ScannerService
 from vzi_services.geosysservice import GeoSysService
 
+from riegl_vz_interfaces.msg import (
+    VoxelGrid
+)
 from .pose import (
     readVop,
     readPop,
@@ -416,6 +419,68 @@ class RieglVz():
 
         return True, pointcloud
 
+    def getVoxelGrid(self, voxelgrid: VoxelGrid, scanposition: str = '0', ts: bool = True):
+        self._logger.debug("Downloading vxls file..")
+        self._status.status.setActiveTask('download vxls file')
+        localFile = ''
+        if scanposition != '0':
+            scanId = self._project.getScanId(scanposition)
+            self._logger.debug("scan id = {}".format(scanId))
+            if scanId == 'null':
+                self._logger.error("Scan id is null!")
+                return False, voxelgrid
+
+            projectPath = self._project.getActiveProjectPath()
+            self._logger.debug("project path = {}".format(projectPath))
+            scan = os.path.basename(scanId).replace('.rxp', '')[0:13]
+            self._logger.debug("scan = {}".format(scan))
+            remoteFile = projectPath + '/Voxels1.vpp/' + scan + '.vxls'
+            localFile = self._workingDir + '/scan.vxls'
+            self._ssh.downloadFile(remoteFile, localFile)
+        else:
+            projectPath = self._project.getActiveProjectPath()
+            self._logger.debug("project path = {}".format(projectPath))
+            remoteFile = projectPath + '/Voxels1.vpp/project.vxls'
+            localFile = self._workingDir + '/project.vxls'
+            self._ssh.downloadFile(remoteFile, localFile)
+
+        self._logger.debug("Generate voxel grid..")
+        self._status.status.setActiveTask('generate voxel grid data')
+        with riegl.rdb.rdb_open(localFile) as rdb:
+            numTotalVoxels = 0
+            data = bytearray()
+            for voxels in rdb.select('', chunk_size=100000):
+                for voxel in voxels:
+                    data.extend(voxel['riegl.xyz'].astype(PointField.FLOAT64).tobytes())
+                    data.extend(voxel['riegl.pca_axis_min'].astype(PointField.FLOAT32).tobytes())
+                    data.extend(voxel['riegl.pca_axis_max'].astype(PointField.FLOAT32).tobytes())
+                    data.extend(voxel['riegl.reflectance'].astype(PointField.FLOAT32).tobytes())
+                    data.extend(voxel['riegl.point_count'].astype(PointField.UINT32).tobytes())
+                    data.extend(voxel['riegl.pca_extents'].astype(PointField.FLOAT32).tobytes())
+                    data.extend(voxel['riegl.voxel_collapsed'].astype(PointField.UINT8).tobytes())
+                    data.extend(voxel['riegl.shape_id'].astype(PointField.UINT8).tobytes())
+                    data.extend(voxel['riegl.covariance'].astype(PointField.FLOAT64).tobytes())
+                    data.extend(voxel['riegl.id'].astype(PointField.UINT64).tobytes())
+                    numTotalVoxels += 1
+
+            if ts:
+                stamp = self._node.get_clock().now().to_msg()
+            else:
+                stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
+
+            header = std_msgs.Header(frame_id = 'riegl_vz_vocs', stamp = stamp)
+
+            pointcloud = VoxelGrid(
+                header = header,
+                voxel_count = numTotalVoxels,
+                data = data
+            )
+
+        self._status.status.setActiveTask('')
+        self._logger.debug("Voxel grid generated.")
+
+        return True, voxelgrid
+
     def _scanThreadFunc(self):
         self._status.status.setOpstate('scanning', 'scan data acquisition')
         self._status.status.setProgress(0)
@@ -436,6 +501,7 @@ class RieglVz():
         self._logger.info("scan publish = {}".format(self.scanPublish))
         self._logger.info("scan publish filter = '{}'".format(self.scanPublishFilter))
         self._logger.info("scan publish LOD = {}".format(self.scanPublishLOD))
+        self._logger.info("voxel publish = {}".format(self.voxelPublish))
         self._logger.info("scan register = {}".format(self.scanRegister))
         self._logger.info("pose publish = {}".format(self.posePublish))
         if self.reflSearchSettings:
@@ -598,12 +664,20 @@ class RieglVz():
         if self.scanPublish:
             self._logger.info("Downloading and publishing point cloud..")
             pointcloud: PointCloud2 = PointCloud2()
-            ts = self._node.get_clock().now()
             ok, pointcloud = self.getPointCloud(self.scanposition, pointcloud)
             if ok:
                 self._status.status.setActiveTask('publish point cloud data')
                 self._node.pointCloudPublisher.publish(pointcloud)
             self._logger.info("Point cloud published")
+
+        if self.voxelPublish and self.scanRegister:
+            self._logger.info("Downloading and publishing voxel grid data..")
+            voxelgrid: VoxelGrid = VoxelGrid()
+            ok, voxelgrid = self.getVoxelGrid(voxelgrid, self.scanposition)
+            if ok:
+                self._status.status.setActiveTask('publish voxel grid data')
+                self._node.voxelGridPublisher.publish(voxelgrid)
+            self._logger.info("Voxel grid published")
 
         self._status.status.setOpstate('waiting')
 
@@ -616,6 +690,7 @@ class RieglVz():
         scanPublish: bool = True,
         scanPublishFilter: str = '',
         scanPublishLOD: int = 1,
+        voxelPublish: bool = False,
         scanRegister: bool = True,
         posePublish: bool = True,
         reflSearchSettings: dict = None,
@@ -641,6 +716,7 @@ class RieglVz():
         self.scanPublish = scanPublish
         self.scanPublishFilter = scanPublishFilter
         self.scanPublishLOD = scanPublishLOD
+        self.voxelPublish = voxelPublish
         self.scanRegister = scanRegister
         self.posePublish = posePublish
         self.reflSearchSettings = reflSearchSettings
