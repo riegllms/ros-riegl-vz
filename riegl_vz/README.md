@@ -50,7 +50,7 @@ See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/
 std_msgs/Header header
 uint32 voxel_count
 uint8[] data
-# data is a byte array which containing a list of voxels. Each voxel has following data fields:
+# data is a byte array containing a list of voxels. Each voxel has following data fields:
 # float64[3] xyz                : Cartesian point coordinates wrt. application coordinate system (0: X, 1: Y, 2: Z)
 # float32[3] pca_axis_min       : The eigenvector that belongs to the smallest eigenvalue (result of PCA, 0: X, 1: Y, 2: Z)
 # float32[3] pca_axis_max       : The eigenvector that belongs to the greatest eigenvalue (result of PCA, 0: X, 1: Y, 2: Z)

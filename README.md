@@ -17,7 +17,11 @@ In detail, it provides the following functions:
 
 * Publish the 3D point cloud in ROS
 
-* Publish scan position resulting from scan registration, position is in scanner project coordinates or referenced to a global coordinate system if required
+* Publish voxel grid in ROS
+
+* Publish scan position resulting from scan registration, position is in scanner project coordinates or referenced to a eglobal coordinate system if required
+
+* Use external kinematic data from a robot to improve the scan position registration algorithm.
 
 * Publish the device status (memory usage, error stack, ...) and data acquisition progress information
 

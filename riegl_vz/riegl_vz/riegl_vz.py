@@ -425,27 +425,17 @@ class RieglVz():
     def getVoxelGrid(self, voxelgrid: VoxelGrid, scanposition: str = '0', ts: bool = True):
         self._logger.debug("Downloading vxls file..")
         self._status.status.setActiveTask('download vxls file')
+        remoteFile = ''
         localFile = ''
+        projectPath = self._project.getActiveProjectPath()
+        self._logger.debug("project path = {}".format(projectPath))
         if scanposition != '0':
-            scanId = self._project.getScanId(scanposition)
-            self._logger.debug("scan id = {}".format(scanId))
-            if scanId == 'null':
-                self._logger.error("Scan id is null!")
-                return False, voxelgrid
-
-            projectPath = self._project.getActiveProjectPath()
-            self._logger.debug("project path = {}".format(projectPath))
-            scan = os.path.basename(scanId).replace('.rxp', '')[0:13]
-            self._logger.debug("scan = {}".format(scan))
-            remoteFile = projectPath + '/Voxels1.vpp/' + scan + '.vxls'
+            remoteFile = projectPath + '/Voxels1.VPP/' + self._project.getScanposName(scanposition) + '.vxls'
             localFile = self._workingDir + '/scan.vxls'
-            self._ssh.downloadFile(remoteFile, localFile)
         else:
-            projectPath = self._project.getActiveProjectPath()
-            self._logger.debug("project path = {}".format(projectPath))
-            remoteFile = projectPath + '/Voxels1.vpp/project.vxls'
+            remoteFile = projectPath + '/Voxels1.VPP/project.vxls'
             localFile = self._workingDir + '/project.vxls'
-            self._ssh.downloadFile(remoteFile, localFile)
+        self._ssh.downloadFile(remoteFile, localFile)
 
         self._logger.debug("Generate voxel grid..")
         self._status.status.setActiveTask('generate voxel grid data')
@@ -454,16 +444,19 @@ class RieglVz():
             data = bytearray()
             for voxels in rdb.select('', chunk_size=100000):
                 for voxel in voxels:
-                    data.extend(voxel['riegl.xyz'].astype(PointField.FLOAT64).tobytes())
-                    data.extend(voxel['riegl.pca_axis_min'].astype(PointField.FLOAT32).tobytes())
-                    data.extend(voxel['riegl.pca_axis_max'].astype(PointField.FLOAT32).tobytes())
-                    data.extend(voxel['riegl.reflectance'].astype(PointField.FLOAT32).tobytes())
-                    data.extend(voxel['riegl.point_count'].astype(PointField.UINT32).tobytes())
-                    data.extend(voxel['riegl.pca_extents'].astype(PointField.FLOAT32).tobytes())
-                    data.extend(voxel['riegl.voxel_collapsed'].astype(PointField.UINT8).tobytes())
-                    data.extend(voxel['riegl.shape_id'].astype(PointField.UINT8).tobytes())
-                    data.extend(voxel['riegl.covariance'].astype(PointField.FLOAT64).tobytes())
-                    data.extend(voxel['riegl.id'].astype(PointField.UINT64).tobytes())
+                    data.extend(voxel['riegl.xyz'].astype(np.float64).tobytes())
+                    data.extend(voxel['riegl.pca_axis_min'].astype(np.float32).tobytes())
+                    data.extend(voxel['riegl.pca_axis_max'].astype(np.float32).tobytes())
+                    data.extend(voxel['riegl.reflectance'].astype(np.float32).tobytes())
+                    data.extend(voxel['riegl.point_count'].astype(np.uint32).tobytes())
+                    data.extend(voxel['riegl.pca_extents'].astype(np.float32).tobytes())
+                    data.extend(voxel['riegl.voxel_collapsed'].astype(np.uint8).tobytes())
+                    data.extend(voxel['riegl.shape_id'].astype(np.uint8).tobytes())
+                    try:
+                        data.extend(voxel['riegl.covariances'].astype(np.float64).tobytes())
+                    except:
+                        data.extend(np.empty(6).astype(np.float64).tobytes())
+                    data.extend(voxel['riegl.id'].astype(np.uint64).tobytes())
                     numTotalVoxels += 1
 
             if ts:
