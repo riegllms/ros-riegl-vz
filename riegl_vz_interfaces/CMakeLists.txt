@@ -28,6 +28,7 @@ endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ScanPose.msg"
+  "msg/VoxelField.msg"
   "msg/VoxelGrid.msg"
   "srv/GetPointCloud.srv"
   "srv/GetVoxelGrid.srv"
