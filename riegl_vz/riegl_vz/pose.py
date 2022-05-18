@@ -266,6 +266,18 @@ def getTransformFromPose(ts, child_frame_id, pose):
     t.transform.rotation = pose.pose.orientation
     return t
 
+def getTransformFromArray(ts, parent_frame_id, child_frame_id, pose):
+    """Return tf2 TransformStamped message from pose."""
+    t = TransformStamped()
+    t.header.frame_id = parent_frame_id
+    t.header.stamp = ts.to_msg()
+    t.child_frame_id = child_frame_id
+    t.transform.translation.x = pose[0]
+    t.transform.translation.y = pose[1]
+    t.transform.translation.z = pose[2]
+    t.transform.rotation = quaternionFromEuler(pose[3], pose[4], pose[5])
+    return t
+
 def calcRelativePose(pose1, pose2):
     # Wenn wir die 4x4-Matrizen (S1, S2) hätten, würde man die relative Pose wie folgt erhalten:
     # M_rel = (S1)^(-1) * S2

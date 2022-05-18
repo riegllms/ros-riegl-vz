@@ -215,13 +215,21 @@ The image capture mode (1=during-scan, 2=after-scan).
 
 The image overlap factor in percent.
 
-**~imu_relative_pose** (bool, default: "False") :
+**~robot_relative_pose** (bool, default: "False") :
 
-If true the driver calculates relative position and orientation changes from one scan position to the next, otherwise it uses the absolute positions and orientation (see service 'set_imu_pose').
+If true the driver calculates relative position and orientation changes from one scan position to the next, otherwise it uses the absolute positions and orientation (see service 'set_pose').
 
-**~scanner_mounting_pose** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+**~robot_scanner_mounting_pose** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 
-The mounting position and orientation (x, y, z, roll, pitch, yaw) of the scanner on a roboter, with coordinates in meter and euler angles in radians. This is used for 'set_imu_pose' service call if 'imu_relative_pose' parameter is set to False.
+The mounting position and orientation (x, y, z, roll, pitch, yaw) of the scanner on a roboter, with coordinates in meter and euler angles in radians. This is used for 'set_pose' service call if 'robot_relative_pose' parameter is set to False.
+
+**~robot_project_frame_id** (string, default: "") :
+
+The frame id of the robot project coordinate system. This is used for 'set_pose' service call if 'robot_relative_pose' parameter is set to False. Note that this must be the frame id provided with the pose from the 'set_pose' service call.
+
+**~robot_scanner_project_pose** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+
+The position and orientation (x, y, z, roll, pitch, yaw) of the scanner project CS (riegl_vz_prcs) in the roboter project coordinate system, with coordinates in meter and euler angles in radians. This is used for 'set_pose' service call if 'robot_relative_pose' parameter is set to False. This static TF2 transformation will be broadcasted automatically at startup if 'robot_project_frame_id' is configured as well.
 
 #### 3.1.2 Published Topics
 
@@ -301,17 +309,17 @@ Set position of the scanner origin. The position must be set before the scan has
 
 **set_pose** (riegl_vz_interfaces/SetPose) :
 
-Set position and orientation from a robot with accurate kinematic sensors for example. The position and orientation must be set before the scan has finished. The behavior of the service call depends on the parameter 'imu_relative_pose'.  
+Set position and orientation from a robot with accurate kinematic sensors for example. The position and orientation must be set before the scan has finished. The behavior of the service call depends on the parameter 'robot_relative_pose'.  
 
-imu_relative_pose = True: The driver calculates relative position and orientation changes from one scan position to the next. The resulting data is used for scanner position determination of the scan registration algorithm.  
+robot_relative_pose = True: The driver calculates relative position and orientation changes from one scan position to the next. The resulting data is used for scanner position determination of the scan registration algorithm.  
 
-imu_relative_pose = False: The driver uses the absolute positions and only the yaw angle from the orientation for scanner position determination of the scan registration algorithm.  
+robot_relative_pose = False: The driver uses the absolute positions and only the yaw angle from the orientation for scanner position determination of the scan registration algorithm.  
 
 ![Robot coordinate systems](img/robot_cs.png)
 
 For absolute pose from a robot the driver needs:
-- The scanner mounting position and orientation on the robot, which is the transformation from roboter body CS (robot_body_cs) to VZ scanner SOCS (robot_vz_socs). This has to be configured with parameter 'scanner_mounting_pose'.  
-- A TF2 transformation available for coordinate transformation from roboter to scanner project CS (robot_proj_cs -> riegl_vz_prcs). It is expected that 'set_imu_pose' service call provides absolute positions and orientations in the roboter project CS.
+- The scanner mounting position and orientation on the robot, which is the transformation from roboter body CS (robot_body_cs) to VZ scanner SOCS (robot_vz_socs). This has to be configured with parameter 'robot_scanner_mounting_pose'.  
+- A TF2 transformation available for coordinate transformation from roboter to scanner project CS (robot_proj_cs -> riegl_vz_prcs). It is expected that 'set_pose' service call provides absolute positions and orientations in the roboter project CS.
 
 **get_scan_poses** (riegl_vz_interfaces/GetScanPoses) :
 

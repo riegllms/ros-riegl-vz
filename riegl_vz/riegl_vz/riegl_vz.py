@@ -765,10 +765,10 @@ class RieglVz():
         self._yawAngle = YawAngleWithCovariance(yawAngle, covariance)
 
     def setPose(self, pose, isRelative, mountingPose):
-        self.imuRelativePose = isRelative
-        self._logger.info("imu relative pose = {}".format(self.imuRelativePose))
-        self._logger.info("scanner mounting pose = x: {0}, y: {1}, z: {2}, roll: {3}, pitch: {4}, yaw: {5}".format(self.imuRelativePose, mountingPose[0], mountingPose[1], mountingPose[2], mountingPose[3], mountingPose[4], mountingPose[5]))
-        if self.imuRelativePose:
+        self.robotRelativePose = isRelative
+        self._logger.info("robot relative pose = {}".format(self.robotRelativePose))
+        self._logger.info("robot scanner mounting pose = x: {0}, y: {1}, z: {2}, roll: {3}, pitch: {4}, yaw: {5}".format(mountingPose[0], mountingPose[1], mountingPose[2], mountingPose[3], mountingPose[4], mountingPose[5]))
+        if self.robotRelativePose:
             try:
                 # try to set yaw angle
                 trans = TransformStamped()

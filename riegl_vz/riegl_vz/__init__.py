@@ -31,6 +31,7 @@ from riegl_vz_interfaces.msg import (
 )
 from riegl_vz_interfaces.srv import (
     GetPointCloud,
+    GetVoxelGrid,
     GetScanPoses,
     GetPose,
     SetPosition,
@@ -44,6 +45,9 @@ from rclpy.logging import LoggingSeverity
 from .riegl_vz import (
     ScanPattern,
     RieglVz
+)
+from .pose import (
+    getTransformFromArray
 )
 from .utils import (
     SubProcess
@@ -81,8 +85,10 @@ class RieglVzWrapper(Node):
         self.declare_parameter('image_capture', 0)
         self.declare_parameter('image_capture_mode', 1)
         self.declare_parameter('image_capture_overlap', 25)
-        self.declare_parameter('imu_relative_pose', False)
-        self.declare_parameter('scanner_mounting_pose', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.declare_parameter('robot_relative_pose', False)
+        self.declare_parameter('robot_scanner_mounting_pose', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.declare_parameter('robot_scanner_project_pose', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.declare_parameter('robot_project_frame_id', '')
 
         self.hostname = str(self.get_parameter('hostname').value)
         self.workingDir = str(self.get_parameter('working_dir').value)
@@ -112,6 +118,7 @@ class RieglVzWrapper(Node):
 
         # tf2 message broadcaster..
         self.transformBroadcaster = TransformBroadcaster(self)
+        self._broadcastTfRobotProjectTransform()
 
         # tf2 listener..
         self.transformBuffer = Buffer()
@@ -128,6 +135,7 @@ class RieglVzWrapper(Node):
 
         # create undocumented services..
         self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
+        self._getVoxelGridService = self.create_service(GetVoxelGrid, 'get_voxelgrid', self._getVoxelGridCallback)
         self._getSopvService = self.create_service(GetPose, 'get_sopv', self._getSopvCallback)
         self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
         self._getPopService = self.create_service(GetPose, 'get_pop', self._getPopCallback)
@@ -153,6 +161,28 @@ class RieglVzWrapper(Node):
         self._gnssFixTimer = self.create_timer(1.0, self._publishGnssFix)
 
         self.get_logger().info("RIEGL VZ node is started... (host = {}).".format(self.hostname))
+
+
+    def _broadcastTfRobotProjectTransform(self):
+        self.robotProjectFrameId = str(self.get_parameter('robot_project_frame_id').value)
+        self.get_logger().info("robot_project_frame_id = {}".format(self.robotProjectFrameId))
+        if self.robotProjectFrameId != "":
+            self.robotScannerProjectPose = self.get_parameter('robot_scanner_project_pose').value
+            self._logger.info("robot scanner project pose = x: {0}, y: {1}, z: {2}, roll: {3}, pitch: {4}, yaw: {5}"
+                .format(
+                    self.robotScannerProjectPose[0],
+                    self.robotScannerProjectPose[1],
+                    self.robotScannerProjectPose[2],
+                    self.robotScannerProjectPose[3],
+                    self.robotScannerProjectPose[4],
+                    self.robotScannerProjectPose[5]))
+            self.transformBroadcaster.sendTransform(
+                getTransformFromArray(
+                    self.get_clock().now(),
+                    self.robotProjectFrameId,
+                    'riegl_vz_prcs',
+                    self.robotScannerProjectPose
+                ))
 
     def _produceScannerDiagnostics(self, diag):
         status = self._rieglVz.getScannerStatus()
@@ -458,6 +488,25 @@ class RieglVzWrapper(Node):
 
         return response
 
+    def getVoxelGrid(self, scanpos, voxelgrid):
+        ok, voxelgrid = self._rieglVz.getVoxelGrid(voxelgrid, scanpos, False)
+        return ok, voxelgrid
+
+    def _getVoxelGridCallback(self, request, response):
+        self.get_logger().info("Service Request: get_voxelgrid")
+        try:
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
+                return response
+
+            ok, response.voxels = self.getVoxelGrid(request.seq, response.voxels)
+            if not ok:
+                self._setResponseExecError(response)
+                return response
+        except:
+            self._setResponseException(response)
+
+        return response
+
     def setPosition(self, position, covariance):
         return self._rieglVz.setPosition(position, covariance)
 
@@ -482,9 +531,9 @@ class RieglVzWrapper(Node):
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
-            self.imuRelativePose = bool(self.get_parameter('imu_relative_pose').value)
-            self.scannerMountingPose = self.get_parameter('scanner_mounting_pose').value
-            self.setPose(request.pose, self.imuRelativePose, self.scannerMountingPose)
+            self.robotRelativePose = bool(self.get_parameter('robot_relative_pose').value)
+            self.robotScannerMountingPose = self.get_parameter('robot_scanner_mounting_pose').value
+            self.setPose(request.pose, self.robotRelativePose, self.robotScannerMountingPose)
         except:
             self._setResponseException(response)
 
