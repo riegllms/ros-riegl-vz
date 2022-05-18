@@ -27,12 +27,8 @@ from diagnostic_updater import Updater
 from tf2_ros import TransformBroadcaster
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
-from riegl_vz_interfaces.msg import (
-    VoxelGrid
-)
 from riegl_vz_interfaces.srv import (
     GetPointCloud,
-    GetVoxelGrid,
     GetScanPoses,
     GetPose,
     SetPosition,
@@ -113,7 +109,7 @@ class RieglVzWrapper(Node):
 
         # create topics..
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
-        self.voxelGridPublisher = self.create_publisher(VoxelGrid, 'voxelgrid', 2)
+        self.voxelsPublisher = self.create_publisher(PointCloud2, 'voxels', 2)
         self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
         self.odomPublisher = self.create_publisher(Odometry, 'odom', 10)
@@ -149,7 +145,7 @@ class RieglVzWrapper(Node):
 
         # create undocumented services..
         self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
-        self._getVoxelGridService = self.create_service(GetVoxelGrid, 'get_voxelgrid', self._getVoxelGridCallback)
+        self._getVoxelsService = self.create_service(GetPointCloud, 'get_voxels', self._getVoxelsCallback)
         self._getSopvService = self.create_service(GetPose, 'get_sopv', self._getSopvCallback)
         self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
         self._getPopService = self.create_service(GetPose, 'get_pop', self._getPopCallback)
@@ -504,17 +500,17 @@ class RieglVzWrapper(Node):
 
         return response
 
-    def getVoxelGrid(self, scanpos, voxelgrid):
-        ok, voxelgrid = self._rieglVz.getVoxelGrid(voxelgrid, scanpos, False)
-        return ok, voxelgrid
+    def getVoxels(self, scanpos, voxels):
+        ok, voxels = self._rieglVz.getVoxels(voxels, scanpos, False)
+        return ok, voxels
 
-    def _getVoxelGridCallback(self, request, response):
-        self.get_logger().info("Service Request: get_voxelgrid")
+    def _getVoxelsCallback(self, request, response):
+        self.get_logger().info("Service Request: get_voxels")
         try:
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
-            ok, response.voxels = self.getVoxelGrid(request.seq, response.voxels)
+            ok, response.pointcloud = self.getVoxels(request.seq, response.pointcloud)
             if not ok:
                 self._setResponseExecError(response)
                 return response

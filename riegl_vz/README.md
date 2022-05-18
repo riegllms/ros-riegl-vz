@@ -45,24 +45,6 @@ geometry_msgs/PoseStamped pose
 'seq' is the scan position number.  
 See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)
 
-**riegl_vz_interfaces/VoxelGrid**:
-```
-std_msgs/Header header
-uint32 voxel_count
-uint8[] data
-# data is a byte array containing a list of voxels. Each voxel has following data fields:
-# float64[3] xyz                : Cartesian point coordinates wrt. application coordinate system (0: X, 1: Y, 2: Z)
-# float32[3] pca_axis_min       : The eigenvector that belongs to the smallest eigenvalue (result of PCA, 0: X, 1: Y, 2: Z)
-# float32[3] pca_axis_max       : The eigenvector that belongs to the greatest eigenvalue (result of PCA, 0: X, 1: Y, 2: Z)
-# float32 reflectance           : Target surface reflectance
-# uint32 point_count            : Number of points this point represents (e.g. points combined to voxels or plane patches, 0 = unknown)
-# float32[3] pca_extents        : Volume extents along 0: pca_axis_max, 1: pca_axis_min x pca_axis_max, 2: pca_axis_min
-# uint8 voxel_collapsed         : Voxel has been collapsed with neighbor (0 = not collapsed, 1 = collapsed)
-# uint8 shape_id                : Estimated shape of point cloud (0 = undefined, 1 = plane, 2 = line, 3 = volume)
-# float64[6] covariances        : Elements 00, 11, 22, 10, 21 and 20 (in that order) of point cloud covariance matrix
-# uint64 id                     : Point identifier, unique within database (0 = invalid)
-```
-
 ### 2.2 Services
 
 **riegl_vz_interfaces/GetScanPoses**:
@@ -175,9 +157,9 @@ lod=3 : reduce point cloud by factor 8 (2^3)
 
 Enable automatic scan position registration in current project after scan data acquisition has finished.
 
-**~scan_registration_mode** (integer, default: 0) :
+**~scan_registration_mode** (integer, default: 1) :
 
-Supported values for scan registration mode are:
+Supported values for scan registration mode are:  
     1 ... AUTO  
     2 ... OUTDOOR_URBAN  
     3 ... OUTDOOR_NON_URBAN  
@@ -192,7 +174,7 @@ Enable publishing of scan registration result on topic 'pose' after scan registr
 
 **~voxel_publish** (bool, default: "True") :
 
-Enable publishing of voxel grid data on topic 'voxelgrid' after scan acquisition has finished.
+Enable publishing of voxel data on topic 'voxels' after scan acquisition has finished.
 
 **~reflector_search** (bool, default: "False") :
 
@@ -250,11 +232,28 @@ The position and orientation (x, y, z, roll, pitch, yaw) of the origin of the sc
 
 **pointcloud** ([sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)) :
 
-Point cloud with scan data from the laser scanner. Included are xyz cartesian coordinates in SOCS and reflectance in dB. Data will be published only if parameter '~scan_publish' is enabled.
+Point cloud with scan data from the laser scanner. Included are xyz cartesian coordinates in SOCS and reflectance in dB. Data will be published only if parameter '~scan_publish' is enabled. The pointcloud data contains following data fields:  
 
-**voxelgrid** (riegl_vz_interfaces/VoxelGrid) :
+```
+# float32 x, y, z               : Cartesian point coordinates wrt. application coordinate system
+# float32 r                     : Target point reflectance
+```
 
-Voxel grid data for current scan position. Data will be published only if parameter '~scan_register' and '~voxel_publish' are enabled.
+**voxels** ([sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)) :
+
+Voxel data for current scan position. Data will be published only if parameter '~scan_register' and '~voxel_publish' are enabled. The pointcloud data contains following data fields:  
+
+```
+# float64 x, y, z               : Cartesian point coordinates wrt. application coordinate system
+# float32 r                     : Target surface reflectance
+# float32[3] pca_axis_min       : The eigenvector that belongs to the smallest eigenvalue (result of PCA, 0: X, 1: Y, 2: Z)
+# float32[3] pca_axis_max       : The eigenvector that belongs to the greatest eigenvalue (result of PCA, 0: X, 1: Y, 2: Z)
+# uint32 point_count            : Number of points this point represents (e.g. points combined to voxels or plane patches, 0 = unknown)
+# float32[3] pca_extents        : Volume extents along 0: pca_axis_max, 1: pca_axis_min x pca_axis_max, 2: pca_axis_min
+# uint8 voxel_collapsed         : Voxel has been collapsed with neighbor (0 = not collapsed, 1 = collapsed)
+# uint8 shape_id                : Estimated shape of point cloud (0 = undefined, 1 = plane, 2 = line, 3 = volume)
+# float64[6] covariances        : Elements 00, 11, 22, 10, 21 and 20 (in that order) of point cloud covariance matrix
+```
 
 **pose** ([geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)):
 

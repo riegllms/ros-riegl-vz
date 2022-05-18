@@ -44,9 +44,6 @@ from vzi_services.projectservice import ProjectService
 from vzi_services.scannerservice import ScannerService
 from vzi_services.geosysservice import GeoSysService
 
-from riegl_vz_interfaces.msg import (
-    VoxelGrid
-)
 from .pose import (
     readVop,
     readPop,
@@ -421,7 +418,7 @@ class RieglVz():
 
         return True, pointcloud
 
-    def getVoxelGrid(self, voxelgrid: VoxelGrid, scanposition: str = '0', ts: bool = True):
+    def getVoxels(self, voxels: PointCloud2, scanposition: str = '0', ts: bool = True):
         self._logger.debug("Downloading vxls file..")
         self._status.status.setActiveTask('download vxls file')
         remoteFile = ''
@@ -436,28 +433,51 @@ class RieglVz():
             localFile = self._workingDir + '/project.vxls'
         self._ssh.downloadFile(remoteFile, localFile)
 
-        self._logger.debug("Generate voxel grid..")
-        self._status.status.setActiveTask('generate voxel grid data')
+        self._logger.debug("Generate voxels..")
+        self._status.status.setActiveTask('generate voxel data')
         with riegl.rdb.rdb_open(localFile) as rdb:
-            filter = ''
-            numTotalVoxels = 0
+            numTotalPoints = 0
             data = bytearray()
-            for voxels in rdb.select(filter, chunk_size=100000):
-                for voxel in voxels:
-                    data.extend(voxel['riegl.xyz'].astype(np.float64).tobytes())
-                    data.extend(voxel['riegl.pca_axis_min'].astype(np.float32).tobytes())
-                    data.extend(voxel['riegl.pca_axis_max'].astype(np.float32).tobytes())
-                    data.extend(voxel['riegl.reflectance'].astype(np.float32).tobytes())
-                    data.extend(voxel['riegl.point_count'].astype(np.uint32).tobytes())
-                    data.extend(voxel['riegl.pca_extents'].astype(np.float32).tobytes())
-                    data.extend(voxel['riegl.voxel_collapsed'].astype(np.uint8).tobytes())
-                    data.extend(voxel['riegl.shape_id'].astype(np.uint8).tobytes())
+            for points in rdb.select('', chunk_size=100000):
+                for point in points:
+                    data.extend(point['riegl.xyz'].astype(np.float64).tobytes())
+                    data.extend(point['riegl.reflectance'].astype(np.float32).tobytes())
+                    data.extend(point['riegl.pca_axis_min'].astype(np.float32).tobytes())
+                    data.extend(point['riegl.pca_axis_max'].astype(np.float32).tobytes())
+                    data.extend(point['riegl.point_count'].astype(np.uint32).tobytes())
+                    data.extend(point['riegl.pca_extents'].astype(np.float32).tobytes())
+                    data.extend(point['riegl.voxel_collapsed'].astype(np.uint8).tobytes())
+                    data.extend(point['riegl.shape_id'].astype(np.uint8).tobytes())
                     try:
-                        data.extend(voxel['riegl.covariances'].astype(np.float64).tobytes())
+                        data.extend(point['riegl.covariances'].astype(np.float64).tobytes())
                     except:
-                        data.extend(np.empty(6).astype(np.float64).tobytes())
-                    data.extend(voxel['riegl.id'].astype(np.uint64).tobytes())
-                    numTotalVoxels += 1
+                        data.extend(bytearray(np.dtype(np.float64).itemsize*6))
+                    numTotalPoints += 1
+
+            fields = []
+            fieldsize = 0
+            fields.append(PointField(name='x', offset=fieldsize, datatype=PointField.FLOAT64, count=1))
+            fieldsize += np.dtype(np.float64).itemsize
+            fields.append(PointField(name='y', offset=fieldsize, datatype=PointField.FLOAT64, count=1))
+            fieldsize += np.dtype(np.float64).itemsize
+            fields.append(PointField(name='z', offset=fieldsize, datatype=PointField.FLOAT64, count=1))
+            fieldsize += np.dtype(np.float64).itemsize
+            fields.append(PointField(name='r', offset=fieldsize, datatype=PointField.FLOAT32, count=1))
+            fieldsize += np.dtype(np.float32).itemsize
+            fields.append(PointField(name='pca_axis_min', offset=fieldsize, datatype=PointField.FLOAT32, count=3))
+            fieldsize += np.dtype(np.float32).itemsize * 3
+            fields.append(PointField(name='pca_axis_max', offset=fieldsize, datatype=PointField.FLOAT32, count=3))
+            fieldsize += np.dtype(np.float32).itemsize * 3
+            fields.append(PointField(name='point_count', offset=fieldsize, datatype=PointField.UINT32, count=1))
+            fieldsize += np.dtype(np.uint32).itemsize
+            fields.append(PointField(name='pca_extents', offset=fieldsize, datatype=PointField.FLOAT32, count=3))
+            fieldsize += np.dtype(np.float32).itemsize * 3
+            fields.append(PointField(name='voxel_collapsed', offset=fieldsize, datatype=PointField.UINT8, count=1))
+            fieldsize += np.dtype(np.uint8).itemsize
+            fields.append(PointField(name='shape_id', offset=fieldsize, datatype=PointField.UINT8, count=1))
+            fieldsize += np.dtype(np.uint8).itemsize
+            fields.append(PointField(name='covariances', offset=fieldsize, datatype=PointField.FLOAT64, count=6))
+            fieldsize += np.dtype(np.float64).itemsize * 6
 
             if ts:
                 stamp = self._node.get_clock().now().to_msg()
@@ -466,16 +486,22 @@ class RieglVz():
 
             header = std_msgs.Header(frame_id = 'riegl_vz_vocs', stamp = stamp)
 
-            pointcloud = VoxelGrid(
+            pointcloud = PointCloud2(
                 header = header,
-                voxel_count = numTotalVoxels,
+                height = 1,
+                width = numTotalPoints,
+                is_dense = False,
+                is_bigendian = False,
+                fields = fields,
+                point_step = fieldsize,
+                row_step = (fieldsize * numTotalPoints),
                 data = data
             )
 
         self._status.status.setActiveTask('')
-        self._logger.debug("Voxel grid generated.")
+        self._logger.debug("Voxels generated.")
 
-        return True, voxelgrid
+        return True, voxels
 
     def _scanThreadFunc(self):
         self._status.status.setOpstate('scanning', 'scan data acquisition')
@@ -669,13 +695,13 @@ class RieglVz():
             self._logger.info("Point cloud published")
 
         if self.voxelPublish and self.scanRegister:
-            self._logger.info("Downloading and publishing voxel grid data..")
-            voxelgrid: VoxelGrid = VoxelGrid()
-            ok, voxelgrid = self.getVoxelGrid(voxelgrid, self.scanposition)
+            self._logger.info("Downloading and publishing voxel data..")
+            voxels: PointCloud2 = PointCloud2()
+            ok, voxels = self.getVoxels(voxels, self.scanposition)
             if ok:
-                self._status.status.setActiveTask('publish voxel grid data')
-                self._node.voxelGridPublisher.publish(voxelgrid)
-            self._logger.info("Voxel grid published")
+                self._status.status.setActiveTask('publish voxel data')
+                self._node.voxelsPublisher.publish(voxels)
+            self._logger.info("Voxels published")
 
         self._status.status.setOpstate('waiting')
 
