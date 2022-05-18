@@ -499,6 +499,7 @@ class RieglVz():
         self._logger.info("scan publish LOD = {}".format(self.scanPublishLOD))
         self._logger.info("voxel publish = {}".format(self.voxelPublish))
         self._logger.info("scan register = {}".format(self.scanRegister))
+        self._logger.info("scan register mode = {}".format(self.scanRegistrationMode))
         self._logger.info("pose publish = {}".format(self.posePublish))
         if self.reflSearchSettings:
             self._logger.info("reflector search = {}".format(self.reflSearchSettings))
@@ -621,7 +622,8 @@ class RieglVz():
                 'python3', scriptPath,
                 '--connectionstring', self._connectionString,
                 '--project', self.projectName,
-                '--scanposition', scanposName]
+                '--scanposition', scanposName,
+                '--registrationmode', self.scanRegistrationMode]
             if self.posePublish:
                 cmd.append('--wait-until-finished')
             self._logger.debug("CMD = {}".format(' '.join(cmd)))
@@ -688,6 +690,7 @@ class RieglVz():
         scanPublishLOD: int = 1,
         voxelPublish: bool = False,
         scanRegister: bool = True,
+        scanRegistrationMode: int = 1,
         posePublish: bool = True,
         reflSearchSettings: dict = None,
         captureImages: int = 2,
@@ -714,6 +717,7 @@ class RieglVz():
         self.scanPublishLOD = scanPublishLOD
         self.voxelPublish = voxelPublish
         self.scanRegister = scanRegister
+        self.scanRegistrationMode = scanRegistrationMode
         self.posePublish = posePublish
         self.reflSearchSettings = reflSearchSettings
         self.captureImages = captureImages

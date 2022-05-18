@@ -175,6 +175,17 @@ lod=3 : reduce point cloud by factor 8 (2^3)
 
 Enable automatic scan position registration in current project after scan data acquisition has finished.
 
+**~scan_registration_mode** (integer, default: 0) :
+
+Supported values for scan registration mode are:
+    1 ... AUTO  
+    2 ... OUTDOOR_URBAN  
+    3 ... OUTDOOR_NON_URBAN  
+    4 ... INDOOR_SMALL  
+    5 ... INDOOR_LARGE  
+    6 ... MINING_MEDIUM  
+    7 ... MINING_LARGE  
+
 **~pose_publish** (bool, default: "True") :
 
 Enable publishing of scan registration result on topic 'pose' after scan registration has finished.

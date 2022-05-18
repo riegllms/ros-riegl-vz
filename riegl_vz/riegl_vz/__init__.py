@@ -68,7 +68,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('ssh_password', 'user')
         self.declare_parameter('project_name', '')
         self.declare_parameter('storage_media', 0)
-        self.declare_parameter('scan_pattern', [30.0,130.0,0.04,0.0,360.0,0.5])
+        self.declare_parameter('scan_pattern', [30.0,130.0,0.1,0.0,360.0,0.5])
         self.declare_parameter('scan_pattern_name', '')
         self.declare_parameter('meas_program', 0)
         self.declare_parameter('scan_publish', True)
@@ -76,6 +76,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('scan_publish_filter', '')
         self.declare_parameter('scan_publish_lod', 0)
         self.declare_parameter('scan_register', True)
+        self.declare_parameter('scan_registration_mode', 1)
         self.declare_parameter('pose_publish', True)
         self.declare_parameter('reflector_search', False)
         self.declare_parameter('reflector_search_models', '')
@@ -85,6 +86,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('image_capture', 0)
         self.declare_parameter('image_capture_mode', 1)
         self.declare_parameter('image_capture_overlap', 25)
+        self.declare_parameter('robot_pose_topic', '')
         self.declare_parameter('robot_relative_pose', False)
         self.declare_parameter('robot_scanner_mounting_pose', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.declare_parameter('robot_scanner_project_pose', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
@@ -411,6 +413,7 @@ class RieglVzWrapper(Node):
         self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
         self.voxelPublish = bool(self.get_parameter('voxel_publish').value)
         self.scanRegister = bool(self.get_parameter('scan_register').value)
+        self.scanRegistrationMode = int(self.get_parameter('scan_registration_mode').value)
         self.posePublish = bool(self.get_parameter('pose_publish').value)
         self.reflSearchSettings = None
         self.reflSearch = bool(self.get_parameter('reflector_search').value)
@@ -442,6 +445,7 @@ class RieglVzWrapper(Node):
             scanPublishLOD = self.scanPublishLOD,
             voxelPublish = self.voxelPublish,
             scanRegister = self.scanRegister,
+            scanRegistrationMode = self.scanRegistrationMode,
             posePublish = self.posePublish,
             reflSearchSettings = self.reflSearchSettings if self.reflSearch else None,
             captureImages = self.imageCapture,
