@@ -19,9 +19,9 @@ In detail, it provides the following functions:
 
 * Publish voxel grid in ROS
 
-* Publish scan position resulting from scan registration, position is in scanner project coordinates or referenced to a eglobal coordinate system if required
+* Publish scan position resulting from scan registration, position is in scanner project coordinates or referenced to a global geographic coordinate system
 
-* Use external kinematic data from a robot to improve the scan position registration algorithm.
+* Use of position and orientation data from a robot to improve the scan position registration algorithm.
 
 * Publish the device status (memory usage, error stack, ...) and data acquisition progress information
 

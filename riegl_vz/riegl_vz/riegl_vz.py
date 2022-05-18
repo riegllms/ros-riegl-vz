@@ -370,7 +370,6 @@ class RieglVz():
         self._logger.debug("Generate point cloud..")
         self._status.status.setActiveTask('generate point cloud data')
         with riegl.rdb.rdb_open(localFile) as rdb:
-            filter = ''
             rosDtype = PointField.FLOAT32
             dtype = np.float32
             itemsize = np.dtype(dtype).itemsize
@@ -440,9 +439,10 @@ class RieglVz():
         self._logger.debug("Generate voxel grid..")
         self._status.status.setActiveTask('generate voxel grid data')
         with riegl.rdb.rdb_open(localFile) as rdb:
+            filter = ''
             numTotalVoxels = 0
             data = bytearray()
-            for voxels in rdb.select('', chunk_size=100000):
+            for voxels in rdb.select(filter, chunk_size=100000):
                 for voxel in voxels:
                     data.extend(voxel['riegl.xyz'].astype(np.float64).tobytes())
                     data.extend(voxel['riegl.pca_axis_min'].astype(np.float32).tobytes())

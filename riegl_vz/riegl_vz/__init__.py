@@ -12,6 +12,7 @@ from sensor_msgs.msg import (
 )
 from geometry_msgs.msg import (
     PoseStamped,
+    PoseWithCovarianceStamped,
     TransformStamped
 )
 from nav_msgs.msg import (
@@ -86,8 +87,8 @@ class RieglVzWrapper(Node):
         self.declare_parameter('image_capture', 0)
         self.declare_parameter('image_capture_mode', 1)
         self.declare_parameter('image_capture_overlap', 25)
-        self.declare_parameter('robot_pose_topic', '')
-        self.declare_parameter('robot_relative_pose', False)
+        self.declare_parameter('set_pose_topic', '')
+        self.declare_parameter('relative_pose_mode', False)
         self.declare_parameter('robot_scanner_mounting_pose', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.declare_parameter('robot_scanner_project_pose', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.declare_parameter('robot_project_frame_id', '')
@@ -117,6 +118,17 @@ class RieglVzWrapper(Node):
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
         self.odomPublisher = self.create_publisher(Odometry, 'odom', 10)
         self.gnssFixPublisher = self.create_publisher(NavSatFix, 'gnss', 10)
+        self.setPoseTopic = str(self.get_parameter('set_pose_topic').value)
+        if self.setPoseTopic != "":
+            self.get_logger().info("setPoseTopic = {}".format(self.setPoseTopic))
+            try:
+                self.setPoseSubscription = self.create_subscription(
+                    PoseWithCovarianceStamped,
+                    self.setPoseTopic,
+                    self._setPoseTopicCallback,
+                    10)
+            except:
+                self.get_logger().error("Set pose topic subscription failed!")
 
         # tf2 message broadcaster..
         self.transformBroadcaster = TransformBroadcaster(self)
@@ -167,8 +179,8 @@ class RieglVzWrapper(Node):
 
     def _broadcastTfRobotProjectTransform(self):
         self.robotProjectFrameId = str(self.get_parameter('robot_project_frame_id').value)
-        self.get_logger().info("robot_project_frame_id = {}".format(self.robotProjectFrameId))
         if self.robotProjectFrameId != "":
+            self.get_logger().info("robot_project_frame_id = {}".format(self.robotProjectFrameId))
             self.robotScannerProjectPose = self.get_parameter('robot_scanner_project_pose').value
             self._logger.info("robot scanner project pose = x: {0}, y: {1}, z: {2}, roll: {3}, pitch: {4}, yaw: {5}"
                 .format(
@@ -535,13 +547,22 @@ class RieglVzWrapper(Node):
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
-            self.robotRelativePose = bool(self.get_parameter('robot_relative_pose').value)
+            self.relativePoseMode = bool(self.get_parameter('relative_pose_mode').value)
             self.robotScannerMountingPose = self.get_parameter('robot_scanner_mounting_pose').value
-            self.setPose(request.pose, self.robotRelativePose, self.robotScannerMountingPose)
+            self.setPose(request.pose, self.relativePoseMode, self.robotScannerMountingPose)
         except:
             self._setResponseException(response)
 
         return response
+
+    def _setPoseTopicCallback(self, pose):
+        self.get_logger().info("Topic Callback: set_pose")
+        try:
+            self.relativePoseMode = bool(self.get_parameter('relative_pose_mode').value)
+            self.robotScannerMountingPose = self.get_parameter('robot_scanner_mounting_pose').value
+            self.setPose(pose, self.relativePoseMode, self.robotScannerMountingPose)
+        except:
+            pass
 
     def getSopv(self):
         return self._rieglVz.getSopv()

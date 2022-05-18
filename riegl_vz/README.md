@@ -226,21 +226,25 @@ The image capture mode (1=during-scan, 2=after-scan).
 
 The image overlap factor in percent.
 
-**~robot_relative_pose** (bool, default: "False") :
+**~set_pose_topic** (string, default: "") :
 
-If true the driver calculates relative position and orientation changes from one scan position to the next, otherwise it uses the absolute positions and orientation (see service 'set_pose').
+The name of a topic providing the roboter position and orientation. The message format must be 'geometry_msgs/PoseWithCovarianceStamped' with queue size of 10. The node automatically subscribes to this topic at startup. This is an alternative to the 'set_pose' service call.
+
+**~relative_pose_mode** (bool, default: "False") :
+
+If enabled the driver calculates relative position and orientation changes from one scan position to the next with pose from the 'set_pose' service or topic, otherwise it uses the absolute positions and orientations (see documentation for 'set_pose').
 
 **~robot_scanner_mounting_pose** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 
-The mounting position and orientation (x, y, z, roll, pitch, yaw) of the scanner on a roboter, with coordinates in meter and euler angles in radians. This is used for 'set_pose' service call if 'robot_relative_pose' parameter is set to False.
+The mounting position and orientation (x, y, z, roll, pitch, yaw) of the scanner on a roboter, with coordinates in meter and euler angles in radians. This is used for the 'set_pose' service or topic if 'relative_pose_mode' parameter is disabled.
 
 **~robot_project_frame_id** (string, default: "") :
 
-The frame id of the robot project coordinate system. This is used for 'set_pose' service call if 'robot_relative_pose' parameter is set to False. Note that this must be the frame id provided with the pose from the 'set_pose' service call.
+The frame id of the robot project coordinate system. This is used for the 'set_pose' service or topic if 'relative_pose_mode' parameter is disabled. Note that this must be the frame id of the pose from the 'set_pose' service or topic.
 
 **~robot_scanner_project_pose** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 
-The position and orientation (x, y, z, roll, pitch, yaw) of the scanner project CS (riegl_vz_prcs) in the roboter project coordinate system, with coordinates in meter and euler angles in radians. This is used for 'set_pose' service call if 'robot_relative_pose' parameter is set to False. This static TF2 transformation will be broadcasted automatically at startup if 'robot_project_frame_id' is configured as well.
+The position and orientation (x, y, z, roll, pitch, yaw) of the origin of the scanner project CS (riegl_vz_prcs) in the roboter project coordinate system, with coordinates in meter and euler angles in radians. This is used for the 'set_pose' service or topic if 'relative_pose_mode' parameter is disabled. A static TF2 transformation will be broadcasted automatically at startup if 'robot_project_frame_id' is configured as well.
 
 #### 3.1.2 Published Topics
 
@@ -320,11 +324,11 @@ Set position of the scanner origin. The position must be set before the scan has
 
 **set_pose** (riegl_vz_interfaces/SetPose) :
 
-Set position and orientation from a robot with accurate kinematic sensors for example. The position and orientation must be set before the scan has finished. The behavior of the service call depends on the parameter 'robot_relative_pose'.  
+Set position and orientation from a robot with accurate kinematic sensors for example. The position and orientation must be set before the scan has finished. The behavior of the service call depends on the parameter 'relative_pose_mode'.  
 
-robot_relative_pose = True: The driver calculates relative position and orientation changes from one scan position to the next. The resulting data is used for scanner position determination of the scan registration algorithm.  
+relative_pose_mode = True: The driver calculates relative position and orientation changes from one scan position to the next. The resulting data is used for scanner position determination of the scan registration algorithm.  
 
-robot_relative_pose = False: The driver uses the absolute positions and only the yaw angle from the orientation for scanner position determination of the scan registration algorithm.  
+relative_pose_mode = False: The driver uses the absolute positions and only the yaw angle from the orientation for scanner position determination of the scan registration algorithm.  
 
 ![Robot coordinate systems](img/robot_cs.png)
 
