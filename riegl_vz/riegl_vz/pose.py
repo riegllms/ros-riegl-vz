@@ -8,13 +8,15 @@ from std_msgs.msg import (
 )
 from geometry_msgs.msg import (
     Point,
+    Vector3,
     Quaternion,
     Pose,
     PoseStamped,
     TransformStamped
 )
 from riegl_vz_interfaces.msg import (
-    ScanPose
+    ScanPose,
+    TiePoint
 )
 
 def quaternionFromRotationMatrix(R):
@@ -253,6 +255,34 @@ def readAllSopv(sopvFilepath, logger = None):
                 continue
             sopvs.append(extractSopv(line.split(','), logger))
     return sopvs
+
+def readTpl(tplFilepath, scanpos = 0, logger = None):
+    """Return information of all tie points in a scanposition."""
+    tpl = []
+    with open(tplFilepath, 'r') as f:
+        objs = json.load(f)
+        for obj in objs:
+            try:
+                header = Header(
+                    frame_id = 'riegl_vz_socs',
+                    stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
+                )
+                tp = TiePoint(
+                    header = header,
+                    seq = int(scanpos),
+                    position = Point(x=float(obj['positionCartesian']['x']), y=float(obj['positionCartesian']['y']), z=float(obj['positionCartesian']['z'])),
+                    normal = Vector3(x=float(obj['normalCartesian']['x']), y=float(obj['normalCartesian']['y']), z=float(obj['normalCartesian']['z'])),
+                    diameter = float(obj['diameter']),
+                    reflectance = float(obj['reflectance']),
+                    point_count = int(obj['point_count']),
+                    model_name = str(obj['model_name']),
+                    name = str(obj['name'])
+                )
+                tpl.append(tp)
+            except:
+                if logger is not None:
+                    logger.error("Failed to read tie point data from json file!")
+    return tpl
 
 def getTransformFromPose(ts, child_frame_id, pose):
     """Return tf2 TransformStamped message from pose."""

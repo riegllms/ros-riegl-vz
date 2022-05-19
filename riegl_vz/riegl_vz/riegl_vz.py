@@ -48,6 +48,7 @@ from .pose import (
     readVop,
     readPop,
     readAllSopv,
+    readTpl,
     getTransformFromPose,
     calcRelativePose,
     calcRelativeCovariances,
@@ -425,7 +426,7 @@ class RieglVz():
         localFile = ''
         projectPath = self._project.getActiveProjectPath()
         self._logger.debug("project path = {}".format(projectPath))
-        if scanposition != '0':
+        if scanposition != '1000000':
             remoteFile = projectPath + '/Voxels1.VPP/' + self._project.getScanposName(scanposition) + '.vxls'
             localFile = self._workingDir + '/scan.vxls'
         else:
@@ -883,6 +884,30 @@ class RieglVz():
         pop = readPop(localFile)
 
         return True, pop
+
+    def getTpl(self, scanposition: str):
+        try:
+            scanId = self._project.getScanId(scanposition)
+            self._logger.debug("scan id = {}".format(scanId))
+            if scanId == 'null':
+                self._logger.error("Scan id is null!")
+                return False, None
+
+            scanposPath = self._project.getActiveScanposPath(scanposition)
+            self._logger.debug("scanpos path = {}".format(scanposPath))
+            scan = os.path.basename(scanId).replace('.rxp', '')[0:13]
+            self._logger.debug("scan = {}".format(scan))
+            remoteFile = scanposPath + '/scans/' + scan + '.tpl'
+            localFile = self._workingDir + '/scan.tpl'
+            self._ssh.downloadFile(remoteFile, localFile)
+
+            ok = True
+            tpl = readTpl(localFile, self._logger)
+        except Exception as e:
+            ok = False
+            tpl = None
+
+        return ok, tpl
 
     def stop(self):
         self._stopReq = True

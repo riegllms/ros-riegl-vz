@@ -30,6 +30,7 @@ from tf2_ros.transform_listener import TransformListener
 from riegl_vz_interfaces.srv import (
     GetPointCloud,
     GetScanPoses,
+    GetTpl,
     GetPose,
     SetPosition,
     SetPose,
@@ -149,6 +150,7 @@ class RieglVzWrapper(Node):
         self._getSopvService = self.create_service(GetPose, 'get_sopv', self._getSopvCallback)
         self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
         self._getPopService = self.create_service(GetPose, 'get_pop', self._getPopCallback)
+        self._getTplService = self.create_service(GetTpl, 'get_tpl', self._getTplCallback)
         self._testService = self.create_service(Trigger, 'test', self._testCallback)
         self._trigStartStopService = self.create_service(Trigger, 'trig_start_stop', self._trigStartStopCallback)
         self._getScanPatterns = self.create_service(GetList, 'get_scan_patterns', self._getScanPatternsCallback)
@@ -482,7 +484,11 @@ class RieglVzWrapper(Node):
         return response
 
     def getPointCloud(self, scanpos, pointcloud):
-        ok, pointcloud = self._rieglVz.getPointCloud(scanpos, pointcloud, False)
+        if scanpos == 0:
+            scanposition = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
+        else:
+            scanposition = str(scanpos)
+        ok, pointcloud = self._rieglVz.getPointCloud(scanposition, pointcloud, False)
         return ok, pointcloud
 
     def _getPointCloudCallback(self, request, response):
@@ -501,7 +507,11 @@ class RieglVzWrapper(Node):
         return response
 
     def getVoxels(self, scanpos, voxels):
-        ok, voxels = self._rieglVz.getVoxels(voxels, scanpos, False)
+        if scanpos == 0:
+            scanposition = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
+        else:
+            scanposition = str(scanpos)
+        ok, voxels = self._rieglVz.getVoxels(voxels, scanposition, False)
         return ok, voxels
 
     def _getVoxelsCallback(self, request, response):
@@ -725,6 +735,31 @@ class RieglVzWrapper(Node):
 
             for model in models:
                 response.list.append(model)
+        except:
+            self._setResponseException(response)
+
+        return response
+
+    def getTpl(self, scanpos):
+        if scanpos == 0:
+            scanposition = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
+        else:
+            scanposition = str(scanpos)
+        return self._rieglVz.getTpl(scanposition)
+
+    def _getTplCallback(self, request, response):
+        self.get_logger().info("Service Request: get_tpl")
+        try:
+            if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
+                return response
+
+            ok, tpl = self.getTpl(request.seq)
+            if not ok:
+                self._setResponseExecError(response)
+                return response
+
+            for tie_point in tpl:
+                response.tpl.append(tie_point)
         except:
             self._setResponseException(response)
 

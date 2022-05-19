@@ -45,6 +45,21 @@ geometry_msgs/PoseStamped pose
 'seq' is the scan position number.  
 See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)
 
+**riegl_vz_interfaces/TiePoint**:
+```
+std_msgs/Header header
+uint32 seq                      # scan position number within a project, starting with 1, 0 is the current scan position
+geometry_msgs/Point position    # position of the reflector
+geometry_msgs/Vector3 normal    # normal vector to the reflector surface
+float32 diameter                # calculated reflector diameter in meter
+string model_name               # reflector model name
+string name                     # reflector name
+uint32 point_count              # number of measurements
+float32 reflectance             # reflectance of the reflector in dB
+```
+The 'frame_id' in the header is 'riegl_vz_socs'.
+'seq' is the scan position number.
+
 ### 2.2 Services
 
 **riegl_vz_interfaces/GetScanPoses**:
@@ -60,6 +75,16 @@ string message                # informational, e.g. for error messages
 The 'frame_id' in the scanposes[n].header is 'riegl_vz_vocs'.  
 The 'frame_id' in the vop.header is 'riegl_vz_prcs'.  
 The 'frame_id' in the pop.header is the name of the global coordinate system, which is e.g. EPSG::4978.
+
+**riegl_vz_interfaces/GetTpl**:
+```
+---
+uint32 seq                    # scan position number within a project, 0 is the current scan position
+---
+TiePoint[] tpl                # the tie point list
+bool success                  # indicate successful run of service
+string message                # informational, e.g. for error messages
+```  
 
 **riegl_vz_interfaces/SetPosition**:
 ```
@@ -232,27 +257,27 @@ The position and orientation (x, y, z, roll, pitch, yaw) of the origin of the sc
 
 **pointcloud** ([sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)) :
 
-Point cloud with scan data from the laser scanner. Included are xyz cartesian coordinates in SOCS and reflectance in dB. Data will be published only if parameter '~scan_publish' is enabled. The pointcloud data contains following data fields:  
+Point cloud with scan data from the laser scanner.Data will be published only if parameter '~scan_publish' is enabled. The pointcloud data includes following data fields:  
 
 ```
-# float32 x, y, z               : Cartesian point coordinates wrt. application coordinate system
-# float32 r                     : Target point reflectance
+float32 x, y, z               : Cartesian point coordinates in 'riegl_vz_socs' coordinate system
+float32 r                     : Target point reflectance in dB
 ```
 
 **voxels** ([sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)) :
 
-Voxel data for current scan position. Data will be published only if parameter '~scan_register' and '~voxel_publish' are enabled. The pointcloud data contains following data fields:  
+Voxel data for current scan position. Data will be published only if parameter '~scan_register' and '~voxel_publish' are enabled. The pointcloud data includes following data fields:  
 
 ```
-# float64 x, y, z               : Cartesian point coordinates wrt. application coordinate system
-# float32 r                     : Target surface reflectance
-# float32[3] pca_axis_min       : The eigenvector that belongs to the smallest eigenvalue (result of PCA, 0: X, 1: Y, 2: Z)
-# float32[3] pca_axis_max       : The eigenvector that belongs to the greatest eigenvalue (result of PCA, 0: X, 1: Y, 2: Z)
-# uint32 point_count            : Number of points this point represents (e.g. points combined to voxels or plane patches, 0 = unknown)
-# float32[3] pca_extents        : Volume extents along 0: pca_axis_max, 1: pca_axis_min x pca_axis_max, 2: pca_axis_min
-# uint8 voxel_collapsed         : Voxel has been collapsed with neighbor (0 = not collapsed, 1 = collapsed)
-# uint8 shape_id                : Estimated shape of point cloud (0 = undefined, 1 = plane, 2 = line, 3 = volume)
-# float64[6] covariances        : Elements 00, 11, 22, 10, 21 and 20 (in that order) of point cloud covariance matrix
+float64 x, y, z               : Cartesian point coordinates in 'riegl_vz_vocs' coordinate system
+float32 r                     : Target surface reflectance in dB
+float32[3] pca_axis_min       : The eigenvector that belongs to the smallest eigenvalue (result of PCA, 0: X, 1: Y, 2: Z)
+float32[3] pca_axis_max       : The eigenvector that belongs to the greatest eigenvalue (result of PCA, 0: X, 1: Y, 2: Z)
+uint32 point_count            : Number of points this point represents (e.g. points combined to voxels or plane patches, 0 = unknown)
+float32[3] pca_extents        : Volume extents along 0: pca_axis_max, 1: pca_axis_min x pca_axis_max, 2: pca_axis_min
+uint8 voxel_collapsed         : Voxel has been collapsed with neighbor (0 = not collapsed, 1 = collapsed)
+uint8 shape_id                : Estimated shape of point cloud (0 = undefined, 1 = plane, 2 = line, 3 = volume)
+float64[6] covariances        : Elements 00, 11, 22, 10, 21 and 20 (in that order) of point cloud covariance matrix
 ```
 
 **pose** ([geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)):
@@ -261,7 +286,7 @@ Topic provides SOPV (Scan Position and Orientation in VOCS) of the currently reg
 
 **gnss** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
 
-Actual GNSS fix with position in WGS84 coordinates (EPSG::4979). If the gnss receiver does not provide coordinates in another coordinate system, they are automatically transformed to WGS84 by means of the GeoSys service in the scanner. If coordinate transformation fails because the required database in '/media/internal/gsm.gsfx' is missing or does not contain the required information, the coordinates will be set to 0 each.
+Actual GNSS fix with position in WGS84 coordinates (EPSG::4979). If the gnss receiver provides coordinates in another coordinate system, they are automatically transformed to WGS84 by means of the GeoSys service in the scanner. If coordinate transformation fails because the required database in '/media/internal/gsm.gsfx' is missing or does not contain the required information, the coordinates will be set to 0 each.
 
 **diagnostics** ([diagnostic_msgs/DiagnosticArray.msg](https://github.com/ros2/common_interfaces/blob/master/diagnostic_msgs/msg/DiagnosticArray.msg)):
 
@@ -337,10 +362,18 @@ For absolute pose from a robot the driver needs:
 
 **get_scan_poses** (riegl_vz_interfaces/GetScanPoses) :
 
-Request all positions and orientations of previously registered scans of the actual project.
+Request all positions and orientations of previously registered scans of the current project.
 
 Response:  
 success = True -> message: "success", project: Project Name, scanposes: All Scan Poses, vop: VOP Pose, pop: POP Pose  
+success = False -> message: "device not available" | "command execution error"
+
+**get_tpl** (riegl_vz_interfaces/GetTpl) :
+
+Get a list of tie points (reflectors) of a previous scan position of the current project with configuration parameter '~reflector_search' activated.
+
+Response:  
+success = True -> message: "success", tpl: List of Tie Points  
 success = False -> message: "device not available" | "command execution error"
 
 **stop** ([std_srvs/Trigger](https://github.com/ros2/common_interfaces/blob/master/std_srvs/srv/Trigger.srv)) :

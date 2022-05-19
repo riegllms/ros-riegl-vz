@@ -28,8 +28,10 @@ endif()
 
 rosidl_generate_interfaces(${PROJECT_NAME}
   "msg/ScanPose.msg"
+  "msg/TiePoint.msg"
   "srv/GetPointCloud.srv"
   "srv/GetScanPoses.srv"
+  "srv/GetTpl.srv"
   "srv/GetPose.srv"
   "srv/SetPosition.srv"
   "srv/SetPose.srv"

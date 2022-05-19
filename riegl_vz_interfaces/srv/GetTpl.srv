@@ -1,0 +1,5 @@
+uint32 seq                    # scan position number within a project, 0 is the current scan position
+---
+TiePoint[] tpl                # the tie point list
+bool success                  # indicate successful run of service
+string message                # informational, e.g. for error messages

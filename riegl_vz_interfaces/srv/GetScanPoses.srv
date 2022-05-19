@@ -1,5 +1,5 @@
 ---
-string project                # Scan project name
+string project                # scan project name
 ScanPose[] scanposes
 geometry_msgs/PoseStamped vop # position and orientation of VOCS in PRCS
 geometry_msgs/PoseStamped pop # position and orientation of PRCS in GLCS
