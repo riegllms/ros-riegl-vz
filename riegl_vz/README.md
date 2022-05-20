@@ -45,6 +45,14 @@ geometry_msgs/PoseStamped pose
 'seq' is the scan position number.  
 See PoseStamped definition: [geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)
 
+**riegl_vz_interfaces/Voxels**:
+```
+float32 voxel_size
+sensor_msgs/PointCloud2 pointcloud
+```
+The 'frame_id' in the pointcloud.header is 'riegl_vz_vocs'.  
+See PointCloud2 definition: [sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)
+
 **riegl_vz_interfaces/TiePoint**:
 ```
 std_msgs/Header header
@@ -264,7 +272,7 @@ float32 x, y, z               : Cartesian point coordinates in 'riegl_vz_socs' c
 float32 r                     : Target point reflectance in dB
 ```
 
-**voxels** ([sensor_msgs/PointCloud2](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/PointCloud2.msg)) :
+**voxels** (riegl_vz_interfaces/Voxels) :
 
 Voxel data for current scan position. Data will be published only if parameter '~scan_register' and '~voxel_publish' are enabled. The pointcloud data includes following data fields:  
 

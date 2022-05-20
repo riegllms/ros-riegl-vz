@@ -44,6 +44,9 @@ from vzi_services.projectservice import ProjectService
 from vzi_services.scannerservice import ScannerService
 from vzi_services.geosysservice import GeoSysService
 
+from riegl_vz_interfaces.msg import (
+    Voxels
+)
 from .pose import (
     readVop,
     readPop,
@@ -419,7 +422,7 @@ class RieglVz():
 
         return True, pointcloud
 
-    def getVoxels(self, voxels: PointCloud2, scanposition: str = '0', ts: bool = True):
+    def getVoxels(self, voxels: Voxels, scanposition: str = '0', ts: bool = True):
         self._logger.debug("Downloading vxls file..")
         self._status.status.setActiveTask('download vxls file')
         remoteFile = ''
@@ -437,6 +440,7 @@ class RieglVz():
         self._logger.debug("Generate voxels..")
         self._status.status.setActiveTask('generate voxel data')
         with riegl.rdb.rdb_open(localFile) as rdb:
+            voxelSize = objs = float(json.loads(rdb.meta_data['riegl.voxel_info'])['size'])
             numTotalPoints = 0
             data = bytearray()
             for points in rdb.select('', chunk_size=100000):
@@ -478,16 +482,19 @@ class RieglVz():
 
             header = std_msgs.Header(frame_id = 'riegl_vz_vocs', stamp = stamp)
 
-            pointcloud = PointCloud2(
-                header = header,
-                height = 1,
-                width = numTotalPoints,
-                is_dense = False,
-                is_bigendian = False,
-                fields = fields,
-                point_step = fieldsize,
-                row_step = (fieldsize * numTotalPoints),
-                data = data
+            voxels = Voxels(
+                voxel_size = voxelSize,
+                pointcloud = PointCloud2(
+                    header = header,
+                    height = 1,
+                    width = numTotalPoints,
+                    is_dense = False,
+                    is_bigendian = False,
+                    fields = fields,
+                    point_step = fieldsize,
+                    row_step = (fieldsize * numTotalPoints),
+                    data = data
+                )
             )
 
         self._status.status.setActiveTask('')
@@ -641,7 +648,7 @@ class RieglVz():
                 '--connectionstring', self._connectionString,
                 '--project', self.projectName,
                 '--scanposition', scanposName,
-                '--registrationmode', self.scanRegistrationMode]
+                '--registrationmode', str(self.scanRegistrationMode)]
             if self.posePublish:
                 cmd.append('--wait-until-finished')
             self._logger.debug("CMD = {}".format(' '.join(cmd)))
@@ -688,7 +695,7 @@ class RieglVz():
 
         if self.voxelPublish and self.scanRegister:
             self._logger.info("Downloading and publishing voxel data..")
-            voxels: PointCloud2 = PointCloud2()
+            voxels: Voxels = Voxels()
             ok, voxels = self.getVoxels(voxels, self.scanposition)
             if ok:
                 self._status.status.setActiveTask('publish voxel data')

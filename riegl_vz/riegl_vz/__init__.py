@@ -27,8 +27,12 @@ from diagnostic_updater import Updater
 from tf2_ros import TransformBroadcaster
 from tf2_ros.buffer import Buffer
 from tf2_ros.transform_listener import TransformListener
+from riegl_vz_interfaces.msg import (
+    Voxels
+)
 from riegl_vz_interfaces.srv import (
     GetPointCloud,
+    GetVoxels,
     GetScanPoses,
     GetTpl,
     GetPose,
@@ -110,7 +114,7 @@ class RieglVzWrapper(Node):
 
         # create topics..
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
-        self.voxelsPublisher = self.create_publisher(PointCloud2, 'voxels', 2)
+        self.voxelsPublisher = self.create_publisher(Voxels, 'voxels', 2)
         self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
         self.odomPublisher = self.create_publisher(Odometry, 'odom', 10)
@@ -146,7 +150,7 @@ class RieglVzWrapper(Node):
 
         # create undocumented services..
         self._getPointCloudService = self.create_service(GetPointCloud, 'get_pointcloud', self._getPointCloudCallback)
-        self._getVoxelsService = self.create_service(GetPointCloud, 'get_voxels', self._getVoxelsCallback)
+        self._getVoxelsService = self.create_service(GetVoxels, 'get_voxels', self._getVoxelsCallback)
         self._getSopvService = self.create_service(GetPose, 'get_sopv', self._getSopvCallback)
         self._getVopService = self.create_service(GetPose, 'get_vop', self._getVopCallback)
         self._getPopService = self.create_service(GetPose, 'get_pop', self._getPopCallback)
@@ -520,7 +524,7 @@ class RieglVzWrapper(Node):
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
-            ok, response.pointcloud = self.getVoxels(request.seq, response.pointcloud)
+            ok, response.pointcloud = self.getVoxels(request.seq, response.voxels)
             if not ok:
                 self._setResponseExecError(response)
                 return response

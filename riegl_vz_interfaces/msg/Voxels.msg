@@ -1,0 +1,2 @@
+float32 voxel_size
+sensor_msgs/PointCloud2 pointcloud
