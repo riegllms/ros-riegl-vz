@@ -443,16 +443,11 @@ class RieglVz():
                 for point in points:
                     data.extend(point['riegl.xyz'].astype(np.float64).tobytes())
                     data.extend(point['riegl.reflectance'].astype(np.float32).tobytes())
+                    data.extend(point['riegl.point_count'].astype(np.uint32).tobytes())
                     data.extend(point['riegl.pca_axis_min'].astype(np.float32).tobytes())
                     data.extend(point['riegl.pca_axis_max'].astype(np.float32).tobytes())
-                    data.extend(point['riegl.point_count'].astype(np.uint32).tobytes())
                     data.extend(point['riegl.pca_extents'].astype(np.float32).tobytes())
-                    data.extend(point['riegl.voxel_collapsed'].astype(np.uint8).tobytes())
                     data.extend(point['riegl.shape_id'].astype(np.uint8).tobytes())
-                    try:
-                        data.extend(point['riegl.covariances'].astype(np.float64).tobytes())
-                    except:
-                        data.extend(bytearray(np.dtype(np.float64).itemsize*6))
                     numTotalPoints += 1
 
             fields = []
@@ -465,20 +460,16 @@ class RieglVz():
             fieldsize += np.dtype(np.float64).itemsize
             fields.append(PointField(name='r', offset=fieldsize, datatype=PointField.FLOAT32, count=1))
             fieldsize += np.dtype(np.float32).itemsize
+            fields.append(PointField(name='point_count', offset=fieldsize, datatype=PointField.UINT32, count=1))
+            fieldsize += np.dtype(np.uint32).itemsize
             fields.append(PointField(name='pca_axis_min', offset=fieldsize, datatype=PointField.FLOAT32, count=3))
             fieldsize += np.dtype(np.float32).itemsize * 3
             fields.append(PointField(name='pca_axis_max', offset=fieldsize, datatype=PointField.FLOAT32, count=3))
             fieldsize += np.dtype(np.float32).itemsize * 3
-            fields.append(PointField(name='point_count', offset=fieldsize, datatype=PointField.UINT32, count=1))
-            fieldsize += np.dtype(np.uint32).itemsize
             fields.append(PointField(name='pca_extents', offset=fieldsize, datatype=PointField.FLOAT32, count=3))
             fieldsize += np.dtype(np.float32).itemsize * 3
-            fields.append(PointField(name='voxel_collapsed', offset=fieldsize, datatype=PointField.UINT8, count=1))
-            fieldsize += np.dtype(np.uint8).itemsize
             fields.append(PointField(name='shape_id', offset=fieldsize, datatype=PointField.UINT8, count=1))
             fieldsize += np.dtype(np.uint8).itemsize
-            fields.append(PointField(name='covariances', offset=fieldsize, datatype=PointField.FLOAT64, count=6))
-            fieldsize += np.dtype(np.float64).itemsize * 6
 
             if ts:
                 stamp = self._node.get_clock().now().to_msg()
