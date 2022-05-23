@@ -360,6 +360,8 @@ class RieglVzWrapper(Node):
         self.get_logger().info("storage media = {}".format(self.storageMedia))
         self.scanRegister = bool(self.get_parameter('scan_register').value)
         self.get_logger().info("scan register = {}".format(self.scanRegister))
+        self.posePublish = bool(self.get_parameter('pose_publish').value)
+        self.get_logger().info("pose publish = {}".format(self.posePublish))
         ok = True
         if projectName == '' or not self._rieglVz.loadProject(self.projectName, self.storageMedia, self.scanRegister and self.posePublish):
             ok = False
@@ -488,12 +490,13 @@ class RieglVzWrapper(Node):
         return response
 
     def getPointCloud(self, scanpos, pointcloud):
+        if not self.projectValid:
+            self.setProject(self.projectName)
         if scanpos == 0:
             scanposition = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
         else:
             scanposition = str(scanpos)
-        ok, pointcloud = self._rieglVz.getPointCloud(scanposition, pointcloud, False)
-        return ok, pointcloud
+        return self._rieglVz.getPointCloud(scanposition, pointcloud, False)
 
     def _getPointCloudCallback(self, request, response):
         self.get_logger().info("Service Request: get_pointcloud")
@@ -745,6 +748,8 @@ class RieglVzWrapper(Node):
         return response
 
     def getTpl(self, scanpos):
+        if not self.projectValid:
+            self.setProject(self.projectName)
         if scanpos == 0:
             scanposition = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
         else:

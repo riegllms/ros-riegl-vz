@@ -256,7 +256,7 @@ def readAllSopv(sopvFilepath, logger = None):
             sopvs.append(extractSopv(line.split(','), logger))
     return sopvs
 
-def readTpl(tplFilepath, scanpos = 0, logger = None):
+def readTpl(tplFilepath, logger = None):
     """Return information of all tie points in a scanposition."""
     tpl = []
     with open(tplFilepath, 'r') as f:
@@ -267,16 +267,13 @@ def readTpl(tplFilepath, scanpos = 0, logger = None):
                     frame_id = 'riegl_vz_socs',
                     stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
                 )
+
                 tp = TiePoint(
                     header = header,
-                    seq = int(scanpos),
+                    name = str(obj['name']),
                     position = Point(x=float(obj['positionCartesian']['x']), y=float(obj['positionCartesian']['y']), z=float(obj['positionCartesian']['z'])),
                     normal = Vector3(x=float(obj['normalCartesian']['x']), y=float(obj['normalCartesian']['y']), z=float(obj['normalCartesian']['z'])),
-                    diameter = float(obj['diameter']),
-                    reflectance = float(obj['reflectance']),
-                    point_count = int(obj['point_count']),
-                    model_name = str(obj['model_name']),
-                    name = str(obj['name'])
+                    reflectance = float(obj['reflectance'])
                 )
                 tpl.append(tp)
             except:

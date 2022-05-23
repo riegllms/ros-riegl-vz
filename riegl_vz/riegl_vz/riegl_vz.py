@@ -895,7 +895,7 @@ class RieglVz():
             self._logger.debug("scanpos path = {}".format(scanposPath))
             scan = os.path.basename(scanId).replace('.rxp', '')[0:13]
             self._logger.debug("scan = {}".format(scan))
-            remoteFile = scanposPath + '/scans/' + scan + '.tpl'
+            remoteFile = scanposPath + '/' + scan + '.tpl'
             localFile = self._workingDir + '/scan.tpl'
             self._ssh.downloadFile(remoteFile, localFile)
 
