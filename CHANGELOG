@@ -1,4 +1,4 @@
-v1.4.0~dev:
+v1.4.0:
 
   *  Add storage media configuration.
   *  Fix get pose services after project loading.
@@ -14,7 +14,7 @@ v1.4.0~dev:
   *  Add voxelgrid topic and get_voxels service.
   *  Add get_tpl service to read the tie point list.
 
- -- Andreas Friedl <afriedl@riegl.com>  Mon May 9 17:00:00 2022 +0200
+ -- Andreas Friedl <afriedl@riegl.com>  Mon May 23 15:30:00 2022 +0200
 
 v1.3:
 
