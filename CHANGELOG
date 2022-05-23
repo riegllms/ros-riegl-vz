@@ -1,4 +1,4 @@
-v1.4.0~dev:
+v1.4.0:
 
   *  Add storage media configuration.
   *  Fix get pose services after project loading.
@@ -11,10 +11,10 @@ v1.4.0~dev:
   *  Add gnss topic.
   *  Add set_pose service for pose data from a robot, used for relative or absolute position determination for scan registration.
   *  Add transform_geo_coords service which provides an interface to the scanners GeoSys coordinate transformer.
-  *  Add voxelgrid topic and get_voxels service.
+  *  Add voxels topic and get_voxels service.
   *  Add get_tpl service to read the tie point list.
 
- -- Andreas Friedl <afriedl@riegl.com>  Mon May 9 17:00:00 2022 +0200
+ -- Andreas Friedl <afriedl@riegl.com>  Mon May 23 15:30:00 2022 +0200
 
 v1.3:
 
