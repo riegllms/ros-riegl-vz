@@ -768,6 +768,7 @@ class RieglVzWrapper(Node):
                 return response
 
             for tie_point in tpl:
+                response.tp_count+=1
                 response.tpl.append(tie_point)
         except:
             self._setResponseException(response)

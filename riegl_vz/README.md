@@ -85,6 +85,7 @@ The 'frame_id' in the pop.header is the name of the global coordinate system, wh
 ---
 uint32 seq                    # scan position number within a project, 0 is the current scan position
 ---
+uint32 tp_count               # number of tie points 
 TiePoint[] tpl                # the tie point list
 bool success                  # indicate successful run of service
 string message                # informational, e.g. for error messages
