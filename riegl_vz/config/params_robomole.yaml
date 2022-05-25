@@ -26,6 +26,6 @@ riegl_vz_node:
     image_capture_overlap: 25
     set_pose_topic: ""
     robot_relative_pose: False
-    robot_scanner_mounting_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    robot_scanner_mounting: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     robot_project_frame_id: "robot_proj_cs"
-    robot_scanner_project_pose: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    robot_scanner_project_transform: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]

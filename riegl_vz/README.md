@@ -85,7 +85,7 @@ The 'frame_id' in the pop.header is the name of the global coordinate system, wh
 ---
 uint32 seq                    # scan position number within a project, 0 is the current scan position
 ---
-uint32 tp_count               # number of tie points 
+uint32 tp_count               # number of tie points
 TiePoint[] tpl                # the tie point list
 bool success                  # indicate successful run of service
 string message                # informational, e.g. for error messages
@@ -113,7 +113,7 @@ bool success   # indicate successful run of service
 string message # informational, e.g. for error messages
 ```
 See PoseWithCovarianceStamped definition: [geometry_msgs/PoseWithCovarianceStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseWithCovarianceStamped.msg)
-The 'frame_id' in the header is either 
+The 'frame_id' in the header is either
 ... the name of a coordinate system with an available tf2 transformation from this frame to 'riegl_vz_prcs'.
 ... or 'riegl_vz_prcs', the scanner project coordinate system. If string is empty 'riegl_vz_prcs' is assumed.    
 
@@ -246,7 +246,7 @@ The name of a topic providing the robot position and orientation. The message fo
 
 If enabled the driver calculates relative position and orientation changes from one scan position to the next with pose from the 'set_pose' service or topic, otherwise it uses the absolute positions and orientations (see documentation for 'set_pose').
 
-**~robot_scanner_mounting_pose** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+**~robot_scanner_mounting** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 
 The mounting position and orientation (x, y, z, roll, pitch, yaw) of the scanner (riegl_vz_socs) on a robot, with coordinates in meter and Euler angles in radians. This is used for the 'set_pose' service or topic if 'relative_pose_mode' parameter is disabled.
 
@@ -254,7 +254,7 @@ The mounting position and orientation (x, y, z, roll, pitch, yaw) of the scanner
 
 The frame id of the robot project frame. This is used for the 'set_pose' service or topic if 'relative_pose_mode' parameter is disabled. Note that this must be the frame id of the pose from the 'set_pose' service or topic.
 
-**~robot_scanner_project_pose** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
+**~robot_project_transform** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 
 The transformation (x, y, z, roll, pitch, yaw) from the roboter project frame to the scanner project frame (riegl_vz_prcs), with coordinates in meter and Euler angles in radians. This is used for the 'set_pose' service or topic if 'relative_pose_mode' parameter is disabled. A static TF2 transformation will be broadcasted automatically at startup if 'robot_project_frame_id' is configured as well.
 
@@ -360,7 +360,7 @@ relative_pose_mode = False: The driver uses the absolute positions and only the 
 ![Robot coordinate systems](img/robot_cs.png)
 
 For absolute pose from a robot the driver needs:
-- The scanner mounting position and orientation on the robot, which is the transformation from the robot body frame (robot_body_frame) to VZ scanner SOCS (robot_vz_socs). See parameter 'robot_scanner_mounting_pose'.  
+- The scanner mounting position and orientation on the robot, which is the transformation from the robot body frame (robot_body_frame) to VZ scanner SOCS (robot_vz_socs). See parameter 'robot_scanner_mounting'.  
 - A TF2 transformation available for coordinate transformation from robot to scanner project frame (robot_proj_frame -> riegl_vz_prcs). It is expected that 'set_pose' service call provides absolute positions and orientations in the robot project frame.
 
 **get_scan_poses** (riegl_vz_interfaces/GetScanPoses) :

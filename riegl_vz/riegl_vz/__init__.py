@@ -90,9 +90,9 @@ class RieglVzWrapper(Node):
         self.declare_parameter('image_capture_overlap', 25)
         self.declare_parameter('set_pose_topic', '')
         self.declare_parameter('relative_pose_mode', False)
-        self.declare_parameter('robot_scanner_mounting_pose', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-        self.declare_parameter('robot_scanner_project_pose', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
+        self.declare_parameter('robot_scanner_mounting', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.declare_parameter('robot_project_frame_id', '')
+        self.declare_parameter('robot_project_transform', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
 
         self.hostname = str(self.get_parameter('hostname').value)
         self.workingDir = str(self.get_parameter('working_dir').value)
@@ -183,21 +183,21 @@ class RieglVzWrapper(Node):
         self.robotProjectFrameId = str(self.get_parameter('robot_project_frame_id').value)
         if self.robotProjectFrameId != "":
             self.get_logger().info("robot_project_frame_id = {}".format(self.robotProjectFrameId))
-            self.robotScannerProjectPose = self.get_parameter('robot_scanner_project_pose').value
-            self._logger.info("robot scanner project pose = x: {0}, y: {1}, z: {2}, roll: {3}, pitch: {4}, yaw: {5}"
+            self.robotProjectTransform = self.get_parameter('robot_project_transform').value
+            self._logger.info("robot project transform = x: {0}, y: {1}, z: {2}, roll: {3}, pitch: {4}, yaw: {5}"
                 .format(
-                    self.robotScannerProjectPose[0],
-                    self.robotScannerProjectPose[1],
-                    self.robotScannerProjectPose[2],
-                    self.robotScannerProjectPose[3],
-                    self.robotScannerProjectPose[4],
-                    self.robotScannerProjectPose[5]))
+                    self.robotProjectTransform[0],
+                    self.robotProjectTransform[1],
+                    self.robotProjectTransform[2],
+                    self.robotProjectTransform[3],
+                    self.robotProjectTransform[4],
+                    self.robotProjectTransform[5]))
             self.transformBroadcaster.sendTransform(
                 getTransformFromArray(
                     self.get_clock().now(),
                     self.robotProjectFrameId,
                     'riegl_vz_prcs',
-                    self.robotScannerProjectPose
+                    self.robotProjectTransform
                 ))
 
     def _produceScannerDiagnostics(self, diag):
@@ -561,8 +561,8 @@ class RieglVzWrapper(Node):
                 return response
 
             self.relativePoseMode = bool(self.get_parameter('relative_pose_mode').value)
-            self.robotScannerMountingPose = self.get_parameter('robot_scanner_mounting_pose').value
-            self.setPose(request.pose, self.relativePoseMode, self.robotScannerMountingPose)
+            self.robotScannerMounting = self.get_parameter('robot_scanner_mounting').value
+            self.setPose(request.pose, self.relativePoseMode, self.robotScannerMounting)
         except:
             self._setResponseException(response)
 
@@ -572,8 +572,8 @@ class RieglVzWrapper(Node):
         self.get_logger().info("Topic Callback: set_pose")
         try:
             self.relativePoseMode = bool(self.get_parameter('relative_pose_mode').value)
-            self.robotScannerMountingPose = self.get_parameter('robot_scanner_mounting_pose').value
-            self.setPose(pose, self.relativePoseMode, self.robotScannerMountingPose)
+            self.robotScannerMounting = self.get_parameter('robot_scanner_mounting').value
+            self.setPose(pose, self.relativePoseMode, self.robotScannerMounting)
         except:
             pass
 
