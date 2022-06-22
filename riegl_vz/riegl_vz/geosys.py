@@ -49,7 +49,7 @@ class RieglVzGeoSys():
                 dstCoord3 = dstCoords['coord3']
             except:
                 pass
-        self.unlock()
+        self._unlock()
         return ok, float(coord1), float(coord2), float(coord3)
 
 
