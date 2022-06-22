@@ -1,3 +1,9 @@
+v1.4.1~dev:
+
+  * Fix geosys unlock bug.
+
+ -- Andreas Friedl <afriedl@riegl.com>  Wed Jun 22 12:30:00 2022 +0200
+
 v1.4.0:
 
   *  Add storage media configuration.
