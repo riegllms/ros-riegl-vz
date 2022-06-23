@@ -682,7 +682,7 @@ class RieglVz():
                         pose = PoseWithCovariance(pose = sopv.pose.pose)
                     )
                     self._node.odomPublisher.publish(odom)
-                self._logger.info("Pose published")
+                    self._logger.info("Pose published")
 
         if self.scanPublish:
             self._logger.info("Downloading and publishing point cloud..")

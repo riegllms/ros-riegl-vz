@@ -239,8 +239,8 @@ def extractSopv(data, logger = None):
         position = Point(x=float(obj['x']), y=float(obj['y']), z=float(obj['z'])),
         orientation = quaternionFromEuler(float(obj['roll']), float(obj['pitch']), float(obj['yaw']))
         )
-
-    sopv = ScanPose(seq = int(obj['name']), pose = pose)
+    seq = int(obj['name'].replace('ScanPos','').lstrip('0'))
+    sopv = ScanPose(seq = seq, pose = pose)
 
     return sopv
 
