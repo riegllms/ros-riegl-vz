@@ -351,7 +351,7 @@ class RieglVz():
                     f.write("{},{},{},{},{}\n".format(item[0], coordSystem, item[1], item[2], item[3]))
             self._ssh.uploadFile([localDstCpsFile], projectPath)
 
-    def getPointCloud(self, scanposition: str, pointcloud: PointCloud2, ts: bool = True):
+    def getPointCloud(self, scanposition: str, pointcloud: PointCloud2, ts = None):
         self._logger.debug("Downloading rdbx file..")
         self._status.status.setActiveTask('download rdbx file')
         scanId = self._project.getScanId(scanposition)
@@ -398,7 +398,7 @@ class RieglVz():
                 for i, n in enumerate('xyzr')]
 
             if ts:
-                stamp = self._node.get_clock().now().to_msg()
+                stamp = ts.to_msg()
             else:
                 stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
 
@@ -639,6 +639,7 @@ class RieglVz():
                 return
             self._logger.info("RXP to RDBX conversion finished")
 
+        ts = None
         if self.scanRegister:
             self._logger.info("Starting registration..")
             self._status.status.setActiveTask('scan position registration')
@@ -687,7 +688,9 @@ class RieglVz():
         if self.scanPublish:
             self._logger.info("Downloading and publishing point cloud..")
             pointcloud: PointCloud2 = PointCloud2()
-            ok, pointcloud = self.getPointCloud(self.scanposition, pointcloud)
+            if ts is None:
+                ts = self._node.get_clock().now()
+            ok, pointcloud = self.getPointCloud(self.scanposition, pointcloud, ts)
             if ok:
                 self._status.status.setActiveTask('publish point cloud data')
                 self._node.pointCloudPublisher.publish(pointcloud)

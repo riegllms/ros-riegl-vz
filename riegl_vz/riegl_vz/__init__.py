@@ -496,7 +496,7 @@ class RieglVzWrapper(Node):
             scanposition = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
         else:
             scanposition = str(scanpos)
-        return self._rieglVz.getPointCloud(scanposition, pointcloud, False)
+        return self._rieglVz.getPointCloud(scanposition, pointcloud)
 
     def _getPointCloudCallback(self, request, response):
         self.get_logger().info("Service Request: get_pointcloud")
