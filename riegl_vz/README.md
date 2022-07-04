@@ -202,6 +202,10 @@ Supported values for scan registration mode are:
 
 Enable publishing of scan registration result on topic 'pose' after scan registration has finished.
 
+**~pose_publish_fast** (bool, default: "False") :
+
+Enable publishing of a coarse estimate for the current scan position and orientation on topic 'pose_fast'. The data is available just a few seconds after the scan data acquisition has finished.
+
 **~voxel_publish** (bool, default: "True") :
 
 Enable publishing of voxel data on topic 'voxels' after scan acquisition has finished.
@@ -286,6 +290,10 @@ uint8 shape_id                : Estimated shape of point cloud (0 = undefined, 1
 **pose** ([geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)):
 
 Topic provides SOPV (Scan Position and Orientation in VOCS) of the currently registered scan position.
+
+**pose_fast** ([geometry_msgs/PoseStamped](https://github.com/ros2/common_interfaces/blob/master/geometry_msgs/msg/PoseStamped.msg)):
+
+Topic provides a coarse but fast estimate for the SOPV (Scan Position and Orientation in VOCS) of the current scan position. It is available from the second scan position and following.
 
 **gnss** ([sensor_msgs/NavSatFix.msg](https://github.com/ros2/common_interfaces/blob/master/sensor_msgs/msg/NavSatFix.msg)) :
 

@@ -15,6 +15,7 @@ riegl_vz_node:
     scan_register: True
     scan_registration_mode: 1
     pose_publish: True
+    pose_publish_fast: True
     voxel_publish: True
     reflector_search: False
     reflector_search_models: "RIEGL flat reflector 50 mm"

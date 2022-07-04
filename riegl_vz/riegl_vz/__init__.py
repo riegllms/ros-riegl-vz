@@ -80,6 +80,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('scan_register', True)
         self.declare_parameter('scan_registration_mode', 1)
         self.declare_parameter('pose_publish', True)
+        self.declare_parameter('pose_publish_fast', False)
         self.declare_parameter('reflector_search', False)
         self.declare_parameter('reflector_search_models', '')
         self.declare_parameter('reflector_search_limits', [0.0, 10000.0])
@@ -116,6 +117,7 @@ class RieglVzWrapper(Node):
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
         self.voxelsPublisher = self.create_publisher(Voxels, 'voxels', 2)
         self.posePublisher = self.create_publisher(PoseStamped, 'pose', 10)
+        self.poseFastPublisher = self.create_publisher(PoseStamped, 'pose_fast', 10)
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
         self.odomPublisher = self.create_publisher(Odometry, 'odom', 10)
         self.gnssFixPublisher = self.create_publisher(NavSatFix, 'gnss', 10)
@@ -362,8 +364,10 @@ class RieglVzWrapper(Node):
         self.get_logger().info("scan register = {}".format(self.scanRegister))
         self.posePublish = bool(self.get_parameter('pose_publish').value)
         self.get_logger().info("pose publish = {}".format(self.posePublish))
+        self.posePublishFast = bool(self.get_parameter('pose_publish_fast').value)
+        self.get_logger().info("pose publish fast = {}".format(self.posePublish))
         ok = True
-        if projectName == '' or not self._rieglVz.loadProject(self.projectName, self.storageMedia, self.scanRegister and self.posePublish):
+        if projectName == '' or not self._rieglVz.loadProject(self.projectName, self.storageMedia, self.scanRegister and (self.posePublish or self.posePublishFast)):
             ok = False
         else:
             self.projectName = projectName
@@ -431,6 +435,7 @@ class RieglVzWrapper(Node):
         self.scanRegister = bool(self.get_parameter('scan_register').value)
         self.scanRegistrationMode = int(self.get_parameter('scan_registration_mode').value)
         self.posePublish = bool(self.get_parameter('pose_publish').value)
+        self.posePublishFast = bool(self.get_parameter('pose_publish_fast').value)
         self.reflSearchSettings = None
         self.reflSearch = bool(self.get_parameter('reflector_search').value)
         reflSearchModels = str(self.get_parameter('reflector_search_models').value)
@@ -463,6 +468,7 @@ class RieglVzWrapper(Node):
             scanRegister = self.scanRegister,
             scanRegistrationMode = self.scanRegistrationMode,
             posePublish = self.posePublish,
+            posePublishFast = self.posePublishFast,
             reflSearchSettings = self.reflSearchSettings if self.reflSearch else None,
             captureImages = self.imageCapture,
             captureMode = self.imageCaptureMode,
@@ -789,6 +795,7 @@ class RieglVzWrapper(Node):
         self.voxelPublish = False
         self.scanRegister = False
         self.posePublish = False
+        self.posePublishFast = False
         self.reflSearchSettings = None
         self.reflSearch = False
         self.imageCapture = 0
@@ -807,6 +814,7 @@ class RieglVzWrapper(Node):
             voxelPublish = self.voxelPublish,
             scanRegister = self.scanRegister,
             posePublish = self.posePublish,
+            posePublishFast = self.posePublishFast,
             reflSearchSettings = self.reflSearchSettings,
             captureImages = self.imageCapture)
 

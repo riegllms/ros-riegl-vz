@@ -51,6 +51,7 @@ from .pose import (
     readVop,
     readPop,
     readAllSopv,
+    readFastSopv,
     readTpl,
     getTransformFromPose,
     calcRelativePose,
@@ -503,6 +504,7 @@ class RieglVz():
         return True, voxels
 
     def _scanThreadFunc(self):
+        ts = None
         self._status.status.setOpstate('scanning', 'scan data acquisition')
         self._status.status.setProgress(0)
 
@@ -526,6 +528,7 @@ class RieglVz():
         self._logger.info("scan register = {}".format(self.scanRegister))
         self._logger.info("scan register mode = {}".format(self.scanRegistrationMode))
         self._logger.info("pose publish = {}".format(self.posePublish))
+        self._logger.info("pose publish fast = {}".format(self.posePublishFast))
         if self.reflSearchSettings:
             self._logger.info("reflector search = {}".format(self.reflSearchSettings))
         self._logger.info("image capture = {}".format(self.captureImages))
@@ -578,14 +581,28 @@ class RieglVz():
             ])
         self._logger.debug("CMD = {}".format(' '.join(cmd)))
         subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-        self._logger.debug("Subprocess started.")
+        self._logger.debug("Subprocess 'acquire-data' started.")
+        subprocFastPosRdbx = None
+        if self.scanRegister and self.posePublishFast and int(self.scanposition) > 1:
+            self._logger.info("Starting fast pose rdbx creation..")
+            time.sleep(1.0)
+            scriptPath = join(appDir, 'fastpos-rdbx.py')
+            cmd = [
+                'python3', scriptPath,
+                '--connectionstring', self._connectionString,
+                '--sshuser', self._node.sshUser,
+                '--sshpwd', self._node.sshPwd
+            ]
+            self._logger.debug("CMD = {}".format(' '.join(cmd)))
+            subprocFastPosRdbx = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+            self._logger.debug("Subprocess 'fastpos-rdbx' started.")
         subproc.waitFor(errorMessage='Data acquisition failed.', block=True)
         if self._stopReq:
             self._stopReq = False
             self._status.status.setOpstate('waiting')
             self._logger.info("Scan stopped")
             return
-        self._logger.info("Data acquisition finished")
+        self._logger.info("Data acquisition finished.")
 
         self._status.status.setOpstate('processing')
 
@@ -594,14 +611,14 @@ class RieglVz():
                 self._status.status.setActiveTask('set position estimate')
             if self._yawAngle is not None:
                 self._status.status.setActiveTask('set yaw angle estimate')
-            if self._position is not None and self.scanposition == '1':
+            if self._position is not None and int(self.scanposition) == 1:
                 self._logger.info("Set project position.")
                 projSvc = ProjectService(self._connectionString)
                 projSvc.setProjectLocation(self._position.position.header.frame_id, self._position.position.point.x, self._position.position.point.y, self._position.position.point.z)
             self._logger.info("Set scan position and/or yaw angle estimate..")
             try:
                 self._setPositionEstimate(self._position, self._yawAngle)
-                self._logger.info("Set position and/or yaw angle estimate finished")
+                self._logger.info("Set position and/or yaw angle estimate finished.")
             except:
                 self._logger.error("Set position and/or yaw angle estimate failed!")
             self._position = None
@@ -614,10 +631,59 @@ class RieglVz():
                 self._status.status.setActiveTask('set relative imu pose')
                 try:
                     self._setImuRelativePose(posePrevious, poseCurrent)
-                    self._logger.info("Set relative imu pose finished")
+                    self._logger.info("Set relative imu pose finished.")
                 except:
                     self._logger.error("Set relative imu pose failed!")
             self._logger.info("Set relative imu pose (previous = current).")
+
+        if self.scanRegister and self.posePublishFast and int(self.scanposition) > 1:
+            self._status.status.setActiveTask('estimate fast pose')
+            subprocFastPosRdbx.waitFor(errorMessage='Creation of rdbx for fast pose failed.', block=True)
+            if self._stopReq:
+                self._stopReq = False
+                self._status.status.setOpstate('waiting')
+                self._logger.info("Scan stopped")
+                return
+            self._logger.info("Rdbx for fast pose created.")
+
+            self._logger.info("Starting fast registration..")
+            scriptPath = join(appDir, 'register-scan-coarse.py')
+            cmd = [
+                'python3', scriptPath,
+                '--hostname', self._hostname,
+                '--sshuser', self._node.sshUser,
+                '--sshpwd', self._node.sshPwd,
+                '--project-path', self._project.getActiveProjectPath(),
+                '--scanposition', scanposName,
+                '--scanposition-prev', self._project.getScanposName(str(int(self.scanposition) - 1))
+            ]
+            if int(self.scanposition) > 2:
+                cmd.extend(['--scanposition-pre-prev', self._project.getScanposName(str(int(self.scanposition) - 2))])
+            cmd.extend(['--rdbx', '/tmp/fastpos.rdbx'])
+            self._logger.debug("CMD = {}".format(' '.join(cmd)))
+            subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+            self._logger.debug("Subprocess 'coarse-registration' started.")
+            subproc.waitFor(errorMessage='Fast registration failed.', block=True)
+            if self._stopReq:
+                self._stopReq = False
+                self._status.status.setOpstate('waiting')
+                self._logger.info("Scan stopped")
+                return
+            self._logger.info("Fast registration finished.")
+
+            self._logger.info("Downloading and publishing fast pose..")
+            self._status.status.setActiveTask('publish fast pose')
+            ok, fastSopv = self.getFastSopv(scanposName)
+            if ok:
+                if ts is None:
+                    ts = self._node.get_clock().now()
+                # update sopv timestamp
+                fastSopv.header.stamp = ts.to_msg()
+                # publish fast pose
+                self._node.poseFastPublisher.publish(fastSopv)
+                self._logger.info("Fast pose published.")
+            else:
+                self._logger.error("Fast pose download failed!")
 
         if self.scanPublish:
             self._logger.info("Converting RXP to RDBX..")
@@ -626,7 +692,7 @@ class RieglVz():
             cmd = [
                 'python3', scriptPath,
                 '--connectionstring', self._connectionString,
-                '--project', self.projectName,
+                '--project-path', self.projectName,
                 '--scanposition', scanposName]
             self._logger.debug("CMD = {}".format(' '.join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
@@ -637,9 +703,8 @@ class RieglVz():
                 self._status.status.setOpstate('waiting')
                 self._logger.info("Scan stopped")
                 return
-            self._logger.info("RXP to RDBX conversion finished")
+            self._logger.info("RXP to RDBX conversion finished.")
 
-        ts = None
         if self.scanRegister:
             self._logger.info("Starting registration..")
             self._status.status.setActiveTask('scan position registration')
@@ -660,12 +725,13 @@ class RieglVz():
                 self._status.status.setOpstate('waiting')
                 self._logger.info("Scan stopped")
                 return
-            self._logger.info("Registration finished")
+            self._logger.info("Registration finished.")
 
             if self.posePublish:
                 self._logger.info("Downloading and publishing pose..")
                 self._status.status.setActiveTask('publish registered scan position')
-                ts = self._node.get_clock().now()
+                if ts is None:
+                    ts = self._node.get_clock().now()
                 ok, sopv = self._broadcastTfTransforms(ts)
                 if ok:
                     # update sopv timestamp
@@ -683,7 +749,7 @@ class RieglVz():
                         pose = PoseWithCovariance(pose = sopv.pose.pose)
                     )
                     self._node.odomPublisher.publish(odom)
-                    self._logger.info("Pose published")
+                    self._logger.info("Pose published.")
 
         if self.scanPublish:
             self._logger.info("Downloading and publishing point cloud..")
@@ -694,7 +760,7 @@ class RieglVz():
             if ok:
                 self._status.status.setActiveTask('publish point cloud data')
                 self._node.pointCloudPublisher.publish(pointcloud)
-            self._logger.info("Point cloud published")
+            self._logger.info("Point cloud published.")
 
         if self.voxelPublish and self.scanRegister:
             self._logger.info("Downloading and publishing voxel data..")
@@ -703,7 +769,7 @@ class RieglVz():
             if ok:
                 self._status.status.setActiveTask('publish voxel data')
                 self._node.voxelsPublisher.publish(voxels)
-            self._logger.info("Voxels published")
+            self._logger.info("Voxels published.")
 
         self._status.status.setOpstate('waiting')
 
@@ -720,6 +786,7 @@ class RieglVz():
         scanRegister: bool = True,
         scanRegistrationMode: int = 1,
         posePublish: bool = True,
+        posePublishFast: bool = False,
         reflSearchSettings: dict = None,
         captureImages: int = 2,
         captureMode: int = 1,
@@ -747,6 +814,7 @@ class RieglVz():
         self.scanRegister = scanRegister
         self.scanRegistrationMode = scanRegistrationMode
         self.posePublish = posePublish
+        self.posePublishFast = posePublishFast
         self.reflSearchSettings = reflSearchSettings
         self.captureImages = captureImages
         self.captureMode = captureMode
@@ -849,6 +917,20 @@ class RieglVz():
             sopvs = None
 
         return ok, sopvs
+
+    def getFastSopv(self, scanposition: str):
+        try:
+            sopvFileName = 'robot_fast_pose.sopv'
+            remoteFile = self._project.getActiveProjectPath() + '/' + scanposition + '.SCNPOS/robot_fast_pose.sopv'
+            localFile = self._workingDir + '/' + sopvFileName
+            self._ssh.downloadFile(remoteFile, localFile)
+            ok = True
+            sopv = readFastSopv(localFile, self._logger)
+        except Exception as e:
+            ok = False
+            sopv = None
+
+        return ok, sopv
 
     def getSopv(self):
         ok, sopvs = self.getAllSopv()

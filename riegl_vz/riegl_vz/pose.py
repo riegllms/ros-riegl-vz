@@ -256,6 +256,30 @@ def readAllSopv(sopvFilepath, logger = None):
             sopvs.append(extractSopv(line.split(','), logger))
     return sopvs
 
+def readFastSopv(sopvFilepath, logger = None):
+    """Extract coarse SOPV pose."""
+    with open(sopvFilepath, 'r') as f:
+        j = json.load(f)
+
+    x = float(j['translation']['x'])
+    y = float(j['translation']['y'])
+    z = float(j['translation']['z'])
+
+    R = np.empty((3,3))
+    R[:3, :3] = j['matrix3x3']
+
+    sopv = PoseStamped()
+    sopv.header = Header(
+        frame_id = 'riegl_vz_vocs',
+        stamp = builtin_msgs.Time(sec = 0, nanosec = 0)
+        )
+    sopv.pose = Pose(
+        position = Point(x=x, y=y, z=z),
+        orientation = quaternionFromRotationMatrix(R)
+        )
+
+    return sopv
+
 def readTpl(tplFilepath, logger = None):
     """Return information of all tie points in a scanposition."""
     tpl = []
