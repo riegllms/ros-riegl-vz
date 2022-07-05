@@ -1,4 +1,4 @@
-v1.4.1~dev:
+v1.4.1:
 
   * Fix geosys unlock bug.
   * Update librdb to v2.4.0.
