@@ -1,7 +1,9 @@
 # ROS2 RIEGL VZ Package
 
 This is a ROS2 package for the RIEGL VZ-i series devices.
-The package is based on ROS2 [Galactic Geochelone](https://docs.ros.org/en/galactic/index.html) distribution and has been tested on Ubuntu Desktop 20.04 (Focal Fossa).
+The package has been tested with:  
+- ROS2 [Galactic Geochelone](https://docs.ros.org/en/galactic/index.html) on Ubuntu Desktop 20.04 (Focal Fossa)  
+- ROS2 [Humble Hawksbill](https://docs.ros.org/en/humble/index.html) on Ubuntu Desktop 22.04 (Jammy Jellyfish)  
 
 It provides a ROS interface with services and topics for scan data acquisition and scan position registration with a 3D laser scanner.  
 In detail, it provides the following functions:

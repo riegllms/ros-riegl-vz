@@ -5,11 +5,23 @@
 Git clone or extract source into local working directory to subfolder 'src'.   
 Stay in local working directory and build the docker container, using a network proxy configuration:
 
-```docker build . -t ros2t1 -f src/docker/Dockerfile --build-arg http_proxy=http://<ip-address>:<port-number> --build-arg https_proxy=http://<ip-address>:<port-number>```
+Galactic Geochelone:
+
+```docker build . -t ros2galactic -f src/docker/Dockerfile.galactic --build-arg http_proxy=http://<ip-address>:<port-number> --build-arg https_proxy=http://<ip-address>:<port-number>```  
+
+Humble Hawksbill:
+ 
+```docker build . -t ros2humble -f src/docker/Dockerfile.humble --build-arg http_proxy=http://<ip-address>:<port-number> --build-arg https_proxy=http://<ip-address>:<port-number>```  
 
 **Run docker container:**
 
-```docker run -v $PWD:/media/workdir -w /media/workdir -it --net=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix ros2t1```
+Galactic Geochelone:
+
+```docker run -v $PWD:/media/workdir -w /media/workdir -it --net=host -e DISPLAY=$DISPLAY -v /tmp/.X11-unix ros2galactic```  
+
+Humble Hawksbill:
+
+```docker run -v $PWD:/media/workdir -w /media/workdir -it --net=host -e DISPLAY=$DISPLAY -e PYTHONWARNINGS='ignore:::setuptools.command.install' -v /tmp/.X11-unix ros2humble```  
 
 Now you can build and execute the ROS node in the docker container.
 
@@ -18,8 +30,8 @@ Now you can build and execute the ROS node in the docker container.
 ```docker ps```
 
 ```
-CONTAINER ID   IMAGE     COMMAND                  CREATED          STATUS          PORTS     NAMES
-56cbea55fe70   ros2t1    "/ros_entrypoint.sh …"   15 seconds ago   Up 14 seconds             condescending_merkle
+CONTAINER ID   IMAGE           COMMAND                  CREATED          STATUS          PORTS     NAMES
+56cbea55fe70   ros2galactic    "/ros_entrypoint.sh …"   15 seconds ago   Up 14 seconds             condescending_merkle
 ```
 
 ```docker exec -it 56cbea55fe70 bash```
