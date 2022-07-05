@@ -878,7 +878,10 @@ def stop_node():
     if _rieglVzWrapper is not None:
         _rieglVzWrapper.stop()
 
-    rclpy.shutdown()
+    try:
+        rclpy.shutdown()
+    except:
+        pass
 
 def main(args=None):
     rclpy.init(args=args)
