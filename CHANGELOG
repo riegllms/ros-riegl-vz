@@ -1,8 +1,10 @@
 v1.5.0~dev:
 
-  * Add pose_fast topic
+  * Add pose_fast topic.
+  * Fix create-rdbx script project parameter.
+  * Fix get_voxel service exception when returning pointcloud in response instead of voxels.
 
- -- Andreas Friedl <afriedl@riegl.com>  Tue Jul 5 15:30:00 2022 +0200
+ -- Andreas Friedl <afriedl@riegl.com>  Tue Jul 12 16:30:00 2022 +0200
 
 v1.4.1:
 

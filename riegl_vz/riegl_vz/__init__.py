@@ -533,7 +533,7 @@ class RieglVzWrapper(Node):
             if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
                 return response
 
-            ok, response.pointcloud = self.getVoxels(request.seq, response.voxels)
+            ok, response.voxels = self.getVoxels(request.seq, response.voxels)
             if not ok:
                 self._setResponseExecError(response)
                 return response
