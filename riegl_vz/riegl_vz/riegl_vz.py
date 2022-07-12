@@ -692,7 +692,7 @@ class RieglVz():
             cmd = [
                 'python3', scriptPath,
                 '--connectionstring', self._connectionString,
-                '--project-path', self.projectName,
+                '--project', self.projectName,
                 '--scanposition', scanposName]
             self._logger.debug("CMD = {}".format(' '.join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
