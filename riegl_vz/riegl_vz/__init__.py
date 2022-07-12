@@ -130,7 +130,7 @@ class RieglVzWrapper(Node):
                     self.setPoseTopic,
                     self._setPoseTopicCallback,
                     10)
-            except:
+            except Exception as e:
                 self.get_logger().error("Set pose topic subscription failed!")
 
         # tf2 message broadcaster..
@@ -328,8 +328,8 @@ class RieglVzWrapper(Node):
         self._logger.error("Service request command execution error!")
         return self._setResponseStatus(response, False, 'command execution error')[1]
 
-    def _setResponseException(self, response):
-        self._logger.error("Service request command exception!")
+    def _setResponseException(self, response, e):
+        self._logger.error("Service request command exception: " + str(e))
         return self._setResponseStatus(response, False, 'command execution error')[1]
 
     def _checkExecConditions(self):
@@ -338,7 +338,7 @@ class RieglVzWrapper(Node):
         if not self._rieglVz.isScannerAvailable() or self._shutdownReq:
             success = False
             message = 'device not available'
-            self._logger.info("Device is not available.")
+            self._logger.warning("Device is not available.")
         return success, message
 
     def _setProjectName(self, projectName):
@@ -405,8 +405,8 @@ class RieglVzWrapper(Node):
                 return response
 
             self._scanposition = self._rieglVz.getCurrentScanpos(self.projectName, self.storageMedia)
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -481,17 +481,17 @@ class RieglVzWrapper(Node):
                 return response
 
             if self._rieglVz.getScannerOpstate() != 'waiting':
-                self_.setResponseStatus(response, False, 'device is busy')
+                self._setResponseStatus(response, False, 'device is busy')
                 self._logger.warning("Device is busy at the moument.")
                 return response
 
             if not self.scan():
-                self._setResponseException(response)
+                self._setResponseExecError(response)
                 return response
 
                 self._statusUpdater.force_update
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -514,8 +514,8 @@ class RieglVzWrapper(Node):
             if not ok:
                 self._setResponseExecError(response)
                 return response
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -537,8 +537,8 @@ class RieglVzWrapper(Node):
             if not ok:
                 self._setResponseExecError(response)
                 return response
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -552,8 +552,8 @@ class RieglVzWrapper(Node):
                 return response
 
             self.setPosition(request.position, request.covariance)
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -569,8 +569,8 @@ class RieglVzWrapper(Node):
             self.relativePoseMode = bool(self.get_parameter('relative_pose_mode').value)
             self.robotScannerMounting = self.get_parameter('robot_scanner_mounting').value
             self.setPose(request.pose, self.relativePoseMode, self.robotScannerMounting)
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -580,7 +580,7 @@ class RieglVzWrapper(Node):
             self.relativePoseMode = bool(self.get_parameter('relative_pose_mode').value)
             self.robotScannerMounting = self.get_parameter('robot_scanner_mounting').value
             self.setPose(pose, self.relativePoseMode, self.robotScannerMounting)
-        except:
+        except Exception as e:
             pass
 
     def getSopv(self):
@@ -598,8 +598,8 @@ class RieglVzWrapper(Node):
                 return response
 
             response.pose = sopv.pose
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -640,8 +640,8 @@ class RieglVzWrapper(Node):
                 response.pop = pop
             else:
                 response.pop = PoseStamped()
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -657,8 +657,8 @@ class RieglVzWrapper(Node):
                 return response
 
             response.pose = vop
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -674,8 +674,8 @@ class RieglVzWrapper(Node):
                 return response
 
             response.pose = pop
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -689,8 +689,8 @@ class RieglVzWrapper(Node):
                 return response
 
             self.stop()
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -706,8 +706,8 @@ class RieglVzWrapper(Node):
             if not self.trigStartStop():
                 self._setResponseExecError(response)
                 return response
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -727,8 +727,8 @@ class RieglVzWrapper(Node):
 
             for pattern in patterns:
                 response.list.append(pattern)
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -748,8 +748,8 @@ class RieglVzWrapper(Node):
 
             for model in models:
                 response.list.append(model)
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -776,8 +776,8 @@ class RieglVzWrapper(Node):
             for tie_point in tpl:
                 response.tp_count+=1
                 response.tpl.append(tie_point)
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -825,17 +825,17 @@ class RieglVzWrapper(Node):
                 return response
 
             if self._rieglVz.getScannerOpstate() != 'waiting':
-                self_.setResponseStatus(response, False, 'device is busy')
+                self._setResponseStatus(response, False, 'device is busy')
                 self._logger.warning("Device is busy at the moument.")
                 return response
 
             if not self.test():
-                self._setResponseException(response)
+                self._setResponseExecError(response)
                 return response
 
                 self._statusUpdater.force_update
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -847,15 +847,15 @@ class RieglVzWrapper(Node):
 
             ok, coord1, coord2, coord3 = self._rieglVz.transformGeoCoordinate(request.src_cs, request.dst_cs, request.coord1, request.coord2, request.coord3)
             if not ok:
-                self._setResponseException(response)
+                self._setResponseExecError(response)
                 return response
 
             response.coord1 = coord1
             response.coord2 = coord2
             response.coord3 = coord3
 
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -869,8 +869,8 @@ class RieglVzWrapper(Node):
         try:
             self.shutdown()
             self._setResponseSuccess(response)
-        except:
-            self._setResponseException(response)
+        except Exception as e:
+            self._setResponseException(response, e)
 
         return response
 
@@ -880,7 +880,7 @@ def stop_node():
 
     try:
         rclpy.shutdown()
-    except:
+    except Exception as e:
         pass
 
 def main(args=None):
@@ -898,5 +898,5 @@ if __name__ == "__main__":
         signal.signal(signal.SIGINT, stop_node)
         signal.signal(signal.SIGTERM, stop_node)
         main()
-    except:
+    except Exception as e:
         stop_node()
