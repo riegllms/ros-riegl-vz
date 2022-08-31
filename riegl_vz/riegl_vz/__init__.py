@@ -803,7 +803,7 @@ class RieglVzWrapper(Node):
         if not self.projectValid:
             self.setProject(self.projectName)
 
-        self._scanposition = 'test'
+        self._scanposition = 'Test'
 
         return self._rieglVz.scan(
             projectName = self.projectName,

@@ -72,7 +72,7 @@ class RieglVzProject():
 
     def _getCurrentScanpos(self, projectName: str, storageMedia: int):
         self._logger.debug("get next scanpos: projectName={}, storageMedia={}".format(projectName, storageMedia))
-        cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), " | sort -n", " | grep '.SCNPOS'", " | sed 's/.SCNPOS//g'", " | sed 's/ScanPos//g'", " | tail -n 1"]
+        cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), " | grep -E '^ScanPos[0-9]+\.SCNPOS$'", " | sed 's/.SCNPOS//g'", " | sed 's/ScanPos//g'", " | sort -n", " | tail -n 1"]
         response = self._ssh.executeCommand(' '.join(cmd))
 
         if len(response) == 0:

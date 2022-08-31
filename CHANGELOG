@@ -3,6 +3,7 @@ v1.5.0~dev:
   * Add pose_fast topic.
   * Fix create-rdbx script project parameter.
   * Fix get_voxel service exception when returning pointcloud in response instead of voxels.
+  * Ignore scan positions which do not match ros driver naming scheme.
 
  -- Andreas Friedl <afriedl@riegl.com>  Tue Jul 12 16:30:00 2022 +0200
 
