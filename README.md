@@ -61,6 +61,14 @@ Install the wheel, e.g. for x86_64:
 
 ```pip3 install riegl.rdb-2.3.4-cp34.cp35.cp36.cp37.cp38.cp39-none-linux_x86_64.whl```
 
+**Downgrade setuptools:**
+
+if setuptools version is above 58.2.0 then downgrade it
+
+```pip install setuptools==58.2.0```
+
+( all above versions do not work )
+
 **Build package:**
 
 Switch to workspace root directory.
