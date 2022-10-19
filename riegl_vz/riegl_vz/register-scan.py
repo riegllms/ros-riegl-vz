@@ -114,5 +114,4 @@ Supported values:
         args.project, args.scanposition, args.registrationmode, args.wait_until_finished)
 
 if __name__ == "__main__":
-    import sys
     sys.exit(main())

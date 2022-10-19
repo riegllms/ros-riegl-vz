@@ -307,7 +307,7 @@ Riegl VZ status information, published once per second:
 scanner:
   opstate       : operating state ("unavailable", "waiting", "scanning", "processing")
   active_task   : active task description
-  error         : error message
+  task_error    : error of background task
   progress      : scan progress in percent
   scan_position : number of current scan position
   laser         : laser state 'on' or 'off'
@@ -339,7 +339,7 @@ Start a background task for laser scan data acquisition.
 
 The execution state of the background task will be published in 'opstate' field of 'diagnostics' topic.  
 The node is locked until all background tasks have finished and the operating state is 'waiting' again.  
-If an error occurs, the 'error' field of 'diagnostics' topic will show an error message (e.g. 'scan registration failed').
+If an error occurs, the 'task_error' field of 'diagnostics' topic will show an error message (e.g. 'scan registration failed').
 
 If parameter '\~scan_publish' is enabled, acquired data will be published on 'pointcloud' topic soon after scanning has finished.
 

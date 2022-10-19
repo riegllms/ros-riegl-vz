@@ -1,5 +1,6 @@
 #!/bin/env python3
 
+import sys
 import argparse
 import ssh
 
@@ -43,8 +44,10 @@ def main():
         cmd.extend(['--pre-prev', args.scanposition_pre_prev])
     outFile = args.project_path + '/' + args.scanposition + '.SCNPOS/robot_fast_pose.sopv'
     cmd.extend([args.project_path, args.scanposition, args.rdbx, '>' + outFile])
-    response = rcl.executeCommand(' '.join(cmd))
+    rc, response = rcl.executeCommand(' '.join(cmd))
     rcl.disconnect()
 
+    return rc
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

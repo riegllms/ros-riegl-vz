@@ -1,5 +1,6 @@
 #!/bin/env python3
 
+import sys
 import argparse
 import time
 from vzi_services.dataprocservice import DataprocService
@@ -35,8 +36,10 @@ def main():
 
     rcl = ssh.RemoteClient(host=hostname, user=args.sshuser, password=args.sshpwd)
     cmd = ["/opt/riegl/robot-tools/fastposrdbx", " rdtp://127.0.0.1/ACTUAL?type=meas", args.rdbx]
-    response = rcl.executeCommand(' '.join(cmd))
+    rc, response = rcl.executeCommand(' '.join(cmd))
     rcl.disconnect()
 
+    return rc
+
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

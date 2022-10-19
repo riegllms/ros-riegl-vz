@@ -150,8 +150,6 @@ class RieglVz():
         self._imuRelPose = ImuRelativePose()
         self._stopReq = False
         self._shutdownReq = False
-        self._errorFlag = False
-        self._errorMessage = ''
         self._project: RieglVzProject = RieglVzProject(self._node)
         self._status: RieglVzStatus = RieglVzStatus(self._node)
         self.geosys: RieglVzGeoSys = RieglVzGeoSys(self._node)
@@ -164,16 +162,6 @@ class RieglVz():
 
         if not os.path.exists(self._workingDir):
             os.mkdir(self._workingDir)
-
-    def _setError(self, flag=False, message=''):
-        self._errorFlag = flag
-        self._errorMessage = message
-
-    def hasError(self):
-        return self._errorFlag
-
-    def getErrorMessage(self):
-        return self._errorMessage
 
     def _broadcastTfTransforms(self, ts: datetime.time):
         ok, pop = self.getPop()
@@ -648,54 +636,60 @@ class RieglVz():
                     self._logger.error("Set relative imu pose failed!")
             self._logger.info("Set relative imu pose (previous = current).")
 
-        if self.scanRegister and self.posePublishFast and int(self.scanposition) > 1:
-            self._status.status.setActiveTask('estimate fast pose')
-            subprocFastPosRdbx.waitFor(errorMessage='Creation of rdbx for fast pose failed.', block=True)
-            if self._stopReq:
-                self._stopReq = False
-                self._status.status.setOpstate('waiting')
-                self._logger.info("Scan stopped")
-                return
-            self._logger.info("Rdbx for fast pose created.")
+        if self.scanRegister and self.posePublishFast:
+            sopvN = sopvN, sopvLast, sopvLastButOne = self._getLastSopvs()
+            if sopvN >= 1:
+                try:
+                    self._status.status.setActiveTask('estimate fast pose')
+                    subprocFastPosRdbx.waitFor(errorMessage='Creation of rdbx for fast pose failed.', block=True)
+                    if self._stopReq:
+                        self._stopReq = False
+                        self._status.status.setOpstate('waiting')
+                        self._logger.info("Scan stopped")
+                        return
+                    self._logger.info("Rdbx for fast pose created.")
 
-            self._logger.info("Starting fast registration..")
-            scriptPath = join(appDir, 'register-scan-coarse.py')
-            cmd = [
-                'python3', scriptPath,
-                '--hostname', self._hostname,
-                '--sshuser', self._node.sshUser,
-                '--sshpwd', self._node.sshPwd,
-                '--project-path', self._project.getActiveProjectPath(),
-                '--scanposition', scanposName,
-                '--scanposition-prev', self._project.getScanposName(str(int(self.scanposition) - 1))
-            ]
-            if int(self.scanposition) > 2:
-                cmd.extend(['--scanposition-pre-prev', self._project.getScanposName(str(int(self.scanposition) - 2))])
-            cmd.extend(['--rdbx', '/tmp/fastpos.rdbx'])
-            self._logger.debug("CMD = {}".format(' '.join(cmd)))
-            subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-            self._logger.debug("Subprocess 'coarse-registration' started.")
-            subproc.waitFor(errorMessage='Fast registration failed.', block=True)
-            if self._stopReq:
-                self._stopReq = False
-                self._status.status.setOpstate('waiting')
-                self._logger.info("Scan stopped")
-                return
-            self._logger.info("Fast registration finished.")
+                    self._logger.info("Starting fast registration..")
+                    scriptPath = join(appDir, 'register-scan-coarse.py')
+                    cmd = [
+                        'python3', scriptPath,
+                        '--hostname', self._hostname,
+                        '--sshuser', self._node.sshUser,
+                        '--sshpwd', self._node.sshPwd,
+                        '--project-path', self._project.getActiveProjectPath(),
+                        '--scanposition', scanposName,
+                        '--scanposition-prev', self._project.getScanposName(str(sopvLast.seq))
+                    ]
+                    if sopvN >= 2:
+                        cmd.extend(['--scanposition-pre-prev', self._project.getScanposName(str(sopvLastButOne.seq))])
+                    cmd.extend(['--rdbx', '/tmp/fastpos.rdbx'])
+                    self._logger.debug("CMD = {}".format(' '.join(cmd)))
+                    subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
+                    self._logger.debug("Subprocess 'coarse-registration' started.")
+                    subproc.waitFor(errorMessage='Fast registration failed.', block=True)
+                    if self._stopReq:
+                        self._stopReq = False
+                        self._status.status.setOpstate('waiting')
+                        self._logger.info("Scan stopped")
+                        return
+                    self._logger.info("Fast registration finished.")
 
-            self._logger.info("Downloading and publishing fast pose..")
-            self._status.status.setActiveTask('publish fast pose')
-            ok, fastSopv = self.getFastSopv(scanposName)
-            if ok:
-                if ts is None:
-                    ts = self._node.get_clock().now()
-                # update sopv timestamp
-                fastSopv.header.stamp = ts.to_msg()
-                # publish fast pose
-                self._node.poseFastPublisher.publish(fastSopv)
-                self._logger.info("Fast pose published.")
-            else:
-                self._logger.error("Fast pose download failed!")
+                    self._logger.info("Downloading and publishing fast pose..")
+                    self._status.status.setActiveTask('publish fast pose')
+                    ok, fastSopv = self.getFastSopv(scanposName)
+                    if ok:
+                        if ts is None:
+                            ts = self._node.get_clock().now()
+                        # update sopv timestamp
+                        fastSopv.header.stamp = ts.to_msg()
+                        # publish fast pose
+                        self._node.poseFastPublisher.publish(fastSopv)
+                        self._logger.info("Fast pose published.")
+                    else:
+                        self._logger.error("Fast pose download failed!")
+                except:
+                    self._status.status.setTaskError("Fast scan registration failed")
+                    self._logger.error("Fast scan registration failed, fast pose is not being published!")
 
         if self.scanPublish:
             self._logger.info("Converting RXP to RDBX..")
@@ -766,7 +760,7 @@ class RieglVz():
                         self._logger.info("Pose published.")
             except:
                 scanRegisterFailed = True
-                self._setError(True, "scan registration failed")
+                self._status.status.setTaskError("scan registration failed")
                 self._logger.error("Scan registration failed, pose is not being published!")
 
         if self.scanPublish:
@@ -838,7 +832,7 @@ class RieglVz():
         self.captureMode = captureMode
         self.imageOverlap = imageOverlap
 
-        self._setError()
+        self._status.status.setTaskError("")
 
         thread = threading.Thread(target=self._scanThreadFunc, args=())
         thread.daemon = True
@@ -961,6 +955,19 @@ class RieglVz():
             ok = False
 
         return ok, sopv
+
+    def _getLastSopvs(self):
+        n = 0
+        sopvLast = -1
+        sopvLastButOne = -1
+        ok, sopvs = self.getAllSopv()
+        if ok:
+            n = len(sopvs)
+            if n > 0:
+                sopvLast = sopvs[-1]
+            if n > 1:
+                sopvLastButOne = sopvs[-2]
+        return n, sopvLast, sopvLastButOne
 
     def getVop(self):
         try:

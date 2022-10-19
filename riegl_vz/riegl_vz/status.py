@@ -20,6 +20,7 @@ class ScannerStatus(object):
         self.serialNumber = ''
         self.opstate = 'unavailable'
         self.activeTask = ''
+        self.taskError = ''
         self.progress = 0
         self.laserOn = False
 
@@ -81,6 +82,11 @@ class StatusMaintainer(object):
         self._lock()
         self._scannerStatus.opstate = opstate
         self._scannerStatus.activeTask = task
+        self._unlock()
+
+    def setTaskError(self, errorMsg):
+        self._lock()
+        self._scannerStatus.taskError = errorMsg
         self._unlock()
 
     def setActiveTask(self, task):

@@ -71,8 +71,7 @@ class RemoteClient:
         :type command: str
         """
         stdin, stdout, stderr = self.connection.exec_command(command)
-        stdout.channel.recv_exit_status()
-        return stdout.readlines()
+        return stdout.channel.recv_exit_status(), stdout.readlines()
 
     def executeCommands(self, commands: List[str]):
         """
@@ -115,10 +114,11 @@ class RieglVzSSH:
     def executeCommand(self, cmd):
         self._logger.debug("CMD = {}".format(cmd))
         ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
-        response = ssh.executeCommand(cmd)
+        rc, response = ssh.executeCommand(cmd)
         ssh.disconnect()
+        self._logger.debug("RC = {}".format(rc))
         self._logger.debug("RESP = {}".format(' '.join(response)))
-        return response
+        return rc, response
 
     def listFiles(self, remotePath, filter):
         if (len(filter) == 0):
