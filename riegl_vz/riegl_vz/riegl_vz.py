@@ -150,6 +150,8 @@ class RieglVz():
         self._imuRelPose = ImuRelativePose()
         self._stopReq = False
         self._shutdownReq = False
+        self._errorFlag = False
+        self._errorMessage = ''
         self._project: RieglVzProject = RieglVzProject(self._node)
         self._status: RieglVzStatus = RieglVzStatus(self._node)
         self.geosys: RieglVzGeoSys = RieglVzGeoSys(self._node)
@@ -162,6 +164,16 @@ class RieglVz():
 
         if not os.path.exists(self._workingDir):
             os.mkdir(self._workingDir)
+
+    def _setError(self, flag=False, message=''):
+        self._errorFlag = flag
+        self._errorMessage = message
+
+    def hasError(self):
+        return self._errorFlag
+
+    def getErrorMessage(self):
+        return self._errorMessage
 
     def _broadcastTfTransforms(self, ts: datetime.time):
         ok, pop = self.getPop()
@@ -705,6 +717,7 @@ class RieglVz():
                 return
             self._logger.info("RXP to RDBX conversion finished.")
 
+        scanRegisterFailed = False
         if self.scanRegister:
             self._logger.info("Starting registration..")
             self._status.status.setActiveTask('scan position registration')
@@ -719,37 +732,42 @@ class RieglVz():
                 cmd.append('--wait-until-finished')
             self._logger.debug("CMD = {}".format(' '.join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
-            subproc.waitFor(errorMessage='Registration failed.', block=True)
-            if self._stopReq:
-                self._stopReq = False
-                self._status.status.setOpstate('waiting')
-                self._logger.info("Scan stopped")
-                return
-            self._logger.info("Registration finished.")
+            try:
+                subproc.waitFor(errorMessage='Registration failed.', block=True)
+                if self._stopReq:
+                    self._stopReq = False
+                    self._status.status.setOpstate('waiting')
+                    self._logger.info("Scan stopped")
+                    return
+                self._logger.info("Registration finished.")
 
-            if self.posePublish:
-                self._logger.info("Downloading and publishing pose..")
-                self._status.status.setActiveTask('publish registered scan position')
-                if ts is None:
-                    ts = self._node.get_clock().now()
-                ok, sopv = self._broadcastTfTransforms(ts)
-                if ok:
-                    # update sopv timestamp
-                    sopv.pose.header.stamp = ts.to_msg()
-                    # publish pose
-                    self._node.posePublisher.publish(sopv.pose)
-                    # publish path
-                    self._path.header = sopv.pose.header
-                    self._path.poses.append(sopv.pose)
-                    self._node.pathPublisher.publish(self._path)
-                    # publish odometry
-                    odom = Odometry(
-                        header = Header(stamp = ts.to_msg(), frame_id = 'riegl_vz_vocs'),
-                        child_frame_id = 'riegl_vz_socs',
-                        pose = PoseWithCovariance(pose = sopv.pose.pose)
-                    )
-                    self._node.odomPublisher.publish(odom)
-                    self._logger.info("Pose published.")
+                if self.posePublish:
+                    self._logger.info("Downloading and publishing pose..")
+                    self._status.status.setActiveTask('publish registered scan position')
+                    if ts is None:
+                        ts = self._node.get_clock().now()
+                    ok, sopv = self._broadcastTfTransforms(ts)
+                    if ok:
+                        # update sopv timestamp
+                        sopv.pose.header.stamp = ts.to_msg()
+                        # publish pose
+                        self._node.posePublisher.publish(sopv.pose)
+                        # publish path
+                        self._path.header = sopv.pose.header
+                        self._path.poses.append(sopv.pose)
+                        self._node.pathPublisher.publish(self._path)
+                        # publish odometry
+                        odom = Odometry(
+                            header = Header(stamp = ts.to_msg(), frame_id = 'riegl_vz_vocs'),
+                            child_frame_id = 'riegl_vz_socs',
+                            pose = PoseWithCovariance(pose = sopv.pose.pose)
+                        )
+                        self._node.odomPublisher.publish(odom)
+                        self._logger.info("Pose published.")
+            except:
+                scanRegisterFailed = True
+                self._setError(True, "scan registration failed")
+                self._logger.error("Scan registration failed, pose is not being published!")
 
         if self.scanPublish:
             self._logger.info("Downloading and publishing point cloud..")
@@ -762,7 +780,7 @@ class RieglVz():
                 self._node.pointCloudPublisher.publish(pointcloud)
             self._logger.info("Point cloud published.")
 
-        if self.voxelPublish and self.scanRegister:
+        if self.voxelPublish and self.scanRegister and not scanRegisterFailed:
             self._logger.info("Downloading and publishing voxel data..")
             voxels: Voxels = Voxels()
             ok, voxels = self.getVoxels(voxels, self.scanposition)
@@ -819,6 +837,8 @@ class RieglVz():
         self.captureImages = captureImages
         self.captureMode = captureMode
         self.imageOverlap = imageOverlap
+
+        self._setError()
 
         thread = threading.Thread(target=self._scanThreadFunc, args=())
         thread.daemon = True

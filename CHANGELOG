@@ -4,8 +4,9 @@ v1.5.0~dev:
   * Fix create-rdbx script project parameter.
   * Fix get_voxel service exception when returning pointcloud in response instead of voxels.
   * Ignore scan positions which do not match ros driver naming scheme.
+  * Handle scan registration error and fix publishing pose of previous scan position.
 
- -- Andreas Friedl <afriedl@riegl.com>  Tue Jul 12 16:30:00 2022 +0200
+ -- Andreas Friedl <afriedl@riegl.com>  Wed Oct 19 11:00:00 2022 +0200
 
 v1.4.1:
 

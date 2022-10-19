@@ -18,6 +18,7 @@ class SignalHandler(object):
     def _handleSignal(self, signal_number, frame):
         self.canceled = True
 
+finishedWithError = False
 def registerScanposition(sigHandler, ctrlSvc, media, project, scanposition, mode, waitUntilFinished = True):
     """Register scanposition. Blocks until registration is finished."""
     taskId = None
@@ -25,8 +26,11 @@ def registerScanposition(sigHandler, ctrlSvc, media, project, scanposition, mode
     if waitUntilFinished:
         finishedEvent = Event()
         def onBackgroundTaskRemoved(arg0):
+            global finishedWithError
             obj = json.loads(arg0)
             if obj.get('id') == taskId:
+                if obj.get('state') != 'finished':
+                    finishedWithError = True
                 finishedEvent.set()
 
         sigcon = ctrlSvc.backgroundTaskRemoved().connect(onBackgroundTaskRemoved)
@@ -41,13 +45,16 @@ def registerScanposition(sigHandler, ctrlSvc, media, project, scanposition, mode
                     ctrlSvc.cancelBackgroundTask(taskId)
             except Exception:
                 pass
-            return False
+            return 1
 
         sigcon.disconnect()
     else:
         ctrlSvc.addRegistrationTask(media, project, scanposition, mode)
 
-    return True
+    if finishedWithError:
+        return 1
+
+    return 0
 
 def mediaString(projSvc):
     """Return string representation of active storage media (used by ControlService)."""
@@ -78,10 +85,10 @@ def main():
     # verify command line options
     if not args.project:
         print("No project name specified.")
-        sys.exit(1)
+        sys.exit(2)
     if not args.scanposition:
         print("No scanposition name specified.")
-        sys.exit(2)
+        sys.exit(3)
     if args.registrationmode < 1 or args.registrationmode > 7:
         print("""\
 Invalid registration mode.
@@ -93,7 +100,7 @@ Supported values:
     5 ... INDOOR_LARGE
     6 ... MINING_MEDIUM
     7 ... MINING_LARGE""")
-        sys.exit(3)
+        sys.exit(4)
 
     sigHandler = SignalHandler()
     projSvc = ProjectService(args.connectionstring)
@@ -102,9 +109,10 @@ Supported values:
     # prepare project
     media = mediaString(projSvc)
     print("media = {}".format(media))
-    registerScanposition(
+    return registerScanposition(
         sigHandler, ctrlSvc, media,
         args.project, args.scanposition, args.registrationmode, args.wait_until_finished)
 
 if __name__ == "__main__":
-    main()
+    import sys
+    sys.exit(main())
