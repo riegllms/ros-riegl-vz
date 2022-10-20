@@ -213,12 +213,16 @@ class RieglVzWrapper(Node):
         elif status.err:
             err = DiagnosticStatus.ERROR
             message = 'com error'
+            
+        if status.taskErrors != '':
+            err = DiagnosticStatus.ERROR
+            message = 'background task error(s)'
 
         diag.summary(err, message)
         diag.add('opstate', status.opstate)
         if status.opstate != 'unavailable':
             diag.add('active_task', status.activeTask)
-            diag.add('task_error', status.taskError)
+            diag.add('task_error', status.taskErrors)
             diag.add('progress', str(status.progress))
             diag.add('scan_position', self._scanposition)
             diag.add('laser', 'on' if status.laserOn else 'off')

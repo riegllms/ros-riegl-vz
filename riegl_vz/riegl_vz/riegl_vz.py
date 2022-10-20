@@ -688,7 +688,7 @@ class RieglVz():
                     else:
                         self._logger.error("Fast pose download failed!")
                 except:
-                    self._status.status.setTaskError("Fast scan registration failed")
+                    self._status.status.addTaskError("FAST_REG_FAILED")
                     self._logger.error("Fast scan registration failed, fast pose is not being published!")
 
         if self.scanPublish:
@@ -760,7 +760,7 @@ class RieglVz():
                         self._logger.info("Pose published.")
             except:
                 scanRegisterFailed = True
-                self._status.status.setTaskError("scan registration failed")
+                self._status.status.addTaskError("SCAN_REG_FAILED")
                 self._logger.error("Scan registration failed, pose is not being published!")
 
         if self.scanPublish:
@@ -832,7 +832,7 @@ class RieglVz():
         self.captureMode = captureMode
         self.imageOverlap = imageOverlap
 
-        self._status.status.setTaskError("")
+        self._status.status.clearTaskErrors()
 
         thread = threading.Thread(target=self._scanThreadFunc, args=())
         thread.daemon = True
