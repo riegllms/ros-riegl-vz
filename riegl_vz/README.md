@@ -315,7 +315,7 @@ scanner:
   laser         : laser state 'on' or 'off'
 errors:
   warn_num      : number or pending system warnings
-  err_num       : number of pending system
+  err_num       : number of pending system errors
 memory:
   mem_free_gb   : free storage media memory space in GByte
   mem_usage     : storage media memory usage in percent of total space
