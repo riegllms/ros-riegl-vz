@@ -83,9 +83,9 @@ def acquireData(
 
     acqInfo = ctrlSvc.lastAcquisition()
     if not acqInfo.success:
-        raise RuntimeError("Data acquisition failed. {1}".format(acqInfo.errorMessage))
+        return 1
 
-    return False if acqInfo.canceled else True
+    return 2 if acqInfo.canceled else 0
 
 def extractReflectorSearchSettings(filepath):
     rss = None
@@ -161,16 +161,18 @@ def main():
     scanPattern.phiIncrement = args.frame_incr
     measProg = args.measprog
 
-    acquired = acquireData(
+    rc = acquireData(
         sigHandler, scanSvc, ctrlSvc, procSvc,
         scanPattern, measProg,
         reflSearch=reflSearch,
         captureImage=args.capture_images,
         captureMode=args.capture_mode,
         imageOverlap=args.image_overlap)
-    if not acquired:
+    if rc == 2:
         print("Data acquisition canceled.")
-        return
+    if rc == 1:
+        print("Data acquisition failed!")
+    return rc
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

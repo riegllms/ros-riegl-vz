@@ -596,13 +596,19 @@ class RieglVz():
             self._logger.debug("CMD = {}".format(' '.join(cmd)))
             subprocFastPosRdbx = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
             self._logger.debug("Subprocess 'fastpos-rdbx' started.")
-        subproc.waitFor(errorMessage='Data acquisition failed.', block=True)
-        if self._stopReq:
-            self._stopReq = False
+        try:
+            subproc.waitFor(errorMessage='Scan data acquisition failed.', block=True)
+            if self._stopReq:
+                self._stopReq = False
+                self._status.status.setOpstate('waiting')
+                self._logger.info("Scan stopped")
+                return
+            self._logger.info("Scan data acquisition finished.")
+        except:
+            self._status.status.addTaskError("SCAN_FAILED")
             self._status.status.setOpstate('waiting')
-            self._logger.info("Scan stopped")
+            self._logger.error("Scan data acquisition failed!")
             return
-        self._logger.info("Data acquisition finished.")
 
         self._status.status.setOpstate('processing')
 
@@ -703,13 +709,19 @@ class RieglVz():
             self._logger.debug("CMD = {}".format(' '.join(cmd)))
             subproc = SubProcess(subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE))
             self._logger.debug("Subprocess started.")
-            subproc.waitFor('RXP to RDBX conversion failed.')
-            if self._stopReq:
-                self._stopReq = False
+            try:
+                subproc.waitFor('RXP to RDBX conversion failed.')
+                if self._stopReq:
+                    self._stopReq = False
+                    self._status.status.setOpstate('waiting')
+                    self._logger.info("Scan stopped")
+                    return
+                self._logger.info("RXP to RDBX conversion finished.")
+            except:
+                self._status.status.addTaskError("RDBX_CONVERT_FAILED")
+                self._logger.error("RXP to RDBX conversion failed!")
                 self._status.status.setOpstate('waiting')
-                self._logger.info("Scan stopped")
                 return
-            self._logger.info("RXP to RDBX conversion finished.")
 
         scanRegisterFailed = False
         if self.scanRegister:

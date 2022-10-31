@@ -1,6 +1,8 @@
 v1.5.1~dev:
 
- -- Andreas Friedl <afriedl@riegl.com>  Thu Oct 20 11:00:00 2022 +0200
+  * Improve scan data acquisition error handling.
+
+ -- Andreas Friedl <afriedl@riegl.com>  Mon Oct 31 15:00:00 2022 +0200
 
 v1.5.0:
 

@@ -32,6 +32,7 @@ def mediaString(projSvc):
         return 'NAS'
     return 'SSD'
 
+finishedWithError = False
 def createRdbx(sigHandler, ctrlSvc,
     storMedia: str,
     projectName: str,
@@ -42,8 +43,11 @@ def createRdbx(sigHandler, ctrlSvc,
 
     taskFinishedEvent = Event()
     def onBackgroundTaskRemoved(arg0):
+        global finishedWithError
         obj = json.loads(arg0)
         if obj.get('id') == taskId:
+            if obj.get('state') != 'finished':
+                finishedWithError = True
             taskFinishedEvent.set()
 
     sigcon = ctrlSvc.backgroundTaskRemoved().connect(onBackgroundTaskRemoved)
@@ -65,11 +69,14 @@ def createRdbx(sigHandler, ctrlSvc,
                 ctrlSvc.cancelBackgroundTask(taskId)
         except Exception:
             pass
-        return False
+        return 2
 
     sigcon.disconnect()
 
-    return True
+    if finishedWithError:
+        return 1
+
+    return 0
 
 def createArgumentParser():
     parser = argparse.ArgumentParser(description='Perform data acquisition.')
@@ -108,14 +115,17 @@ def main():
         scanId = procSvc.actualFile(0)
         scan: str = os.path.basename(scanId).replace('.rxp', '')[0:13]
     storMedia = mediaString(projSvc)
-    if not createRdbx(
+    rc = createRdbx(
         sigHandler, ctrlSvc,
         storMedia,
         args.project,
         args.scanposition,
-        scan):
+        scan)
+    if rc == 2:
         print("RDB creation canceled.")
-        return
+    if rc == 1:
+        print("RDB creation failed!")
+    return rc
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

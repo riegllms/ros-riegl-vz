@@ -45,7 +45,7 @@ def registerScanposition(sigHandler, ctrlSvc, media, project, scanposition, mode
                     ctrlSvc.cancelBackgroundTask(taskId)
             except Exception:
                 pass
-            return 1
+            return 2
 
         sigcon.disconnect()
     else:
@@ -109,9 +109,14 @@ Supported values:
     # prepare project
     media = mediaString(projSvc)
     print("media = {}".format(media))
-    return registerScanposition(
+    rc = registerScanposition(
         sigHandler, ctrlSvc, media,
         args.project, args.scanposition, args.registrationmode, args.wait_until_finished)
+    if rc == 2:
+        print("Scan registration canceled.")
+    if rc == 1:
+        print("Scan registration failed!")
+    return rc
 
 if __name__ == "__main__":
     sys.exit(main())
