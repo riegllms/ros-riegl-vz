@@ -71,6 +71,8 @@ def acquireData(
 
     ctrlSvc.setStoreMeasurementStream(True)
     ctrlSvc.setStoreMonitorStream(True)
+    ctrlSvc.setRegistrationMode(ctrlSvc.RegistrationMode.REG_DISABLED)
+
     ctrlSvc.startAcquisition(flags)
 
     # wait until acquisition is done
