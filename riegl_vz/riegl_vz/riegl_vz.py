@@ -334,11 +334,17 @@ class RieglVz():
         if ok:
             self._node.gnssFixPublisher.publish(msg)
 
-    def setProjectControlPoints(coordSystem: str, csvFile: str):
-        projectPath = self._project.getActiveProjectPath()
-        remoteSrcCpsFile = csvFile
-        localSrcCpsFile = self._workingDir + '/' + os.path.basename(csvFile)
-        self._ssh.downloadFile(remoteSrcCpsFile, localSrcCpsFile)
+    def setProjectControlPoints(self, coordSystem: str, csvFileRemote: str = None, csvFileLocal: str = None):
+        self._logger.debug("Set project control points..")
+        localSrcCpsFile = ""
+        if csvFileRemote is not None and len(csvFileRemote) > 0:
+            localSrcCpsFile = self._workingDir + '/' + os.path.basename(csvFileRemote)
+            remoteSrcCpsFile = "/media/intern/" + csvFileRemote
+            self._ssh.downloadFile(remoteSrcCpsFile, localSrcCpsFile)
+        elif csvFileLocal is not None and len(csvFileLocal) > 0:
+            import shutil
+            localSrcCpsFile = self._workingDir + '/' + os.path.basename(csvFileLocal)
+            shutil.copyfile(csvFileLocal, localSrcCpsFile)
         csvData = parseCSV(localSrcCpsFile)[1:]
         # parse points and write resulting csv file
         controlPoints = []
@@ -350,6 +356,7 @@ class RieglVz():
                 f.write("Name,CRS,Coord1,Coord2,Coord3\n")
                 for item in csvData:
                     f.write("{},{},{},{},{}\n".format(item[0], coordSystem, item[1], item[2], item[3]))
+            projectPath = self._project.getActiveProjectPath()
             self._ssh.uploadFile([localDstCpsFile], projectPath)
 
     def getPointCloud(self, scanposition: str, pointcloud: PointCloud2, ts = None):

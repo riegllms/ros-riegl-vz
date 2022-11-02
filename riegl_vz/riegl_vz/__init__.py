@@ -84,7 +84,8 @@ class RieglVzWrapper(Node):
         self.declare_parameter('reflector_search', False)
         self.declare_parameter('reflector_search_models', '')
         self.declare_parameter('reflector_search_limits', [0.0, 10000.0])
-        self.declare_parameter('control_points_csv_file', '')
+        self.declare_parameter('control_points_csv_file_remote', '')
+        self.declare_parameter('control_points_csv_file_local', '')
         self.declare_parameter('control_points_coord_system', '')
         self.declare_parameter('image_capture', 0)
         self.declare_parameter('image_capture_mode', 1)
@@ -385,12 +386,15 @@ class RieglVzWrapper(Node):
 
         if ok:
             self.projectValid = True
-            self.cpsCsvFile = str(self.get_parameter('control_points_csv_file').value)
-            self.get_logger().info("control points CSV file = {}".format(self.cpsCsvFile))
-            if len(self.cpsCsvFile) > 0:
-                self.cpsCoordSystem = str(self.get_parameter('control_points_coord_system').value)
+            self.cpsCsvFile = ""
+            self.cpsCsvFileRemote = str(self.get_parameter('control_points_csv_file_remote').value)
+            self.get_logger().info("remote control points CSV file  = {}".format(self.cpsCsvFileRemote))
+            self.cpsCsvFileLocal = str(self.get_parameter('control_points_csv_file_local').value)
+            self.get_logger().info("local control points CSV file  = {}".format(self.cpsCsvFileLocal))
+            if len(self.cpsCsvFileRemote) > 0 or len(self.cpsCsvFileLocal):
+                self.cpsCsvCoordSystem = str(self.get_parameter('control_points_coord_system').value)
                 self.get_logger().info("control points coord system = {}".format(self.cpsCsvCoordSystem))
-                self._rieglVz.setProjectControlPoints(self.cpsCoordSystem, self.cpsCsvFile)
+                self._rieglVz.setProjectControlPoints(self.cpsCsvCoordSystem, self.cpsCsvFileRemote, self.cpsCsvFileLocal)
 
         return ok
 

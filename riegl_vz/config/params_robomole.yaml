@@ -20,7 +20,8 @@ riegl_vz_node:
     reflector_search: False
     reflector_search_models: "RIEGL flat reflector 50 mm"
     reflector_search_limits: [1.0,12.0]
-    control_points_csv_file: ""
+    control_points_csv_file_remote: ""
+    control_points_csv_file_local: ""
     control_points_coord_system: "EPSG::4978"
     image_capture: 0
     image_capture_mode: 1

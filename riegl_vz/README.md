@@ -222,9 +222,21 @@ Name of reflector search model. Can be specified multiple times, separated by co
 
 Minimum and maximum range in meter between scan-position and reflector.
 
-**~control_points_csv_file** (string, default: "") :
+**~control_points_csv_file_remote** (string, default: "") :
 
-Path to CSV with control points in GLCS (Global Coordinate System).
+Path to CSV with control points in GLCS (Global Coordinate System) on the scanner. Path is relative to the internal media directory.  
+The CSV file must contain a header line and at least 4 control points with name and coordinates:  
+```
+Name,Coord1,Coord2,Coord3
+Reflector-1,0,0,0
+Reflector-2,0,0,0
+Reflector-3,0,0,0
+Reflector-4,0,0,0
+```
+
+**~control_points_csv_file_local** (string, default: "") :
+
+Path to CSV with control points in GLCS (Global Coordinate System) on the host. This is used if remote file is not specified. The file path is absolute and the file format is same as for the remote file above.
 
 **~control_points_coord_system** (string, default: "") :
 
