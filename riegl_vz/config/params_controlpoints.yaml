@@ -1,4 +1,4 @@
-riegl_vz_node:
+riegl_vz/riegl_vz_node:
   ros__parameters:
     hostname: "H2222222"
     ssh_user: "user"
@@ -13,18 +13,18 @@ riegl_vz_node:
     scan_publish: False
     scan_publish_filter: ""
     scan_publish_lod: 8
-    scan_register: False
+    scan_register: True
     scan_registration_mode: 1
-    pose_publish: False
+    pose_publish: True
     pose_publish_fast: False
-    voxel_publish: False
+    voxel_publish: True
     reflector_search: True
     reflector_search_models: "RIEGL flat reflector 50 mm"
     reflector_search_limits: [1.0,12.0]
     control_points_csv_file_remote: ""
-    control_points_csv_file_local: ""
-    control_points_coord_system: "EPSG::4978"
-    image_capture: 2
+    control_points_csv_file_local: "/tmp/controlpoints.csv"
+    control_points_coord_system: "[4CXTj6zeTuSB9ccKF29phg==]"
+    image_capture: 0
     image_capture_mode: 1
     image_capture_overlap: 25
     set_pose_topic: ""

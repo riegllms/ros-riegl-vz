@@ -4,8 +4,9 @@ v1.5.1~dev:
   * Disable automatic registration in scanner.
   * Improve and fix registration with reflector scans and control points.
   * Reset stop request flag with every scan.
+  * Add config param for scan position name.
 
- -- Andreas Friedl <afriedl@riegl.com>  Tue Nov 22 13:30:00 2022 +0200
+ -- Andreas Friedl <afriedl@riegl.com>  Wed Nov 23 13:30:00 2022 +0200
 
 v1.5.0:
 

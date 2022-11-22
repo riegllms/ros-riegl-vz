@@ -216,6 +216,9 @@ class RieglVz():
             return True
         return False
 
+    def setScanPosPrefix(self, scanPosPrefix):
+        self._project.setScanPosPrefix(scanPosPrefix)
+
     def getCurrentScanpos(self, projectName: str, storageMedia: int):
         return self._project.getCurrentScanpos(projectName, storageMedia);
 
@@ -945,7 +948,7 @@ class RieglVz():
             localFile = self._workingDir + '/' + sopvFileName
             self._ssh.downloadFile(remoteFile, localFile)
             ok = True
-            sopvs = readAllSopv(localFile, self._logger)
+            sopvs = readAllSopv(localFile, self._project.getScanPosPrefix(), self._logger)
         except Exception as e:
             ok = False
             sopvs = None

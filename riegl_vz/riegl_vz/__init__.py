@@ -69,6 +69,7 @@ class RieglVzWrapper(Node):
         self.declare_parameter('ssh_user', 'user')
         self.declare_parameter('ssh_password', 'user')
         self.declare_parameter('project_name', '')
+        self.declare_parameter('scanpos_name', '')
         self.declare_parameter('storage_media', 0)
         self.declare_parameter('scan_pattern', [30.0,130.0,0.1,0.0,360.0,0.5])
         self.declare_parameter('scan_pattern_name', '')
@@ -101,12 +102,14 @@ class RieglVzWrapper(Node):
         self.sshUser = str(self.get_parameter('ssh_user').value)
         self.sshPwd = str(self.get_parameter('ssh_password').value)
         self.projectName = str(self.get_parameter('project_name').value)
+        self.scanPosPrefix = str(self.get_parameter('scanpos_name').value)
         self.storageMedia = int(self.get_parameter('storage_media').value)
         self.get_logger().info("hostname = {}".format(self.hostname))
         self.get_logger().info("workingDir = {}".format(self.workingDir))
         self.get_logger().info("sshUser = {}".format(self.sshUser))
         self.get_logger().info("sshPwd = {}".format(self.sshPwd))
         self.get_logger().info("projectName = {}".format(self.projectName))
+        self.get_logger().info("scanPosName = '{}'".format(self.scanPosPrefix))
         self.get_logger().info("storageMedia = {}".format(self.storageMedia))
 
         self.scanPublishFilter = str(self.get_parameter('scan_publish_filter').value)
@@ -214,7 +217,7 @@ class RieglVzWrapper(Node):
         elif status.err:
             err = DiagnosticStatus.ERROR
             message = 'com error'
-            
+
         if status.taskErrors != '':
             err = DiagnosticStatus.ERROR
             message = 'background task error(s)'
@@ -381,6 +384,10 @@ class RieglVzWrapper(Node):
 
     def setProject(self, projectName):
         ok = True
+
+        self.get_logger().info("scanpos prefix = {}".format(self.scanPosPrefix))
+        self._rieglVz.setScanPosPrefix(self.scanPosPrefix)
+        
         if not self._loadProject(self.projectName):
             ok = self._createProject(self.projectName)
 

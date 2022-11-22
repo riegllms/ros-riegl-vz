@@ -14,6 +14,7 @@ class RieglVzProject():
         self._node = node
         self._hostname = node.hostname
         self._connectionString = self._hostname + ':20000'
+        self._scanPosPrefix = self.setScanPosPrefix(node.scanPosPrefix)
         self._logger = node.get_logger()
 
         self._ssh: RieglVzSSH = RieglVzSSH(self._node)
@@ -49,8 +50,17 @@ class RieglVzProject():
             return False, None
         return True, projectName
 
+    def getScanPosPrefix(self):
+        return self._scanPosPrefix
+
+    def setScanPosPrefix(self, scanPosPrefix):
+        if scanPosPrefix != "":
+            self._scanPosPrefix = scanPosPrefix
+        else:
+            self._scanPosPrefix = 'ScanPos'
+
     def getScanposName(self, scanposition:str):
-        path = 'ScanPos' + scanposition.zfill(3)
+        path = self._scanPosPrefix + scanposition.zfill(3)
         #self._logger.info("getScanposName = {}".format(path))
         return path
 
@@ -72,7 +82,7 @@ class RieglVzProject():
 
     def _getCurrentScanpos(self, projectName: str, storageMedia: int):
         self._logger.debug("get next scanpos: projectName={}, storageMedia={}".format(projectName, storageMedia))
-        cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), " | grep -E '^ScanPos[0-9]+\.SCNPOS$'", " | sed 's/.SCNPOS//g'", " | sed 's/ScanPos//g'", " | sort -n", " | tail -n 1"]
+        cmd = ["ls -1", self._getProjectPath(projectName, storageMedia), " | grep -E '^" + self._scanPosPrefix + "[0-9]+\.SCNPOS$'", " | sed 's/.SCNPOS//g'", " | sed 's/" + self._scanPosPrefix + "//g'", " | sort -n", " | tail -n 1"]
         rc, response = self._ssh.executeCommand(' '.join(cmd))
 
         if len(response) == 0:

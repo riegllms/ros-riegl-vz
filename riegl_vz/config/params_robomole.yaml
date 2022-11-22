@@ -5,6 +5,7 @@ riegl_vz_node:
     ssh_password: "user"
     working_dir: "/tmp/ros_riegl_vz"
     project_name: ""
+    scanpos_name: ""
     storage_media: 0
     meas_program: 3
     scan_pattern_name: "Panorama_40"

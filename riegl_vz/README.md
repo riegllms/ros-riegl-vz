@@ -143,6 +143,10 @@ The linux user password for SSH login on the scanner.
 
 The name of the project to be loaded or created.
 
+**~scanpos_name** (string, default: "") :
+
+This is to overwrite the default prefix 'ScanPos' for scan position names. The actual name will be <scanpos_name>001, <scanpos_name>002, <scanpos_name>003, ...
+
 **~storage_media** (integer, default: 0) :
 
 The active storage media for scan data recording (0: INTERNAL SSD, 1: USB, 2: SD CARD).

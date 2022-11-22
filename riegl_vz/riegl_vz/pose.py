@@ -210,7 +210,7 @@ def readPop(popPath):
 
     return pop
 
-def extractSopv(data, logger = None):
+def extractSopv(data, scanPosPrefix = 'ScanPos', logger = None):
     """Extract scanposition information from all_sopv.csv data entry."""
     deg = math.pi / 180.0
     obj = {
@@ -239,12 +239,12 @@ def extractSopv(data, logger = None):
         position = Point(x=float(obj['x']), y=float(obj['y']), z=float(obj['z'])),
         orientation = quaternionFromEuler(float(obj['roll']), float(obj['pitch']), float(obj['yaw']))
         )
-    seq = int(obj['name'].replace('ScanPos','').lstrip('0'))
+    seq = int(obj['name'].replace(scanPosPrefix,'').lstrip('0'))
     sopv = ScanPose(seq = seq, pose = pose)
 
     return sopv
 
-def readAllSopv(sopvFilepath, logger = None):
+def readAllSopv(sopvFilepath, scanPosPrefix = 'ScanPos', logger = None):
     """Return information of all registered scanposes in VOCS."""
     sopvs = []
     first_line = True
@@ -253,7 +253,7 @@ def readAllSopv(sopvFilepath, logger = None):
             if first_line:
                 first_line = False
                 continue
-            sopvs.append(extractSopv(line.split(','), logger))
+            sopvs.append(extractSopv(line.split(','), scanPosPrefix, logger))
     return sopvs
 
 def readFastSopv(sopvFilepath, logger = None):
