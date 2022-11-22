@@ -852,6 +852,7 @@ class RieglVz():
         self.imageOverlap = imageOverlap
 
         self._status.status.clearTaskErrors()
+        self._stopReq = False
 
         thread = threading.Thread(target=self._scanThreadFunc, args=())
         thread.daemon = True
