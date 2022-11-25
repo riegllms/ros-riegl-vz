@@ -385,9 +385,10 @@ class RieglVzWrapper(Node):
     def setProject(self, projectName):
         ok = True
 
+        self.scanPosPrefix = str(self.get_parameter('scanpos_name').value)
         self.get_logger().info("scanpos prefix = {}".format(self.scanPosPrefix))
         self._rieglVz.setScanPosPrefix(self.scanPosPrefix)
-        
+
         if not self._loadProject(self.projectName):
             ok = self._createProject(self.projectName)
 
