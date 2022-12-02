@@ -180,6 +180,7 @@ class RieglVzStatus():
         self._riconSw = None
         self._geoSvc = None
         self._shutdownReq = False
+        self._running = False
         self._gnssPosUpdateSigcon = None
 
         self._detectThread = threading.Thread(target=self._detectFunction, args=())
@@ -280,6 +281,8 @@ class RieglVzStatus():
         self._node.create_timer(10.0, self._timer10sCallback)
         self._timer1sCallback()
         self._node.create_timer(1.0, self._timer1sCallback)
+
+        self._running = True
 
     def _getInstInfo(self):
         ok = False
@@ -428,6 +431,7 @@ class RieglVzStatus():
         self.status.setLaserOn(laserOn)
 
     def shutdown(self):
-        self._shutdownReq = True
-        while self.shutdownReq:
-            time.sleep(0.1)
+        if not self._running:
+            self._shutdownReq = True
+            while self._shutdownReq:
+                time.sleep(0.1)

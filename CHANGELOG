@@ -5,6 +5,7 @@ v1.5.1~dev:
   * Improve and fix registration with reflector scans and control points.
   * Reset stop request flag with every scan.
   * Add config param for scan position name.
+  * Fix shutdown service.
 
  -- Andreas Friedl <afriedl@riegl.com>  Wed Nov 23 13:30:00 2022 +0200
 

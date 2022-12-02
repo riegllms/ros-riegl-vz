@@ -62,6 +62,7 @@ class RieglVzWrapper(Node):
     def __init__(self):
         super().__init__('riegl_vz')
 
+        self._stopNodeReq = False
         self._shutdownReq = False
 
         self.declare_parameter('hostname', 'H2222222')
@@ -880,6 +881,7 @@ class RieglVzWrapper(Node):
         self._shutdownReq = True
         self.stop()
         self._rieglVz.shutdown()
+        self._stopNodeReq = True
 
     def _shutdownCallback(self, request, response):
         self.get_logger().info("Service Request: shutdown")
@@ -904,7 +906,8 @@ def main(args=None):
     rclpy.init(args=args)
     _rieglVzWrapper = RieglVzWrapper()
     try:
-        rclpy.spin(_rieglVzWrapper)
+        while not _rieglVzWrapper._stopNodeReq:
+            rclpy.spin_once(_rieglVzWrapper)
     except KeyboardInterrupt:
         pass
     finally:
