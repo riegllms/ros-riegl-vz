@@ -1,0 +1,5 @@
+string old_file_location
+string new_file_location
+---
+bool success                  # indicate successful run of service
+string message                # informational, e.g. for error messages

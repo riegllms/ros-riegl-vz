@@ -39,7 +39,9 @@ from riegl_vz_interfaces.srv import (
     SetPosition,
     SetPose,
     GetList,
-    TransformCoord
+    TransformCoord,
+    Command,
+    MoveFile
 )
 import rclpy
 from rclpy.node import Node
@@ -167,6 +169,9 @@ class RieglVzWrapper(Node):
         self._getScanPatterns = self.create_service(GetList, 'get_scan_patterns', self._getScanPatternsCallback)
         self._getReflectorModels = self.create_service(GetList, 'get_reflector_models', self._getReflectorModelsCallback)
         self._transformGeoCoordService = self.create_service(TransformCoord, 'transform_geo_coord', self._transformGeoCoordCallback)
+        self._executComand = self.create_service(Command, 'execute_command', self._commandCallback)
+        self._download = self.create_service(MoveFile, 'download', self._downloadCallback)
+        self._upload = self.create_service(MoveFile, 'upload', self._uploadCallback)
 
         self._rieglVz = RieglVz(self)
 
@@ -875,6 +880,52 @@ class RieglVzWrapper(Node):
         except Exception as e:
             self._setResponseException(response, e)
 
+        return response
+
+    def _commandCallback(self, request, response):
+        self.get_logger().info("Service Request: execute_command")
+        command=request.command
+        response.success=True
+        response.message='ok'
+        status = self._rieglVz.getScannerStatus()
+        if status.opstate != 'unavailable':
+            response.result=self._rieglVz.executeCommand(command)
+        else:
+            response.success=False
+            response.message='Scanner not found'
+        return response
+
+    def _downloadCallback(self, request, response):
+        self.get_logger().info("Service Request: download")
+        save_location=request.new_file_location
+        file_loaction=request.old_file_location
+        response.success=True
+        response.message='ok'
+        status = self._rieglVz.getScannerStatus()
+        if status.opstate != 'unavailable':
+            response.message=self._rieglVz.download(file_loaction,save_location)
+            if response.message != 'ok':
+                response.success=False
+        else:
+            response.success=False
+            response.message='Scanner not found'
+        return response
+
+    def _uploadCallback(self, request, response):
+        self.get_logger().info("Service Request: upload")
+        save_location=request.new_file_location
+        file_loaction=request.old_file_location
+        response.success=True
+        response.message='ok'
+        status = self._rieglVz.getScannerStatus()
+        if status.opstate != 'unavailable':
+            response.message=self._rieglVz.upload(file_loaction,save_location)
+            if response.message != 'ok':
+                response.success=False
+        else:
+            response.success=False
+            response.message='Scanner not found'
+        return response
         return response
 
     def shutdown(self):

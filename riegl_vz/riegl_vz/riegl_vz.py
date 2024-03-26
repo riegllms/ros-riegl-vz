@@ -1113,3 +1113,26 @@ class RieglVz():
         if self.isScannerAvailable():
             scnSvc = ScannerService(self._connectionString)
             scnSvc.shutdown()
+
+    def executeCommand(self,command: str):
+        num,resultmsg=self._ssh.executeCommand(command)
+        msgs=[]
+        for msg in resultmsg:
+            if msg[-1] == '\n':
+                msg=msg[:-1]
+            msgs.append(msg)
+        return msgs
+
+    def download(self,path_to_file: str,path_to_save: str):
+        try:
+            self._ssh.downloadFile(path_to_file,path_to_save)
+            return 'ok'
+        except:
+            return 'File or Path dose not exist'
+
+    def upload(self,path_to_file: str,path_to_save: str):
+        try:
+            self._ssh.uploadFile(path_to_file,path_to_save)
+            return 'ok'
+        except:
+            return 'File or Path dose not exist'

@@ -783,4 +783,7 @@ class ScannerService(object):
     def gpsMode(self):
         """Return gps config mode."""
         with self._lock:
-            return self._svc.getProperty("GPS_MODE").i32
+            try:
+                return self._svc.getProperty("TIMESYNC_MODE").i32
+            except:
+                return self._svc.getProperty("GPS_MODE").i32
