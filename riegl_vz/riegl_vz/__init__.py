@@ -8,7 +8,9 @@ from std_srvs.srv import (
 )
 from sensor_msgs.msg import (
     PointCloud2,
-    NavSatFix
+    NavSatFix,
+    Imu,
+    MagneticField
 )
 from geometry_msgs.msg import (
     PoseStamped,
@@ -99,7 +101,8 @@ class RieglVzWrapper(Node):
         self.declare_parameter('robot_scanner_mounting', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.declare_parameter('robot_project_frame_id', '')
         self.declare_parameter('robot_project_transform', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
-
+        self.declare_parameter('imu_data_publish', False)
+        self.declare_parameter('imu_index', 0)
         self.hostname = str(self.get_parameter('hostname').value)
         self.workingDir = str(self.get_parameter('working_dir').value)
         self.sshUser = str(self.get_parameter('ssh_user').value)
@@ -120,6 +123,11 @@ class RieglVzWrapper(Node):
         self.scanPublishLOD = int(self.get_parameter('scan_publish_lod').value)
         self.get_logger().info("scanPublishLOD = {}".format(self.scanPublishLOD))
 
+        self.imuDataPublish = bool(self.get_parameter('imu_data_publish').value)
+        self.get_logger().info("imuDataPublish = {}".format(self.imuDataPublish))
+        self.imuSelect = int(self.get_parameter('imu_index').value)
+        self.get_logger().info("imuIndex = {}".format(self.imuSelect))
+
         # create topics..
         self.pointCloudPublisher = self.create_publisher(PointCloud2, 'pointcloud', 2)
         self.voxelsPublisher = self.create_publisher(Voxels, 'voxels', 2)
@@ -128,6 +136,8 @@ class RieglVzWrapper(Node):
         self.pathPublisher = self.create_publisher(Path, 'path', 10)
         self.odomPublisher = self.create_publisher(Odometry, 'odom', 10)
         self.gnssFixPublisher = self.create_publisher(NavSatFix, 'gnss', 10)
+        self.imuPublisher= self.create_publisher(Imu,'imu_data',10)
+        self.magnetPublisher= self.create_publisher(MagneticField,'magnetic_field',10)
         self.setPoseTopic = str(self.get_parameter('set_pose_topic').value)
         if self.setPoseTopic != "":
             self.get_logger().info("setPoseTopic = {}".format(self.setPoseTopic))
@@ -177,6 +187,7 @@ class RieglVzWrapper(Node):
 
         self._scanposition = '0'
         self.projectValid = False
+        self.imuDataConnected = False
 
         self._statusUpdater = Updater(self)
         self._statusUpdater.setHardwareID('riegl_vz')
@@ -220,9 +231,13 @@ class RieglVzWrapper(Node):
         if status.opstate == 'unavailable':
             err = DiagnosticStatus.WARN
             message = 'N/A'
-        elif status.err:
-            err = DiagnosticStatus.ERROR
-            message = 'com error'
+        else:
+            if status.err:
+                err = DiagnosticStatus.ERROR
+                message = 'com error'
+            if self.imuDataPublish and not self.imuDataConnected: # check if scanner is online
+                self._rieglVz.initImu()
+                self.imuDataConnected = True
 
         if status.taskErrors != '':
             err = DiagnosticStatus.ERROR

@@ -129,7 +129,7 @@ class RtkTrajectoryService(object):
         inputTransfers = None
         with self._lock:
             rvalues, rtransfers = self._svc.callFunction("imuStart_d27d5184", inputs=inputs, inputTransfers=inputTransfers, numOutputTransfers=0)
-        
+
     def imuRestart(self):
         """Restart IMU data calc."""
         inputs = None

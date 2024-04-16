@@ -32,3 +32,5 @@ riegl_vz_node:
     robot_scanner_mounting: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     robot_project_frame_id: "robot_proj_cs"
     robot_scanner_project_transform: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+    imu_data_publish: False
+    imu_index: 0

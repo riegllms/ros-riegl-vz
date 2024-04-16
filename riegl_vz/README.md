@@ -276,7 +276,15 @@ The frame id of the robot project frame. This is used for the 'set_pose' service
 
 **~robot_project_transform** (double[], default: {0.0, 0.0, 0.0, 0.0, 0.0, 0.0})
 
-The transformation (x, y, z, roll, pitch, yaw) from the roboter project frame to the scanner project frame (riegl_vz_prcs), with coordinates in meter and Euler angles in radians. This is used for the 'set_pose' service or topic if 'relative_pose_mode' parameter is disabled. A static TF2 transformation will be broadcasted automatically at startup if 'robot_project_frame_id' is configured as well.
+The transformation (x, y, z, roll, pitch, yaw) from the roboter project frame to the scanner project frame (riegl_vz_prcs), with coordinates in meter and Euler angles in radians. This is used for the 'set_pose' service or topic if 'relative_pose_mode' parameter is disabled. A static TF2 transformation will be broadcasted automatically at node startup if 'robot_project_frame_id' is configured as well.
+
+**~imu_data_publish** (bool, default: "False") :
+
+Enable publishing of internal scanner IMU data on topic 'imu_data'. Not all of the RIEGL 3D scanners support this feature.
+
+**~imu_index** (int, default: 0) :
+
+Select IMU by index.
 
 #### 3.1.2 Published Topics
 

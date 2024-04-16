@@ -16,7 +16,9 @@ from sensor_msgs.msg import (
     PointCloud2,
     PointField,
     NavSatStatus,
-    NavSatFix
+    NavSatFix,
+    Imu,
+    MagneticField
 )
 from geometry_msgs.msg import (
     Point,
@@ -43,6 +45,7 @@ from vzi_services.interfaceservice import InterfaceService
 from vzi_services.projectservice import ProjectService
 from vzi_services.scannerservice import ScannerService
 from vzi_services.geosysservice import GeoSysService
+from vzi_services.rtktrajectoryservice import *
 
 from riegl_vz_interfaces.msg import (
     Voxels
@@ -335,6 +338,7 @@ class RieglVz():
     def publishGnssFix(self, status=None):
         ok, msg = self._getGnssFixMessage(status)
         if ok:
+            #self._logger.debug("Publish gnss fix..")
             self._node.gnssFixPublisher.publish(msg)
 
     def setProjectControlPoints(self, coordSystem: str, csvFileRemote: str = None, csvFileLocal: str = None):
@@ -1136,3 +1140,45 @@ class RieglVz():
             return 'ok'
         except:
             return 'File or Path dose not exist'
+
+    def initImu(self):
+        self._logger.info("Connecting to IMU data..")
+        try:
+            self.rtkTrajSvc=RtkTrajectoryService(self._connectionString)
+            self.rtkTrajSvc.imuDataSignal().connect(self.sendImuData)
+            self.rtkTrajSvc.imuStart()
+        except:
+            self._logger.error("Scanner needs to be updated for IMU data!")
+        self.imuSelect=str(self._node.imuSelect)
+
+    def sendImuData(self,data):
+        if (data[14] == self.imuSelect):#selectes imu
+            imu_msg=Imu()
+            #self._logger.info(data)
+            data_split=data.rsplit(":")
+            accelerometer=data_split[2].rsplit(",")
+            gyroscope=data_split[8].rsplit(",")
+            time=data_split[14].rsplit(".")
+            magnet=data_split[11].rsplit(",")
+            #self._logger.info(magnet)
+            imu_msg.header.stamp.sec=int(time[0])
+            imu_msg.header.stamp.nanosec=int(time[1][:9])
+            imu_msg.header.frame_id='riegl_vz_imu'
+            imu_msg.linear_acceleration.x=float(accelerometer[0][1:])
+            imu_msg.linear_acceleration.y=float(accelerometer[1])
+            imu_msg.linear_acceleration.z=float(accelerometer[2][:-1])
+            imu_msg.angular_velocity.x=float(gyroscope[0][1:])
+            imu_msg.angular_velocity.y=float(gyroscope[1])
+            imu_msg.angular_velocity.z=float(gyroscope[2][:-1])
+            self._node.imuPublisher.publish(imu_msg)
+            try:
+                magnet_msg=MagneticField()
+                magnet_msg.header.stamp.sec=int(time[0])
+                magnet_msg.header.stamp.nanosec=int(time[1][:9])
+                magnet_msg.header.frame_id='riegl_vz_imu'
+                magnet_msg.magnetic_field.x=float(magnet[0][1:])
+                magnet_msg.magnetic_field.y=float(magnet[1])
+                magnet_msg.magnetic_field.z=float(magnet[2][:-1])
+                self._node.magnetPublisher.publish(magnet_msg)
+            except:
+                pass
