@@ -387,7 +387,7 @@ class RieglVzStatus():
             if self._gnssSvc:
                 estimInfo = json.loads(self._gnssSvc.estimateInfo())
                 gnssStatus = self._getGnssStatusFromEstimateInfo(estimInfo)
-            if self._gnssPosUpdateSigcon is not None:
+            if self._gnssPosUpdateSigcon is None:
                 gnssStatus.publish = False
             if self._scanSvc:
                 gnssStatus.enabled = True if (self._scanSvc.gpsMode() != 0) else False
