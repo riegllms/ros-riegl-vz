@@ -1,4 +1,4 @@
-v1.5.1~dev:
+v1.6.0~dev:
 
   * Improve scan data acquisition error handling.
   * Disable automatic registration in scanner.
@@ -6,8 +6,11 @@ v1.5.1~dev:
   * Reset stop request flag with every scan.
   * Add config param for scan position name.
   * Fix shutdown service.
+  * Add services for ssh command execution and scp file transfer.
+  * Add imu data topic.
+  * Fix setting gnss publish flag.
 
- -- Andreas Friedl <afriedl@riegl.com>  Wed Nov 23 13:30:00 2022 +0200
+ -- Andreas Friedl <afriedl@riegl.com>  Tue Apr 24 08:10:00 2024 +0200
 
 v1.5.0:
 
