@@ -255,7 +255,7 @@ class RieglVzStatus():
                     vstr = ricSvc.getMessages('version','GnssBaseService')
                     self._logger.info("GnssBaseService version: {}".format(vstr[0].text))
                     v = vstr[0].text.split(".")
-                    if int(v[0]) == 1 and int(v[1]) >= 11 and int(v[2]) >= 1:
+                    if int(v[0]) >= 1 and (( int(v[1]) == 11 and int(v[2]) >= 1 ) or int(v[1]) >= 12 ):
                         self._gnssPosUpdateSigcon = self._gnssSvc.positionUpdate().connect(onGnssPositionUpdate)
                         self._logger.info("GnssBaseService with positionUpdate signal.")
                     else:
