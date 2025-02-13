@@ -397,7 +397,7 @@ class ScannerService(object):
     def activeMeasurementProgram(self):
         """Return the ID of the active measurement program."""
         with self._lock:
-            return self._svc.getProperty("MEAS_PROG").i32
+            return self._svc.getProperty("MEAS_PROG_STATUS").i32
 
     def setMeasurementProgram(self, progId):
         """Set the active measurement program.
@@ -408,6 +408,7 @@ class ScannerService(object):
             raise TypeError("Program ID must be and int.")
         inputs = [riconnect.Value() for i in range(0, 1)]
         inputs[0].i32 = progId
+        inputs[0].u32 = progId
         with self._lock:
             self._svc.callFunction("MEAS_SET_PROG", inputs=inputs)
 
