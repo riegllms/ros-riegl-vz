@@ -59,7 +59,7 @@ or send a request to RIEGL support: support@riegl.com.
 The wheel includes a shared linux library must be appropriate for the target processor architecture.  
 Install the wheel, e.g. for x86_64:
 
-```pip3 install riegl.rdb-2.4.0-cp34.cp35.cp36.cp37.cp38.cp39.cp310-none-linux_x86_64.whl```
+```pip3 install riegl.rdb-2.5.3-py3-none-linux_x86_64.whl```
 
 Note: At least version 2.4.0 is required for the ROS package to work.
 

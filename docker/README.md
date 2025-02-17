@@ -7,11 +7,11 @@ Stay in local working directory and build the docker container, using a network 
 
 Galactic Geochelone:
 
-```docker build . -t ros2galactic -f src/docker/Dockerfile.galactic --build-arg http_proxy=http://<ip-address>:<port-number> --build-arg https_proxy=http://<ip-address>:<port-number>```  
+```docker build . -t ros2galactic -f Dockerfile.galactic --build-arg http_proxy=http://<ip-address>:<port-number> --build-arg https_proxy=http://<ip-address>:<port-number>```  
 
 Humble Hawksbill:
  
-```docker build . -t ros2humble -f src/docker/Dockerfile.humble --build-arg http_proxy=http://<ip-address>:<port-number> --build-arg https_proxy=http://<ip-address>:<port-number>```  
+```docker build . -t ros2humble -f Dockerfile.humble --build-arg http_proxy=http://<ip-address>:<port-number> --build-arg https_proxy=http://<ip-address>:<port-number>```  
 
 **Run docker container:**
 
