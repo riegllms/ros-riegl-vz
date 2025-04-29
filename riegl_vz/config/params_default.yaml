@@ -34,3 +34,26 @@ riegl_vz_node:
     robot_scanner_project_transform: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
     imu_data_publish: False
     imu_index: 0
+    kinematic_force_rtk_fix: true
+    kinematic_gnss_configuration: "GNSS On Top"
+    kinematic_gnss_post_processing: false
+    kinematic_project: MyProject001
+    kinematic_navigation_frame_roll: 180.0
+    kinematic_navigation_frame_pitch: 0.0
+    kinematic_navigation_frame_yaw: 180.0
+    kinematic_rotating_change_direction: false
+    kinematic_rotating_change_direction_interval: 30.0
+    kinematic_rotating_measurement_program: 3
+    kinematic_rotating_rotation_speed: 150.0
+    kinematic_rotating_theta_increment: 0.034
+    kinematic_rotating_theta_start: 30.0
+    kinematic_rotating_theta_stop: 130.0
+    kinematic_static_scan_measurement_program: 3
+    kinematic_static_scan_pattern: ''
+    kinematic_fix_angle_measurement_program: 3
+    kinematic_fix_angle_phi: 90.0
+    kinematic_fix_angle_theta_increment: 0.034
+    kinematic_fix_angle_theta_start: 30.0
+    kinematic_fix_angle_theta_stop: 130.0
+    kinematic_recording_mode: kinematic
+    kinematic_mode_rotating: true

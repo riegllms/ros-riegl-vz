@@ -48,6 +48,9 @@ from riegl_vz_interfaces.srv import (
 import rclpy
 from rclpy.node import Node
 from rclpy.logging import LoggingSeverity
+from rcl_interfaces.msg import (
+    ParameterType, ParameterDescriptor, IntegerRange, FloatingPointRange
+)
 from .riegl_vz import (
     ScanPattern,
     RieglVz
@@ -57,6 +60,10 @@ from .pose import (
 )
 from .utils import (
     SubProcess
+)
+from .kinematic_mode import (
+    KinematicParams,
+    KinematicMode
 )
 
 _rieglVzWrapper = None
@@ -73,11 +80,11 @@ class RieglVzWrapper(Node):
         self.declare_parameter('working_dir', '/tmp/ros_riegl_vz')
         self.declare_parameter('ssh_user', 'user')
         self.declare_parameter('ssh_password', 'user')
-        self.declare_parameter('project_name', '')
+        self.declare_parameter('project_name', '') # also used in kinematic mode
         self.declare_parameter('scanpos_name', '')
         self.declare_parameter('storage_media', 0)
         self.declare_parameter('scan_pattern', [30.0,130.0,0.1,0.0,360.0,0.5])
-        self.declare_parameter('scan_pattern_name', '')
+        self.declare_parameter('scan_pattern_name', '') # also used in kinematic mode
         self.declare_parameter('meas_program', 0)
         self.declare_parameter('scan_publish', True)
         self.declare_parameter('voxel_publish', False)
@@ -103,6 +110,30 @@ class RieglVzWrapper(Node):
         self.declare_parameter('robot_project_transform', [0.0, 0.0, 0.0, 0.0, 0.0, 0.0])
         self.declare_parameter('imu_data_publish', False)
         self.declare_parameter('imu_index', 0)
+        self.declare_parameter('kinematic_project',"MyProject001")
+        self.declare_parameter('kinematic_gnss_configuration',"GNSS On Top")
+        self.declare_parameter('kinematic_force_rtk_fix',True)
+        self.declare_parameter('kinematic_gnss_post_processing',False)
+        self.declare_parameter('kinematic_navigation_frame_roll',180.0)
+        self.declare_parameter('kinematic_navigation_frame_pitch',0.0)
+        self.declare_parameter('kinematic_navigation_frame_yaw',180.0)
+        self.declare_parameter('kinematic_rotating_theta_start',30.0)
+        self.declare_parameter('kinematic_rotating_theta_stop',130.0)
+        self.declare_parameter('kinematic_rotating_theta_increment',0.034)
+        self.declare_parameter('kinematic_rotating_rotation_speed',150.0)
+        self.declare_parameter('kinematic_rotating_measurement_program',3)
+        self.declare_parameter('kinematic_rotating_change_direction',False)
+        self.declare_parameter('kinematic_rotating_change_direction_interval',30.0)
+        self.declare_parameter('kinematic_fix_angle_theta_start',30.0)
+        self.declare_parameter('kinematic_fix_angle_theta_stop',130.0)
+        self.declare_parameter('kinematic_fix_angle_theta_increment',0.034)
+        self.declare_parameter('kinematic_fix_angle_phi',90.0)
+        self.declare_parameter('kinematic_fix_angle_measurement_program',3)
+        self.declare_parameter('kinematic_static_scan_pattern',"")
+        self.declare_parameter('kinematic_static_scan_measurement_program',3)
+        self.declare_parameter('kinematic_recording_mode',"kinematic")
+        self.declare_parameter('kinematic_mode_rotating',True)
+
         self.hostname = str(self.get_parameter('hostname').value)
         self.workingDir = str(self.get_parameter('working_dir').value)
         self.sshUser = str(self.get_parameter('ssh_user').value)
@@ -183,11 +214,20 @@ class RieglVzWrapper(Node):
         self._download = self.create_service(MoveFile, 'download', self._downloadCallback)
         self._upload = self.create_service(MoveFile, 'upload', self._uploadCallback)
 
+        self._startKinematicModeService = self.create_service(Trigger, 'start_kinematic_mode', self._startKinematicMode)
+        self._stopKinematicModeService = self.create_service(Trigger, 'stop_kinematic_mode', self._stopKinematicMode)
+        self._startKinematicRecordingService = self.create_service(Trigger, 'start_kinematic_recording', self._startKinematicRecording)
+        self._stopKinematicRecordingService = self.create_service(Trigger, 'stop_kinematic_recording', self._stopKinematicRecording)
+
         self._rieglVz = RieglVz(self)
+        self._kinematicMode = KinematicMode(self)
 
         self._scanposition = '0'
         self.projectValid = False
         self.imuDataConnected = False
+        self._kinematicModeActive = False
+        self._kinematicAppForceGnssTime = True
+        self._kinematicRecordingActive = False
 
         self._statusUpdater = Updater(self)
         self._statusUpdater.setHardwareID('riegl_vz')
@@ -196,6 +236,7 @@ class RieglVzWrapper(Node):
         self._statusUpdater.add('gnss', self._produceGnssDiagnostics)
         self._statusUpdater.add('errors', self._produceErrorDiagnostics)
         self._statusUpdater.add('camera', self._produceCameraDiagnostics)
+        self._statusUpdater.add('kinematic_mode', self._produceKinematikDiagnostics)
 
         self._gnssFixTimer = self.create_timer(1.0, self._publishGnssFix)
 
@@ -336,11 +377,33 @@ class RieglVzWrapper(Node):
             err = DiagnosticStatus.WARN
             message = 'no camera'
         elif status.err:
-            err = DiagnosticStatus.ERROR
+            err = DiagnosticStatuscanpos_names.ERROR
             message = 'com error'
 
         diag.summary(err, message)
         diag.add('cam_avail', str(status.avail))
+        return diag
+
+    def _produceKinematikDiagnostics(self, diag):
+        if self._kinematicModeActive:
+            diag.summary(DiagnosticStatus.OK, 'ok')
+            status=self._kinematicMode.get_status()
+            diag.add('activ', str(status.aktiv))
+            diag.add('recording', str(status.recording))
+            diag.add('waiting_for_gnss_time',str(status.waiting_for_gnss_time))
+            diag.add('waiting_for_gnss_fix',str(status.waiting_for_gnss_fix))
+            diag.add('waiting_for_rtk_fix',str(status.waiting_for_rtk_fix))
+            if status.waiting_for_rtk_fix:
+                diag.summary(DiagnosticStatus.WARN, 'waiting for rtk information')
+            if status.waiting_for_gnss_fix:
+                diag.summary(DiagnosticStatus.WARN, 'waiting for GNSS fix')
+            if status.waiting_for_gnss_time:
+                diag.summary(DiagnosticStatus.ERROR, 'waiting for GNSS signal')
+            if status.error != "":
+                diag.summary(DiagnosticStatus.ERROR, str(status.error))
+        else:
+            diag.add('activ',"disabeld")
+            diag.summary(DiagnosticStatus.OK, 'ok')
         return diag
 
     def _publishGnssFix(self):
@@ -531,6 +594,104 @@ class RieglVzWrapper(Node):
         except Exception as e:
             self._setResponseException(response, e)
 
+        return response
+
+    def _startKinematicMode(self, request, response):
+        params=KinematicParams()
+
+        if self._kinematicModeActive:
+            self._setResponseStatus(response,False,"kinematic mode allready running")
+            return response
+
+        if not self._setResponseStatus(response, *self._checkExecConditions())[0]:
+            return response
+
+        params.project = str(self.get_parameter('kinematic_project').value)
+        params.gnss_configuration = str(self.get_parameter('kinematic_gnss_configuration').value)
+        params.force_rtk_fix = bool(self.get_parameter('kinematic_force_rtk_fix').value)
+        params.gnss_post_processing = bool(self.get_parameter('kinematic_gnss_post_processing').value)
+        params.navigation_frame.roll = float(self.get_parameter('kinematic_navigation_frame_roll').value)
+        params.navigation_frame.pitch = float(self.get_parameter('kinematic_navigation_frame_pitch').value)
+        params.navigation_frame.yaw = float(self.get_parameter('kinematic_navigation_frame_yaw').value)
+        params.kinematic_rotating.theta_start = float(self.get_parameter('kinematic_rotating_theta_start').value)
+        params.kinematic_rotating.theta_stop = float(self.get_parameter('kinematic_rotating_theta_stop').value)
+        params.kinematic_rotating.theta_increment = float(self.get_parameter('kinematic_rotating_theta_increment').value)
+        params.kinematic_rotating.rotation_speed = float(self.get_parameter('kinematic_rotating_rotation_speed').value)
+        params.kinematic_rotating.measurement_program = int(self.get_parameter('kinematic_rotating_measurement_program').value)
+        params.kinematic_rotating.change_direction = bool(self.get_parameter('kinematic_rotating_change_direction').value)
+        params.kinematic_rotating.change_direction_interval = float(self.get_parameter('kinematic_rotating_change_direction_interval').value)
+        params.kinematic_fix_angle.theta_start = float(self.get_parameter('kinematic_fix_angle_theta_start').value)
+        params.kinematic_fix_angle.theta_stop = float(self.get_parameter('kinematic_fix_angle_theta_stop').value)
+        params.kinematic_fix_angle.theta_increment = float(self.get_parameter('kinematic_fix_angle_theta_increment').value)
+        params.kinematic_fix_angle.phi = float(self.get_parameter('kinematic_fix_angle_phi').value)
+        params.kinematic_fix_angle.measurement_program = int(self.get_parameter('kinematic_fix_angle_measurement_program').value)
+        params.static_scan.measurement_program = int(self.get_parameter('kinematic_static_scan_measurement_program').value)
+        params.static_scan.scan_pattern = str(self.get_parameter('kinematic_static_scan_pattern').value)
+
+        self.get_logger().info("Kinematic mode parameter: ")
+        self.get_logger().info("project: " + params.project)
+        self.get_logger().info("gnss_configuration: " + params.gnss_configuration)
+        self.get_logger().info("force_rtk_fix: " + str(params.force_rtk_fix))
+        self.get_logger().info("gnss_post_processing: " + str(params.gnss_post_processing ))
+        self.get_logger().info("navigation_frame: ")
+        self.get_logger().info("\troll: " + str(params.navigation_frame.roll))
+        self.get_logger().info("\tpitch: " + str(params.navigation_frame.pitch))
+        self.get_logger().info("\tyaw: " + str(params.navigation_frame.yaw))
+        self.get_logger().info("kinematic_rotating: ")
+        self.get_logger().info("\ttheta_start: " + str(params.kinematic_rotating.theta_start))
+        self.get_logger().info("\ttheta_stop: " + str(params.kinematic_rotating.theta_stop))
+        self.get_logger().info("\ttheta_increment: " + str(params.kinematic_rotating.theta_increment))
+        self.get_logger().info("\trotation_speed: " + str(params.kinematic_rotating.rotation_speed))
+        self.get_logger().info("\tmeasurement_program: " + str(params.kinematic_rotating.measurement_program))
+        self.get_logger().info("\tchange_direction: " + str(params.kinematic_rotating.change_direction))
+        self.get_logger().info("\tchange_direction_interval: " + str(params.kinematic_rotating.change_direction_interval))
+        self.get_logger().info("kinematic_fix_angle: ")
+        self.get_logger().info("\ttheta_start: " + str(params.kinematic_fix_angle.theta_start))
+        self.get_logger().info("\ttheta_stop: " + str(params.kinematic_fix_angle.theta_stop))
+        self.get_logger().info("\ttheta_increment: " + str(params.kinematic_fix_angle.theta_increment))
+        self.get_logger().info("\tphi: " + str(params.kinematic_fix_angle.phi))
+        self.get_logger().info("\tmeasurement_program: " + str(params.kinematic_fix_angle.measurement_program))
+        self.get_logger().info("static_scan: ")
+        self.get_logger().info("\tmeasurement_program: " + str(params.static_scan.measurement_program))
+        self.get_logger().info("\tscan_pattern: " + params.static_scan.scan_pattern)
+        success,msg=self._kinematicMode.start_kinematic_mode(params)
+        self._setResponseStatus(response,success,msg)
+        if not success:
+            self._kinematicModeActive=False
+            return response
+        self._kinematicModeActive=True
+        return response
+
+    def _stopKinematicMode(self, request, response):
+        self.get_logger().info("stop kinematic mode")
+        success,msg=self._kinematicMode.stop_kinematic_mode()
+        self._setResponseStatus(response,success,msg)
+        if success:
+            self._kinematicModeActive=False
+        return response
+
+    def _startKinematicRecording(self, request, response):
+        if self._kinematicModeActive:
+            if not self._kinematicRecordingActive:
+                mode=str(self.get_parameter('kinematic_recording_mode').value)
+                rotating=bool(self.get_parameter('kinematic_mode_rotating').value)
+                self.get_logger().info("start kinematic recording in mode: "+mode+" rotating "+str(rotating))
+                success,msg=self._kinematicMode.start_recording(mode,rotating)
+                if success:
+                    self._kinematicRecordingActive = True
+                self._setResponseStatus(response,success,msg)
+            else:
+                self._setResponseStatus(response,False,"kinematic recording already running")
+        else:
+            self._setResponseStatus(response,False,"kinematic mode need to be started first")
+        return response
+
+    def _stopKinematicRecording(self, request, response):
+        self.get_logger().info("stop kinematic recording")
+        success,msg=self._kinematicMode.stop_recording()
+        if success:
+            self._kinematicRecordingActive = False
+        self._setResponseStatus(response,success,msg)
         return response
 
     def getPointCloud(self, scanpos, pointcloud):

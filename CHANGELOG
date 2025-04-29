@@ -1,3 +1,9 @@
+v1.7.0~dev:
+  
+  * Add support for kinematic scanning.
+
+ -- Andreas Friedl <afriedl@riegl.com>  Wed Mai 25 15:56:00 2025 +0200
+
 v1.6.0:
 
   * Improve scan data acquisition error handling.

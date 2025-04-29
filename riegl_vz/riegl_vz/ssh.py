@@ -63,7 +63,7 @@ class RemoteClient:
         scp.get(filepath, localpath)
         scp.close()
 
-    def executeCommand(self, command: str):
+    def executeCommand(self, command: str, return_errors=False):
         """
         Execute a single command.
 
@@ -71,6 +71,8 @@ class RemoteClient:
         :type command: str
         """
         stdin, stdout, stderr = self.connection.exec_command(command)
+        if return_errors:
+            return stdout.channel.recv_exit_status(), stdout.readlines(),stderr.readlines()
         return stdout.channel.recv_exit_status(), stdout.readlines()
 
     def executeCommands(self, commands: List[str]):
@@ -111,13 +113,15 @@ class RieglVzSSH:
         ssh.disconnect()
         self._logger.debug("File upload finished")
 
-    def executeCommand(self, cmd):
+    def executeCommand(self, cmd, return_errors=False):
         self._logger.debug("CMD = {}".format(cmd))
         ssh = RemoteClient(host=self._hostname, user=self._sshUser, password=self._sshPwd)
-        rc, response = ssh.executeCommand(cmd)
+        rc, response, error_lines = ssh.executeCommand(cmd,True)
         ssh.disconnect()
         self._logger.debug("RC = {}".format(rc))
         self._logger.debug("RESP = {}".format(' '.join(response)))
+        if return_errors:
+            return rc, response, error_lines
         return rc, response
 
     def listFiles(self, remotePath, filter):
