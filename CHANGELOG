@@ -1,4 +1,4 @@
-v1.6.0~dev:
+v1.6.0:
 
   * Improve scan data acquisition error handling.
   * Disable automatic registration in scanner.
