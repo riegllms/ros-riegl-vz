@@ -4,6 +4,7 @@ This is a ROS2 package for the RIEGL VZ-i series devices.
 The package has been tested with:  
 - ROS2 [Galactic Geochelone](https://docs.ros.org/en/galactic/index.html) on Ubuntu Desktop 20.04 (Focal Fossa)  
 - ROS2 [Humble Hawksbill](https://docs.ros.org/en/humble/index.html) on Ubuntu Desktop 22.04 (Jammy Jellyfish)  
+- ROS2 [Lyrical Luth](https://docs.ros.org/en/lyrical/index.html) on Ubuntu Desktop 26.04 (Resolute Raccoon) 
 
 It provides a ROS interface with services and topics for scan data acquisition and scan position registration with a 3D laser scanner.  
 In detail, it provides the following functions:
@@ -31,11 +32,11 @@ In detail, it provides the following functions:
 
 **ROS2 installation and setup:**
 
-Follow ROS2 installation instructions on https://docs.ros.org/en/galactic/Installation/Ubuntu-Development-Setup.html.
+Follow ROS2 installation instructions on https://docs.ros.org/en/lyrical/Get-Started/Installation/Ubuntu-Install-Debs.html.
 
-Configure the ROS2 environment according to https://docs.ros.org/en/galactic/Tutorials/Configuring-ROS2-Environment.html.
+Configure the ROS2 environment according to https://docs.ros.org/en/lyrical/Get-Started/Configuring-ROS2-Environment.html.
 
-Create a new workspace (https://docs.ros.org/en/galactic/Tutorials/Workspace/Creating-A-Workspace.html)
+Create a new workspace (https://docs.ros.org/en/lyrical/ROS-Framework/client-libraries/Working-with-Client-Libraries/Creating-A-Workspace/Creating-A-Workspace.html)
 and clone repository into subdirectory 'src'.
 
 **Install diagnostics updater package:**
